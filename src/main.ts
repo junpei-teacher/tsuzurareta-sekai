@@ -1,13 +1,37 @@
 import { Display } from "./core/display.ts";
 import { Keyboard } from "./core/input.ts";
+import type { Scene } from "./core/scene.ts";
+import { Player } from "./game/player.ts";
+import { verifyCanonicals } from "./spell/book.ts";
+import { BattleScene } from "./scenes/battle.ts";
 import { CasterTestScene } from "./scenes/casterTest.ts";
+import { SelectScene } from "./scenes/select.ts";
 
 const canvas = document.getElementById("screen") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("#screen が見つかりません");
 
+// 起動時の自己点検。canonical がハッシュとズレていたら即座に気づけるようにする
+const errors = verifyCanonicals();
+if (errors.length > 0) {
+  console.error("呪文表の canonical が不整合です:\n" + errors.join("\n"));
+}
+
 const display = new Display(canvas);
 const keyboard = new Keyboard();
-const scene = new CasterTestScene(keyboard);
+
+const player = new Player();
+player.grimoire.set(20, "ROZHA"); // 熾火。ミラが最初に教えてくれた言葉
+
+let scene: Scene;
+
+function goSelect(): void {
+  scene = new SelectScene(
+    player,
+    (enemy) => { scene = new BattleScene(player, enemy, goSelect); },
+    () => { scene = new CasterTestScene(goSelect); },
+  );
+}
+goSelect();
 
 let last = performance.now();
 let paused = false;
@@ -17,8 +41,9 @@ function frame(now: number): void {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
 
+  const keys = keyboard.poll();
   if (!paused) {
-    scene.update(dt);
+    scene.update(dt, keys);
     scene.render(display);
   }
 
@@ -34,7 +59,14 @@ if (import.meta.env.DEV) {
       pause: () => { paused = true; },
       resume: () => { paused = false; last = performance.now(); },
       /** 指定秒だけ時間を進めて1コマ描く */
-      step: (dt: number) => { scene.update(dt); scene.render(display); },
+      step: (dt: number) => { scene.update(dt, keyboard.poll()); scene.render(display); },
+      /** キーを流し込む */
+      key: (...names: string[]) => {
+        for (const n of names) {
+          window.dispatchEvent(new KeyboardEvent("keydown", { key: n, bubbles: true, cancelable: true }));
+        }
+      },
+      player,
     },
   });
 }

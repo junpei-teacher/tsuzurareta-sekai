@@ -44,6 +44,7 @@ export class CastFx {
   private rng: () => number = makeRng(1);
   private sparks: Spark[] = [];
   private sparksSpawned = false;
+  private locked = false;
   private shakeX = 0;
   private shakeY = 0;
 
@@ -65,6 +66,7 @@ export class CastFx {
     this.tier = tier;
     this.word = word;
     this.short = short;
+    this.locked = false;
     this.t = 0;
     this.dur = DURATION[tier] * (short ? SHORT_SCALE : 1);
     this.active = true;
@@ -76,6 +78,20 @@ export class CastFx {
       this.sparksSpawned = true;
       this.spawnSparks();
     }
+  }
+
+  /**
+   * 掘り当てたがMPが足りず唱えられなかったときの演出（設計書 3.6）。
+   * 文字は闇の中に浮かび上がるが、**炸裂しない**。そのまま消える。
+   * 「知っている。だが、まだ届かない。」
+   */
+  playLocked(tier: Tier, word: string, hash: number): void {
+    this.play(tier, word, hash, false);
+    this.locked = true;
+    this.tier = "MYTH";      // 溜めと文字浮かび上がりの演出を借りる
+    this.dur = 2.2;
+    this.sparksSpawned = true; // 粒子は出さない
+    this.sparks = [];
   }
 
   private spawnSparks(): void {
@@ -150,7 +166,11 @@ export class CastFx {
     const p = this.t / this.dur;
     let dim = 0;
 
-    if (this.tier === "MYTH") {
+    if (this.locked) {
+      // 暗転したまま、静かに晴れる。炸裂はない
+      dim = seg(p, 0, 0.14) * 0.82;
+      if (p > 0.62) dim = 0.82 * (1 - easeOutCubic(seg(p, 0.62, 1)));
+    } else if (this.tier === "MYTH") {
       // 0.00-0.14 でほぼ暗転 → 0.46 まで保持 → 炸裂とともに晴れる
       dim = seg(p, 0, 0.14) * 0.88;
       if (p > 0.46) dim = 0.88 * (1 - easeOutCubic(seg(p, 0.46, 0.62)));
@@ -175,6 +195,15 @@ export class CastFx {
     const isMyth = this.tier === "MYTH";
     const cx = isMyth ? SCREEN_W / 2 : 240;
     const cy = isMyth ? SCREEN_H / 2 : 84;
+
+    // ── 届かなかった言葉：浮かび上がって、そのまま消える ────
+    if (this.locked) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      this.drawRisingWord(d, p);
+      ctx.restore();
+      return;
+    }
 
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
@@ -270,7 +299,7 @@ export class CastFx {
    * 36px は 12px の3倍なのでドットフォントが崩れない。
    */
   private drawRisingWord(d: Display, p: number): void {
-    const reveal = seg(p, 0.14, 0.46); // 溜めの間に書き上がる
+    const reveal = seg(p, 0.14, this.locked ? 0.58 : 0.46); // 溜めの間に書き上がる
     if (reveal <= 0) return;
     const ctx = d.ctx;
     const size = 36;
@@ -281,6 +310,15 @@ export class CastFx {
     const totalW = d.measure(this.word, size);
     const x = Math.round((SCREEN_W - totalW) / 2);
     const y = Math.round(SCREEN_H / 2 - size / 2) - 10;
+
+    if (this.locked) {
+      // 届かない言葉。淡く灯って、力なく消える
+      const fade = 1 - easeOutCubic(seg(p, 0.62, 1));
+      ctx.globalAlpha = (0.35 + pulse(seg(p, 0.14, 1)) * 0.35) * fade;
+      d.text(full, x, y, TIER_COLOR.MYTH, size);
+      ctx.globalAlpha = 1;
+      return;
+    }
 
     // 炸裂後は白へ飛ばす
     const burst = seg(p, 0.46, 0.60);
