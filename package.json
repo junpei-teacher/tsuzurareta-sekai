@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "verify:dist": "tsx tools/verify-distribution.ts"
+    "verify:dist": "tsx tools/verify-distribution.ts",
+    "forge": "tsx tools/spell-forge.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
