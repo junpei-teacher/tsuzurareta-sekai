@@ -1,26 +1,30 @@
-import { Display, SCREEN_H, SCREEN_W } from "../core/display.ts";
+import { Display, SCREEN_W } from "../core/display.ts";
 import { Keyboard } from "../core/input.ts";
 import { PAL, TIER_COLOR } from "../core/palette.ts";
+import { CastFx } from "../fx/castFx.ts";
 import { resolveSpell, TIERS, type Resolution, type Tier } from "../spell/resolver.ts";
 
 /**
  * Phase 1 テストベッド（手順書 1-4）。
- * 文字列を打って ENTER を押すと、どの帯の何番が出たかだけを表示する。
+ * 文字列を打って ENTER を押すと、どの帯の何番が出たかを表示する。
  *
  * 完了条件は「100回ほど手打ちして、もう1回打ちたいと思えること」。
- * 思えなければ帯の境界値か演出を調整する。
  */
 export class CasterTestScene {
   private readonly kb: Keyboard;
+  private readonly fx = new CastFx();
+
   private history: Resolution[] = [];
   private tally: Record<Tier, number> = {
     DUD: 0, COMMON: 0, UNCOMMON: 0, RARE: 0, MYTH: 0,
   };
   private total = 0;
 
-  private caret = 0;      // カーソル点滅用
-  private flash = 0;      // 神話級を引いたときの閃光（1→0）
-  private shake = 0;      // 同・揺れ
+  /** 一度発動した呪文。2回目以降は演出を短縮版にする */
+  private seen = new Set<number>();
+  private lastWasShort = false;
+
+  private caret = 0;
 
   constructor(kb: Keyboard) {
     this.kb = kb;
@@ -28,27 +32,42 @@ export class CasterTestScene {
 
   update(dt: number): void {
     this.caret += dt;
-    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 1.6);
-    if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 2.2);
+    this.fx.update(dt);
 
     let submitted: string | null;
     while ((submitted = this.kb.takeSubmission()) !== null) {
       if (submitted.trim().length === 0) continue; // 空Enterは無視
       const res = resolveSpell(submitted);
+
+      // 撃ち慣れた呪文は短縮版で流す。
+      // 戦闘で同じ呪文を20回撃つ場面を考えると、初回と同じ尺は苦痛になる。
+      const known = res.spellId >= 0 && this.seen.has(res.spellId);
+      this.lastWasShort = known;
+      if (res.spellId >= 0) this.seen.add(res.spellId);
+
+      this.fx.play(res.tier, res.word, res.hash, known);
+
       this.history.unshift(res);
       if (this.history.length > 4) this.history.pop();
       this.tally[res.tier]++;
       this.total++;
-      if (res.tier === "MYTH") {
-        this.flash = 1;
-        this.shake = 1;
-      }
     }
   }
 
   render(d: Display): void {
     d.clear();
 
+    const sh = this.fx.shake;
+    d.ctx.save();
+    d.ctx.translate(sh.x, sh.y);
+    this.renderUi(d);
+    d.ctx.restore();
+
+    this.fx.renderBehind(d); // 暗転（溜め）
+    this.fx.renderFront(d);  // 光
+  }
+
+  private renderUi(d: Display): void {
     // ── ヘッダ ─────────────────────────────
     d.text("PHASE 1 ／ 詠唱テストベッド", 16, 8, PAL.accent);
     d.textRight("hash: FNV-1a 32bit", SCREEN_W - 16, 8, PAL.dim);
@@ -60,20 +79,20 @@ export class CasterTestScene {
     d.text(`> ${this.kb.text}${cursorOn ? "_" : ""}`, 24, 32, PAL.ink);
 
     // ── 結果パネル ──────────────────────────
-    const sx = this.shake > 0 ? Math.round((Math.random() - 0.5) * 6 * this.shake) : 0;
     d.rect(16, 56, 448, 54, PAL.panel);
-    d.frame(16, 56, 448, 54, PAL.line);
-
     const latest = this.history[0];
+    d.frame(16, 56, 448, 54, latest ? TIER_COLOR[latest.tier] : PAL.line);
+
     if (!latest) {
       d.text("文字を打って ENTER", 28, 74, PAL.dim);
     } else {
       const col = TIER_COLOR[latest.tier];
-      d.text(latest.label, 28 + sx, 62, col, 24);
+      d.text(latest.label, 28, 62, col, 24);
       if (latest.tier === "DUD") {
         d.text("言葉は、意味をなさなかった。", 28, 90, PAL.dim);
       } else {
         d.text(`帯内 #${latest.index}   spellId ${latest.spellId}`, 28, 90, PAL.dim);
+        if (this.lastWasShort) d.text("［短縮演出］", 200, 90, PAL.line);
       }
       d.textRight(latest.word, SCREEN_W - 28, 64, PAL.ink);
       d.textRight(
@@ -106,15 +125,9 @@ export class CasterTestScene {
     });
 
     d.textRight(`総詠唱 ${this.total}`, SCREEN_W - 16, 202, PAL.ink);
+    d.textRight(`既知 ${this.seen.size} 種`, SCREEN_W - 16, 216, PAL.dim);
 
     // ── 操作説明 ────────────────────────────
     d.text("A-Z 0-9 入力 ／ BACKSPACE 訂正 ／ ESC 全消し ／ ENTER 詠唱", 16, 252, PAL.dim);
-
-    // ── 神話級の閃光 ────────────────────────
-    if (this.flash > 0) {
-      d.ctx.globalAlpha = this.flash * 0.55;
-      d.rect(0, 0, SCREEN_W, SCREEN_H, TIER_COLOR.MYTH);
-      d.ctx.globalAlpha = 1;
-    }
   }
 }
