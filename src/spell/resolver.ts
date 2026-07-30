@@ -16,11 +16,14 @@ type TierDef = {
   designedRate: number;
 };
 
+// 【凍結】この境界値を変更してはならない。
+// Phase 2 の逆引きで決めた呪文名は、この配分に紐づいている。
+// 境界を動かすと、巻物の呪文が別の帯へ滑り落ちる（設計書 3.5）。
 export const TIERS: readonly TierDef[] = [
   { tier: "DUD",      limit:  1000, size:  0, label: "不発",       designedRate: 10 },
-  { tier: "COMMON",   limit:  5700, size: 20, label: "コモン",     designedRate: 47 },
-  { tier: "UNCOMMON", limit:  8400, size: 20, label: "アンコモン", designedRate: 27 },
-  { tier: "RARE",     limit:  9700, size: 12, label: "レア",       designedRate: 13 },
+  { tier: "COMMON",   limit:  4700, size: 20, label: "コモン",     designedRate: 37 },
+  { tier: "UNCOMMON", limit:  8200, size: 20, label: "アンコモン", designedRate: 35 },
+  { tier: "RARE",     limit:  9700, size: 12, label: "レア",       designedRate: 15 },
   { tier: "MYTH",     limit: 10000, size:  5, label: "神話",       designedRate:  3 },
 ] as const;
 
