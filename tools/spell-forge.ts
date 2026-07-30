@@ -145,6 +145,7 @@ let generated = 0;
 for (let i = 0; i < TARGET_POOL; i++) {
   const w = makeWord();
   if (w.length < 4 || w.length > 8) continue;
+  if (isBad(w)) continue;
   if (seen.has(w)) continue;
   seen.add(w);
   generated++;
