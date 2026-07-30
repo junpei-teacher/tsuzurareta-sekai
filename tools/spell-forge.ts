@@ -44,6 +44,46 @@ const book = JSON.parse(readFileSync(join(ROOT, "data/spells.json"), "utf8")) as
 };
 const needName = book.spells.filter((s) => s.origin !== "discovery");
 
+// ── 確定済み canonical の検証 ───────────────────
+// 選んだ文字列が本当に狙った呪文に当たるかを毎回確かめる。
+// ハッシュも帯境界も凍結済みなので、ここがズレたら人為ミスしかありえない。
+
+const decided = needName.filter((s) => s.canonical.length > 0);
+const mismatches: string[] = [];
+
+for (const s of decided) {
+  const res = resolveSpell(s.canonical);
+  if (res.spellId !== s.id) {
+    mismatches.push(
+      `  id ${s.id} 「${s.name}」 canonical "${s.canonical}" → ` +
+      `${res.label} #${res.index}（spellId ${res.spellId}）／ r=${res.r}`,
+    );
+  }
+}
+
+if (decided.length > 0) {
+  console.log(`\n=== canonical の検証（${decided.length} 件）===\n`);
+  if (mismatches.length > 0) {
+    console.error("*** 不一致がありました ***");
+    for (const m of mismatches) console.error(m);
+    console.error("\ndata/spells.json の canonical を修正してください。");
+    process.exit(1);
+  }
+  for (const s of decided) {
+    const res = resolveSpell(s.canonical);
+    console.log(
+      `  OK  id ${String(s.id).padStart(2)} ${s.name.padEnd(6, "　")} ` +
+      `${s.canonical.padEnd(9)} → ${res.label} #${res.index}  (r=${String(res.r).padStart(4)})`,
+    );
+  }
+}
+
+const stillOpen = needName.filter((s) => s.canonical.length === 0);
+if (stillOpen.length === 0) {
+  console.log(`\n命名は全 ${needName.length} 種で完了しています。候補リストの再生成は不要です。\n`);
+  process.exit(0);
+}
+
 // ── 発音しやすい文字列を作る ────────────────────
 
 const ONSETS = [
@@ -139,7 +179,7 @@ const PER_SPELL = 40;
 
 const seen = new Set<string>();
 const buckets = new Map<number, Array<{ w: string; score: number }>>();
-for (const s of needName) buckets.set(s.id, []);
+for (const s of stillOpen) buckets.set(s.id, []);
 
 let generated = 0;
 for (let i = 0; i < TARGET_POOL; i++) {
@@ -183,7 +223,7 @@ lines.push("");
 
 const TIER_ORDER = ["COMMON", "UNCOMMON", "RARE", "MYTH"];
 for (const tier of TIER_ORDER) {
-  const group = needName.filter((s) => s.tier === tier);
+  const group = stillOpen.filter((s) => s.tier === tier);
   if (group.length === 0) continue;
   lines.push(`## ${tier}`);
   lines.push("");
@@ -212,8 +252,8 @@ for (const tier of TIER_ORDER) {
 writeFileSync(join(ROOT, "tools/candidates.md"), lines.join("\n"), "utf8");
 
 console.log(`生成: ${generated.toLocaleString()} 語（ユニーク）`);
-console.log(`命名が必要な呪文: ${needName.length} 種`);
-for (const s of needName) {
+console.log(`未命名の呪文: ${stillOpen.length} 種`);
+for (const s of stillOpen) {
   console.log(`  id ${String(s.id).padStart(2)} ${s.name.padEnd(6, "　")} 候補 ${(buckets.get(s.id) ?? []).length} 件`);
 }
 console.log(`\n→ tools/candidates.md に書き出しました。`);
