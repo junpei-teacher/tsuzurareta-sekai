@@ -78,6 +78,22 @@ if (decided.length > 0) {
   }
 }
 
+// ── 呪文表の概況 ───────────────────────────────
+
+const ELEMENTS = ["FIRE", "ICE", "BOLT", "NAME", "HEAL", "NONE"] as const;
+const TIERS_IN_BOOK = ["COMMON", "UNCOMMON", "RARE", "MYTH"] as const;
+
+console.log(`\n=== 呪文表の概況（全 ${book.spells.length} 種）===\n`);
+console.log("帯          " + ELEMENTS.map((e) => e.padStart(5)).join(" ") + "   巻物/口伝");
+for (const t of TIERS_IN_BOOK) {
+  const group = book.spells.filter((s) => s.tier === t);
+  const cells = ELEMENTS.map(
+    (e) => String(group.filter((s) => s.element === e).length).padStart(5),
+  ).join(" ");
+  const named = group.filter((s) => s.origin !== "discovery").length;
+  console.log(`${t.padEnd(11)} ${cells}   ${named}/${group.length}`);
+}
+
 const stillOpen = needName.filter((s) => s.canonical.length === 0);
 if (stillOpen.length === 0) {
   console.log(`\n命名は全 ${needName.length} 種で完了しています。候補リストの再生成は不要です。\n`);
