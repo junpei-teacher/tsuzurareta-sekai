@@ -6,16 +6,18 @@ import { ENEMIES, type EnemyDef } from "../battle/model.ts";
 import { bar, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { LEVELS } from "../game/player.ts";
+import { clearProgress } from "../game/save.ts";
 
 /**
  * Phase 3 の動作確認用メニュー。
  * 製品には残さない。Phase 4 でフィールドに置き換わる。
  */
 const EXTRAS = [
-  "第1章を歩く",
+  "第1章を歩く　静かな書庫",
+  "第2章を歩く　炎上",
   "HP/MP/道具を全回復",
   "呪文帳を見る",
-  "呪文帳を初期化",
+  "呪文帳を初期化（セーブも消す）",
   "詠唱テストベッドへ",
 ];
 
@@ -29,7 +31,7 @@ export class SelectScene implements Scene {
     private readonly player: Player,
     private readonly onFight: (e: EnemyDef) => void,
     private readonly onTestbed: () => void,
-    private readonly onField: () => void,
+    private readonly onField: (chapter: number) => void,
   ) {}
 
   private get rows(): number {
@@ -57,21 +59,21 @@ export class SelectScene implements Scene {
       return;
     }
     switch (this.index - ENEMIES.length) {
-      case 0:
-        this.onField();
-        break;
-      case 1:
+      case 0: this.onField(1); break;
+      case 1: this.onField(2); break;
+      case 2:
         this.player.restore();
         this.player.items = { ink: 3, drop: 1 };
         break;
-      case 2:
+      case 3:
         this.viewing = true;
         this.grimoire.reset();
         break;
-      case 3:
+      case 4:
         this.player.grimoire.clear();
         this.player.unspoken.clear();
         this.player.grimoire.set(20, "ROZHA"); // 熾火だけは最初から
+        clearProgress();
         break;
       default:
         this.onTestbed();

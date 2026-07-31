@@ -5,6 +5,8 @@ import type { Scene } from "../core/scene.ts";
 import type { Player } from "../game/player.ts";
 import { getMap, walkable, type GameMap, type MapEntity, type Tile } from "../field/mapFormat.ts";
 import type { FieldState } from "../field/state.ts";
+import { BurnLayer, scorch } from "../fx/burn.ts";
+import { saveProgress } from "../game/save.ts";
 import { DialogueBox, speaker } from "../ui/dialogue.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { bar, windowBox } from "../ui/hud.ts";
@@ -29,6 +31,7 @@ export class FieldScene implements Scene {
   private map: GameMap;
   private readonly dialogue = new DialogueBox();
   private readonly grimoire = new GrimoireView();
+  private readonly burn = new BurnLayer();
   private grimoireOpen = false;
 
   /** 移動中の補間。0で静止 */
@@ -50,6 +53,18 @@ export class FieldScene implements Scene {
     this.map = getMap(state.mapId);
     this.fromX = state.x;
     this.fromY = state.y;
+    saveProgress(player);
+
+    // 章の入り口で一度だけ出す文章
+    if (state.intro.length > 0) {
+      this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, state.intro);
+      state.intro = [];
+    }
+  }
+
+  /** 炎上中は色を焦がす（設計書 2.8） */
+  private col(hex: string): string {
+    return this.state.burning ? scorch(hex) : hex;
   }
 
   // ── 更新 ──────────────────────────────────
@@ -57,6 +72,7 @@ export class FieldScene implements Scene {
   update(dt: number, keys: string[]): void {
     this.time += dt;
     this.dialogue.update(dt);
+    if (this.state.burning) this.burn.update(dt);
     if (this.noticeT > 0) this.noticeT -= dt;
 
     for (const key of keys) this.handleKey(key);
@@ -109,6 +125,9 @@ export class FieldScene implements Scene {
 
   private canEnter(x: number, y: number): boolean {
     if (x < 0 || y < 0 || x >= this.map.w || y >= this.map.h) return false;
+    // 第2章の瓦礫と、崩れて通れるようになったマス
+    if (this.state.isBlocked(this.map.id, x, y)) return false;
+    if (this.state.isOpened(this.map.id, x, y)) return true;
     if (!walkable(this.tileAt(x, y))) return false;
     // NPCは押しのけられない
     const npc = this.entityAt(x, y, "npc");
@@ -128,14 +147,23 @@ export class FieldScene implements Scene {
     );
   }
 
-  /** ミラは今いる部屋にしか現れない */
+  /**
+   * ミラは今いる部屋にしか現れない。
+   * 炎上後は誰もいない——NPCの配置を読み込まない（設計書 2.8）。
+   */
   private npcVisible(e: MapEntity): boolean {
+    if (this.state.burning) return false;
     if (e.ref !== "mira") return true;
     return this.state.miraRoom === this.map.id;
   }
 
   private onArrive(): void {
     const { x, y } = this.state;
+
+    if (this.state.isOpened(this.map.id, x, y)) {
+      this.showNotice("……降りるしかない。");
+      return;
+    }
 
     const door = this.entityAt(x, y, "door");
     if (door) {
@@ -202,12 +230,13 @@ export class FieldScene implements Scene {
   render(d: Display): void {
     d.clear();
 
-    d.text(this.map.name, 18, 8, PAL.accent);
+    d.text(this.map.name, 18, 8, this.state.burning ? "#e07a34" : PAL.accent);
     d.textRight("TAB 呪文帳　ENTER しらべる　ESC もどる", SCREEN_W - 16, 8, PAL.line);
 
     this.renderTiles(d);
     this.renderEntities(d);
     this.renderPlayer(d);
+    if (this.state.burning) this.burn.render(d);
     this.renderStatus(d);
 
     if (this.noticeT > 0 && !this.dialogue.active) {
@@ -234,31 +263,33 @@ export class FieldScene implements Scene {
     const px = ORIGIN_X + x * TILE;
     const py = ORIGIN_Y + y * TILE;
 
+    const c = (hex: string) => this.col(hex);
+
     switch (t) {
       case "#":
-        d.rect(px, py, TILE, TILE, "#2a231d");
-        d.rect(px, py, TILE, 2, "#3d332a");
+        d.rect(px, py, TILE, TILE, c("#2a231d"));
+        d.rect(px, py, TILE, 2, c("#3d332a"));
         break;
       case ".":
-        d.rect(px, py, TILE, TILE, (x + y) % 2 === 0 ? "#1b1714" : "#191512");
+        d.rect(px, py, TILE, TILE, c((x + y) % 2 === 0 ? "#1b1714" : "#191512"));
         break;
       case "B": {
-        d.rect(px, py, TILE, TILE, "#3b2a1c");
+        d.rect(px, py, TILE, TILE, c("#3b2a1c"));
         // 背表紙。座標から決まるので毎フレーム同じ
         for (let i = 0; i < 4; i++) {
           const seed = (x * 31 + y * 17 + i * 7) % 5;
           const cols = ["#6a4b33", "#7a5340", "#4f5f52", "#6b5f4d", "#5a4058"];
-          d.rect(px + 2 + i * 3, py + 3, 2, 11, cols[seed]!);
+          d.rect(px + 2 + i * 3, py + 3, 2, 11, c(cols[seed]!));
         }
-        d.rect(px, py + TILE - 2, TILE, 2, "#241a11");
+        d.rect(px, py + TILE - 2, TILE, 2, c("#241a11"));
         break;
       }
       case "T":
-        d.rect(px, py, TILE, TILE, "#4a3826");
-        d.rect(px, py, TILE, 3, "#5c4832");
+        d.rect(px, py, TILE, TILE, c("#4a3826"));
+        d.rect(px, py, TILE, 3, c("#5c4832"));
         break;
       case "C": {
-        d.rect(px + 5, py + 6, 6, 10, "#4a4038");
+        d.rect(px + 5, py + 6, 6, 10, c("#4a4038"));
         const flick = 0.6 + 0.4 * Math.sin(this.time * 9 + x * 3 + y);
         d.ctx.globalAlpha = flick;
         d.rect(px + 7, py + 2, 2, 4, "#f0b83c");
@@ -268,13 +299,20 @@ export class FieldScene implements Scene {
         break;
       }
       case "=":
-        d.rect(px, py, TILE, TILE, "#3a3028");
-        d.rect(px, py, TILE, 2, "#4c4034");
+        d.rect(px, py, TILE, TILE, c("#3a3028"));
+        d.rect(px, py, TILE, 2, c("#4c4034"));
         break;
       case "V":
-        d.rect(px, py, TILE, TILE, "#221d19");
-        for (let i = 0; i < 4; i++) d.rect(px, py + i * 4, TILE, 1, "#3a3129");
+        d.rect(px, py, TILE, TILE, c("#221d19"));
+        for (let i = 0; i < 4; i++) d.rect(px, py + i * 4, TILE, 1, c("#3a3129"));
         break;
+    }
+
+    // 焼け落ちた梁で塞がれたマス
+    if (this.state.isBlocked(this.map.id, x, y)) {
+      d.rect(px + 1, py + 4, TILE - 2, 5, "#4a2a18");
+      d.rect(px + 3, py + 9, TILE - 7, 4, "#33200f");
+      d.rect(px + 1, py + 4, TILE - 2, 1, "#7a3f20");
     }
   }
 

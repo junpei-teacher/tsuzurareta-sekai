@@ -4,6 +4,7 @@ import type { Scene } from "./core/scene.ts";
 import { Player } from "./game/player.ts";
 import { FieldState } from "./field/state.ts";
 import { ENEMIES } from "./battle/model.ts";
+import { loadProgress, saveProgress } from "./game/save.ts";
 import { verifyCanonicals } from "./spell/book.ts";
 import { BattleScene } from "./scenes/battle.ts";
 import { CasterTestScene } from "./scenes/casterTest.ts";
@@ -23,6 +24,7 @@ const display = new Display(canvas);
 const keyboard = new Keyboard();
 
 const player = new Player();
+loadProgress(player); // 呪文帳は周回を跨いで残る（設計書 5.4）
 player.grimoire.set(20, "ROZHA"); // 熾火。ミラが最初に教えてくれた言葉
 
 const field = new FieldState();
@@ -32,9 +34,11 @@ let scene: Scene;
 function goSelect(): void {
   scene = new SelectScene(
     player,
-    (enemy) => { scene = new BattleScene(player, enemy, goSelect); },
+    (enemy) => {
+      scene = new BattleScene(player, enemy, () => { saveProgress(player); goSelect(); });
+    },
     () => { scene = new CasterTestScene(goSelect); },
-    goField,
+    (chapter) => { field.startChapter(chapter, player); goField(); },
   );
 }
 
@@ -48,6 +52,7 @@ function goField(): void {
       if (!def) { console.warn(`敵 ${enemyId} が見つかりません`); return; }
       scene = new BattleScene(player, def, (result) => {
         if (result === "WIN") field.defeated.add(cellKey);
+        saveProgress(player);
         goField();
       });
     },
