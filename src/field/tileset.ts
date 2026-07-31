@@ -12,6 +12,14 @@ import raw from "../../data/tiles/stone.json";
  * 本作のマップは「マス」で床と壁を持っているので、
  * **マスの中心を頂点とみなし、タイル層だけを半マスずらして描く**（src/scenes/field.ts）。
  * こうすると壁と床の境界がマスの境界にぴったり乗り、当たり判定と一致する。
+ *
+ * 【メタデータとシートの対応について】
+ * data/tiles/stone.json は最初に生成したタイルセット（b20705b0…）のもので、
+ * public/assets/tiles/stone.png は2枚目（cda35706…）のシート。
+ * PixelLab のレイアウト名が両方とも `tileset15_4x4` で、
+ * この対応表で描いて壁が正しく繋がることを目視確認済み。
+ * 3枚目以降を追加するときは、必ずプレビュー（npm run preview:map）で
+ * 壁の連続性を確認すること。ズレていればそのセット専用のメタデータが要る。
  */
 
 type Corner = "upper" | "lower";

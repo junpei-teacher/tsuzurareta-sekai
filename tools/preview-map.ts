@@ -22,7 +22,13 @@ if (!mapName) {
   console.error("使い方: npm run preview:map -- <マップ名> [出力先.png]");
   process.exit(1);
 }
-const outPath = process.argv[3] ?? join(ROOT, `public/assets/tiles/_map_${mapName}.png`);
+const args = process.argv.slice(2);
+const flag = (name: string, def: string): string => {
+  const i = args.indexOf(name);
+  return i >= 0 && args[i + 1] !== undefined ? args[i + 1]! : def;
+};
+const outPath = flag("--out", join(ROOT, `public/assets/tiles/_map_${mapName}.png`));
+const sheetPath = flag("--sheet", join(ROOT, "public/assets/tiles/stone_pal.png"));
 
 // ── マップを読む（!指示行は読み飛ばして本体だけ使う） ──────────
 const src = readFileSync(join(ROOT, `data/maps/${mapName}.room`), "utf8").replace(/\r\n/g, "\n");
@@ -47,7 +53,7 @@ type RawTile = {
 const meta = JSON.parse(readFileSync(join(ROOT, "data/tiles/stone.json"), "utf8")) as {
   tileset_data: { tiles: RawTile[] };
 };
-const sheet = PNG.sync.read(readFileSync(join(ROOT, "public/assets/tiles/stone_pal.png")));
+const sheet = PNG.sync.read(readFileSync(sheetPath));
 
 const wang = new Array<RawTile["bounding_box"] | undefined>(16);
 for (const t of meta.tileset_data.tiles) {
