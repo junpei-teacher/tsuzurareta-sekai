@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "verify:dist": "tsx tools/verify-distribution.ts",
     "forge": "tsx tools/spell-forge.ts",
-    "palettize": "tsx tools/palettize.ts"
+    "palettize": "tsx tools/palettize.ts",
+    "fetch": "tsx tools/fetch-frames.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

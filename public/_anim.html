@@ -43,8 +43,11 @@ const SETS = [
     desc:'1発／方向<br><span class="ok">本も顔も待機のまま</span><br><span class="ng">脚がほぼ動かない</span>',
     frames:[0,1,2,3,4].map(i=>`/assets/sprites/mira/walk_v3/south_${i}_pal.png`) },
   { key:'v3s', title:'v3 custom（歩幅を明示・8フレーム）',
-    desc:'1発／方向<br><span class="ok">本も顔も待機のまま</span><br><span class="ng">下半身が潰れて足が読めない</span>',
+    desc:'1発／方向<br><span class="ok">本も顔も待機のまま</span><br><span class="ng">両足が同時に動いて跳ねて見える</span><br><span class="ng">「体を上下に揺らせ」と指示したのが原因</span>',
     frames:[0,1,2,3,4,5,6,7,8].map(i=>`/assets/sprites/mira/walk_v3s/south_${i}_pal.png`) },
+  { key:'v3a', title:'v3 custom（対角の入れ替えを明示・8フレーム）',
+    desc:'1発／方向<br>跳ねは消えた<br><span class="ng">今度は脚が左右に開く（前後ではなく横）</span><br><span class="ng">正面視点の奥行きを解釈できていない</span>',
+    frames:[0,1,2,3,4,5,6,7].map(i=>`/assets/sprites/mira/walk_v3a/south_${i}_pal.png`) },
 ];
 
 const SCALE = 6, SIZE = 48;
