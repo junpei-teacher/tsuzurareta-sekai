@@ -24,14 +24,15 @@ function seq(key: string, template: string, count: number): Record<string, strin
  */
 export const MANIFEST: Record<string, string> = {
   // 主人公。画面内を歩く唯一のキャラなので4方向の歩行を持つ
-  "hero.south": "/assets/sprites/hero2/south.png",
-  "hero.north": "/assets/sprites/hero2/north.png",
-  "hero.east": "/assets/sprites/hero2/east.png",
-  "hero.west": "/assets/sprites/hero2/west.png",
-  ...seq("hero.walk.south", "/assets/sprites/hero2/walk/south_{i}.png", 4),
-  ...seq("hero.walk.north", "/assets/sprites/hero2/walk/north_{i}.png", 4),
-  ...seq("hero.walk.east", "/assets/sprites/hero2/walk/east_{i}.png", 4),
-  ...seq("hero.walk.west", "/assets/sprites/hero2/walk/west_{i}.png", 4),
+  // v3。フードを常に下ろした形にして、4方向で装備が食い違わないようにした
+  "hero.south": "/assets/sprites/hero3/south.png",
+  "hero.north": "/assets/sprites/hero3/north.png",
+  "hero.east": "/assets/sprites/hero3/east.png",
+  "hero.west": "/assets/sprites/hero3/west.png",
+  ...seq("hero.walk.south", "/assets/sprites/hero3/walk/south_{i}.png", 4),
+  ...seq("hero.walk.north", "/assets/sprites/hero3/walk/north_{i}.png", 4),
+  ...seq("hero.walk.east", "/assets/sprites/hero3/walk/east_{i}.png", 4),
+  ...seq("hero.walk.west", "/assets/sprites/hero3/walk/west_{i}.png", 4),
 
   // Wang タイルセット（各16タイル・4x4シート・32px）
   // 減色はかけない。生成そのままの色をそのまま使う
