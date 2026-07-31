@@ -17,9 +17,18 @@ const HANDLED = new Set([
 
 export class Keyboard {
   private queue: string[] = [];
+  /** 押しっぱなしのキー。フィールドの連続移動に使う */
+  private held = new Set<string>();
 
   constructor() {
     window.addEventListener("keydown", (e) => this.onKeyDown(e));
+    window.addEventListener("keyup", (e) => this.held.delete(this.norm(e.key)));
+    // ウィンドウから外れたときに押しっぱなし状態が残らないようにする
+    window.addEventListener("blur", () => this.held.clear());
+  }
+
+  private norm(key: string): string {
+    return key.length === 1 && /[a-zA-Z0-9]/.test(key) ? key.toUpperCase() : key;
   }
 
   private onKeyDown(e: KeyboardEvent): void {
@@ -29,7 +38,9 @@ export class Keyboard {
     const isChar = e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key);
     if (!isChar && !HANDLED.has(e.key)) return;
 
-    this.queue.push(isChar ? e.key.toUpperCase() : e.key);
+    const key = this.norm(e.key);
+    if (!e.repeat) this.queue.push(key);
+    this.held.add(key);
     e.preventDefault();
   }
 
@@ -38,5 +49,9 @@ export class Keyboard {
     const out = this.queue;
     this.queue = [];
     return out;
+  }
+
+  isDown(key: string): boolean {
+    return this.held.has(key);
   }
 }

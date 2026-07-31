@@ -2,9 +2,12 @@ import { Display } from "./core/display.ts";
 import { Keyboard } from "./core/input.ts";
 import type { Scene } from "./core/scene.ts";
 import { Player } from "./game/player.ts";
+import { FieldState } from "./field/state.ts";
+import { ENEMIES } from "./battle/model.ts";
 import { verifyCanonicals } from "./spell/book.ts";
 import { BattleScene } from "./scenes/battle.ts";
 import { CasterTestScene } from "./scenes/casterTest.ts";
+import { FieldScene } from "./scenes/field.ts";
 import { SelectScene } from "./scenes/select.ts";
 
 const canvas = document.getElementById("screen") as HTMLCanvasElement | null;
@@ -22,6 +25,8 @@ const keyboard = new Keyboard();
 const player = new Player();
 player.grimoire.set(20, "ROZHA"); // 熾火。ミラが最初に教えてくれた言葉
 
+const field = new FieldState();
+
 let scene: Scene;
 
 function goSelect(): void {
@@ -29,8 +34,27 @@ function goSelect(): void {
     player,
     (enemy) => { scene = new BattleScene(player, enemy, goSelect); },
     () => { scene = new CasterTestScene(goSelect); },
+    goField,
   );
 }
+
+function goField(): void {
+  scene = new FieldScene(
+    keyboard,
+    player,
+    field,
+    (enemyId, cellKey) => {
+      const def = ENEMIES.find((e) => e.id === enemyId);
+      if (!def) { console.warn(`敵 ${enemyId} が見つかりません`); return; }
+      scene = new BattleScene(player, def, (result) => {
+        if (result === "WIN") field.defeated.add(cellKey);
+        goField();
+      });
+    },
+    goSelect,
+  );
+}
+
 goSelect();
 
 let last = performance.now();
@@ -64,9 +88,17 @@ if (import.meta.env.DEV) {
       key: (...names: string[]) => {
         for (const n of names) {
           window.dispatchEvent(new KeyboardEvent("keydown", { key: n, bubbles: true, cancelable: true }));
+          window.dispatchEvent(new KeyboardEvent("keyup", { key: n, bubbles: true, cancelable: true }));
         }
       },
-      player,
+      /** 押しっぱなしを再現する */
+      hold: (name: string) => window.dispatchEvent(
+        new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true }),
+      ),
+      release: (name: string) => window.dispatchEvent(
+        new KeyboardEvent("keyup", { key: name, bubbles: true, cancelable: true }),
+      ),
+      player, field,
     },
   });
 }

@@ -17,7 +17,7 @@ const COMMANDS = ["詠唱", "呪文帳", "道具", "逃げる"] as const;
 export class BattleScene implements Scene {
   private readonly battle: Battle;
   private readonly player: Player;
-  private readonly onExit: () => void;
+  private readonly onExit: (result: "WIN" | "LOSE" | "FLED") => void;
 
   private readonly fx = new CastFx();
   private readonly field = new TextField();
@@ -29,7 +29,11 @@ export class BattleScene implements Scene {
   private hitFlash = 0;
   private prevEnemyHp: number;
 
-  constructor(player: Player, enemyDef: EnemyDef, onExit: () => void) {
+  constructor(
+    player: Player,
+    enemyDef: EnemyDef,
+    onExit: (result: "WIN" | "LOSE" | "FLED") => void,
+  ) {
     this.player = player;
     this.battle = new Battle(player, spawn(enemyDef));
     this.onExit = onExit;
@@ -132,7 +136,7 @@ export class BattleScene implements Scene {
       case "WIN":
       case "LOSE":
       case "FLED":
-        if (key === "Enter" || key === " ") this.onExit();
+        if (key === "Enter" || key === " ") this.onExit(b.phase);
         return;
     }
   }

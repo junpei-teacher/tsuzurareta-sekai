@@ -11,7 +11,13 @@ import { LEVELS } from "../game/player.ts";
  * Phase 3 の動作確認用メニュー。
  * 製品には残さない。Phase 4 でフィールドに置き換わる。
  */
-const EXTRAS = ["HP/MP/道具を全回復", "呪文帳を見る", "呪文帳を初期化", "詠唱テストベッドへ"];
+const EXTRAS = [
+  "第1章を歩く",
+  "HP/MP/道具を全回復",
+  "呪文帳を見る",
+  "呪文帳を初期化",
+  "詠唱テストベッドへ",
+];
 
 export class SelectScene implements Scene {
   private index = 0;
@@ -23,6 +29,7 @@ export class SelectScene implements Scene {
     private readonly player: Player,
     private readonly onFight: (e: EnemyDef) => void,
     private readonly onTestbed: () => void,
+    private readonly onField: () => void,
   ) {}
 
   private get rows(): number {
@@ -51,14 +58,17 @@ export class SelectScene implements Scene {
     }
     switch (this.index - ENEMIES.length) {
       case 0:
+        this.onField();
+        break;
+      case 1:
         this.player.restore();
         this.player.items = { ink: 3, drop: 1 };
         break;
-      case 1:
+      case 2:
         this.viewing = true;
         this.grimoire.reset();
         break;
-      case 2:
+      case 3:
         this.player.grimoire.clear();
         this.player.unspoken.clear();
         this.player.grimoire.set(20, "ROZHA"); // 熾火だけは最初から

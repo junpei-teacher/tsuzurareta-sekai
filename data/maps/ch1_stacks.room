@@ -1,0 +1,22 @@
+!id ch1_stacks
+!name 大書架
+!spawn 13 2
+!npc a mira
+!enemy 1 bookworm
+!door n ch1_reading 13 12
+!door e ch1_stairs 1 6
+!map
+#############n##############
+#..........................#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#..........................#
+#..........................e
+#..........................#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.......1.........a........#
+#..........................#
+############################
