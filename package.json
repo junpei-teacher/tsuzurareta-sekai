@@ -8,10 +8,13 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "verify:dist": "tsx tools/verify-distribution.ts",
-    "forge": "tsx tools/spell-forge.ts"
+    "forge": "tsx tools/spell-forge.ts",
+    "palettize": "tsx tools/palettize.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
+    "@types/pngjs": "^6.0.5",
+    "pngjs": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vite": "^6.0.7"
