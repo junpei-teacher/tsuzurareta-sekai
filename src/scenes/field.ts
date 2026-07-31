@@ -5,6 +5,7 @@ import type { Scene } from "../core/scene.ts";
 import type { Player } from "../game/player.ts";
 import { getMap, walkable, type GameMap, type MapEntity, type Tile } from "../field/mapFormat.ts";
 import type { FieldState } from "../field/state.ts";
+import type { ImageMap } from "../core/assets.ts";
 import { BurnLayer, scorch } from "../fx/burn.ts";
 import { saveProgress } from "../game/save.ts";
 import { DialogueBox, speaker } from "../ui/dialogue.ts";
@@ -17,6 +18,11 @@ const ORIGIN_X = 16;
 const ORIGIN_Y = 26;
 /** 1マス進むのにかかる秒数 */
 const STEP_TIME = 0.15;
+/**
+ * スプライトの足元をマス下端からどれだけ下げるか。
+ * PixelLab の出力はキャンバス内で少し浮いているので、その分を吸収する。
+ */
+const SPRITE_FOOT = 4;
 
 const DIRS = {
   up: { x: 0, y: -1, key: "ArrowUp" },
@@ -47,6 +53,7 @@ export class FieldScene implements Scene {
     private readonly kb: Keyboard,
     private readonly player: Player,
     private readonly state: FieldState,
+    private readonly images: ImageMap,
     private readonly onBattle: (enemyId: string, cellKey: string) => void,
     private readonly onVault: () => void,
     private readonly onExit: () => void,
@@ -373,6 +380,14 @@ export class FieldScene implements Scene {
       }
 
       if (!this.npcVisible(e)) continue;
+
+      // ドット絵があれば使う。無ければ矩形のまま（Phase 7 は差し替え途中でも動く）
+      const img = this.images[`${e.ref}.south`];
+      if (img) {
+        // 48x48 のキャンバスを、足元がマスの下端に来るように置く
+        d.sprite(img, px + (TILE - img.width) / 2, py + TILE - img.height + SPRITE_FOOT);
+        continue;
+      }
       const sp = speaker(e.ref);
       d.rect(px + 3, py + 2, 10, 13, sp?.color ?? "#8a8a9a");
       d.rect(px + 3, py + 2, 10, 4, "#241a11");

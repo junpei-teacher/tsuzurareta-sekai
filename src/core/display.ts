@@ -71,6 +71,11 @@ export class Display {
     this.ctx.fillText(str, (x - w) | 0, y | 0);
   }
 
+  /** スプライトを等倍で描く。座標は整数に丸めてドットを崩さない */
+  sprite(img: HTMLImageElement, x: number, y: number): void {
+    this.ctx.drawImage(img, x | 0, y | 0);
+  }
+
   measure(str: string, size = 12): number {
     this.ctx.font = `${size}px ${FONT_STACK}`;
     return this.ctx.measureText(str).width;

@@ -1,3 +1,4 @@
+import { loadImages } from "./core/assets.ts";
 import { Display } from "./core/display.ts";
 import { Keyboard } from "./core/input.ts";
 import type { Scene } from "./core/scene.ts";
@@ -26,6 +27,9 @@ if (errors.length > 0) {
 const display = new Display(canvas);
 const keyboard = new Keyboard();
 
+// ドット絵を読み終えてからループを回す。未配置のアセットは矩形のまま表示される
+const images = await loadImages();
+
 const player = new Player();
 loadProgress(player); // 呪文帳は周回を跨いで残る（設計書 5.4）
 player.grimoire.set(20, "ROZHA"); // 熾火。ミラが最初に教えてくれた言葉
@@ -51,6 +55,7 @@ function goField(): void {
     keyboard,
     player,
     field,
+    images,
     (enemyId, cellKey) => {
       const def = ENEMIES.find((e) => e.id === enemyId);
       if (!def) { console.warn(`敵 ${enemyId} が見つかりません`); return; }
