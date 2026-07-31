@@ -24,32 +24,31 @@ function seq(key: string, template: string, count: number): Record<string, strin
  */
 export const MANIFEST: Record<string, string> = {
   // 主人公。画面内を歩く唯一のキャラなので4方向の歩行を持つ
-  "hero.south": "/assets/sprites/hero/south_pal.png",
-  "hero.north": "/assets/sprites/hero/north_pal.png",
-  "hero.east": "/assets/sprites/hero/east_pal.png",
-  "hero.west": "/assets/sprites/hero/west_pal.png",
-  ...seq("hero.walk.south", "/assets/sprites/hero/walk/south_{i}_pal.png", 4),
-  ...seq("hero.walk.north", "/assets/sprites/hero/walk/north_{i}_pal.png", 4),
-  ...seq("hero.walk.east", "/assets/sprites/hero/walk/east_{i}_pal.png", 4),
-  ...seq("hero.walk.west", "/assets/sprites/hero/walk/west_{i}_pal.png", 4),
+  "hero.south": "/assets/sprites/hero2/south.png",
+  "hero.north": "/assets/sprites/hero2/north.png",
+  "hero.east": "/assets/sprites/hero2/east.png",
+  "hero.west": "/assets/sprites/hero2/west.png",
+  ...seq("hero.walk.south", "/assets/sprites/hero2/walk/south_{i}.png", 4),
+  ...seq("hero.walk.north", "/assets/sprites/hero2/walk/north_{i}.png", 4),
+  ...seq("hero.walk.east", "/assets/sprites/hero2/walk/east_{i}.png", 4),
+  ...seq("hero.walk.west", "/assets/sprites/hero2/walk/west_{i}.png", 4),
 
-  // Wang タイルセット（各16タイル・4x4シート）
-  "tiles.stone": "/assets/tiles/stone_pal.png",
-  "tiles.shelf": "/assets/tiles/shelf_pal.png",
+  // Wang タイルセット（各16タイル・4x4シート・32px）
+  // 減色はかけない。生成そのままの色をそのまま使う
+  "tiles.stone": "/assets/tiles2/stone.png",
+  "tiles.shelf": "/assets/tiles2/shelf.png",
 
-  // 家具。マスに乗せるスプライト
-  "prop.desk": "/assets/props/desk_pal.png",
-  "prop.candle": "/assets/props/candle_pal.png",
-  "prop.door": "/assets/props/door_pal.png",
-  "prop.stairs": "/assets/props/stairs_pal.png",
-  "prop.rubble": "/assets/props/rubble_pal.png",
+  // 家具。マスに乗せるスプライト（32pxタイル用に2倍サイズ）
+  "prop.desk": "/assets/props2/desk.png",
+  "prop.candle": "/assets/props2/candle.png",
+  "prop.door": "/assets/props2/door.png",
+  "prop.stairs": "/assets/props2/stairs.png",
+  "prop.rubble": "/assets/props2/rubble.png",
 
-  "mira.south": "/assets/sprites/mira/south_pal.png",
-  "mira.north": "/assets/sprites/mira/north_pal.png",
-  "mira.east": "/assets/sprites/mira/east_pal.png",
-  "mira.west": "/assets/sprites/mira/west_pal.png",
-  // 待機モーション。本を抱えたまま、わずかに体が揺れる
-  ...seq("mira.idle", "/assets/sprites/mira/walk_v3/south_{i}_pal.png", 5),
+  "mira.south": "/assets/sprites/mira2/south.png",
+  "mira.north": "/assets/sprites/mira2/north.png",
+  "mira.east": "/assets/sprites/mira2/east.png",
+  "mira.west": "/assets/sprites/mira2/west.png",
 };
 
 /**

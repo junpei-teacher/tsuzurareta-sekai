@@ -7,6 +7,7 @@ import { getMap, walkable, type GameMap, type MapEntity, type Tile } from "../fi
 import type { FieldState } from "../field/state.ts";
 import { WANG_SHELF, WANG_STONE, type WangTable } from "../field/tileset.ts";
 import { frames, type ImageMap } from "../core/assets.ts";
+import { BloomLayer, type Light } from "../fx/bloom.ts";
 import { BurnLayer, scorch } from "../fx/burn.ts";
 import { saveProgress } from "../game/save.ts";
 import { DialogueBox, speaker } from "../ui/dialogue.ts";
@@ -55,6 +56,7 @@ export class FieldScene implements Scene {
   private readonly dialogue = new DialogueBox();
   private readonly grimoire = new GrimoireView();
   private readonly burn = new BurnLayer();
+  private readonly bloom = new BloomLayer();
   private grimoireOpen = false;
 
   /** 移動中の補間。0で静止 */
@@ -99,6 +101,7 @@ export class FieldScene implements Scene {
   update(dt: number, keys: string[]): void {
     this.time += dt;
     this.dialogue.update(dt);
+    this.bloom.update(dt);
     if (this.state.burning) this.burn.update(dt);
     if (this.noticeT > 0) this.noticeT -= dt;
 
@@ -280,6 +283,9 @@ export class FieldScene implements Scene {
     this.renderTiles(d);
     this.renderEntities(d);
     this.renderPlayer(d);
+    // 光は絵の上、UIの下。燭台のにじみと床の光だまりがここで乗る
+    this.bloom.render(d, this.collectLights(), this.state.burning ? 0.10 : 0.05,
+      this.state.burning ? "#e07a34" : "#c8792f");
     if (this.state.burning) this.burn.render(d);
     this.renderStatus(d);
 
@@ -365,6 +371,35 @@ export class FieldScene implements Scene {
   }
 
   /** 家具のスプライト。無いものは手描きの矩形に落ちる */
+  /**
+   * この部屋の光源を集める。
+   * 燭台が主光源。第2章では床のあちこちが燃えているので、光が増えて赤く寄る。
+   */
+  private collectLights(): Light[] {
+    const out: Light[] = [];
+    this.forEachTile("C", (x, y) => {
+      out.push({
+        x: ORIGIN_X + x * TILE + TILE / 2,
+        y: ORIGIN_Y + y * TILE - 2,
+        radius: 44,
+        strength: 0.55,
+        color: "#f0b83c",
+      });
+    });
+    // 禁書は自分で光っている
+    for (const e of this.map.entities) {
+      if (e.kind !== "vault") continue;
+      out.push({
+        x: ORIGIN_X + e.x * TILE + TILE / 2,
+        y: ORIGIN_Y + e.y * TILE + TILE / 2,
+        radius: 60,
+        strength: 0.45,
+        color: "#c8912f",
+      });
+    }
+    return out;
+  }
+
   private renderProps(d: Display): void {
     // 写字机は2マス幅。横に連なるマスの先頭から2マスおきに置く
     const desk = this.images["prop.desk"];
@@ -377,7 +412,8 @@ export class FieldScene implements Scene {
           // 上の段にも机があるなら、そちらが先頭。ここでは描かない
           if (this.tileAt(runStart, y - 1) !== "T") {
             for (let i = runStart; i < x; i += 2) {
-              if (desk) d.sprite(desk, ORIGIN_X + i * TILE, ORIGIN_Y + y * TILE);
+              // 64pxの机は2マス分。デザイン単位では TILE*2 に収まる
+              if (desk) d.sprite(desk, ORIGIN_X + i * TILE, ORIGIN_Y + y * TILE - 2);
               else d.rect(ORIGIN_X + i * TILE, ORIGIN_Y + y * TILE, TILE * 2, TILE * 2, this.col("#4a3826"));
             }
           }

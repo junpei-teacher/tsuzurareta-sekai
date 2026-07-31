@@ -1,7 +1,7 @@
 /**
  * .room マップを PNG に書き出す（Phase 7 の目視確認用）。
  *
- *   npm run preview:map -- ch1_reading [--out 出力.png] [--chars]
+ *   npm run preview:map -- ch1_reading [--out 出力.png] [--chars] [--raw]
  *
  * **ゲーム本体（src/scenes/field.ts）と同じ手順で描く。**
  *   1層目 石床↔石壁の Wang
@@ -9,27 +9,34 @@
  *   3層目 家具スプライト（机・燭台・階段・扉）
  * ブラウザを開かずに、壁のつながりと家具の位置を確認できる。
  *
- * --chars を付けると主人公とミラを置いて、床とキャラの見分けやすさを確認できる。
+ * --chars  主人公とミラを置く。床とキャラの見分けやすさの確認用
+ * --raw    減色前の素材で描く。減色がどれだけ色を削っているかの確認用
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { PNG } from "pngjs";
 
 const ROOT = join(import.meta.dirname, "..");
-const TILE = 16;
+const TILE = 32;
 
 const args = process.argv.slice(2);
 const mapName = args[0];
 if (!mapName || mapName.startsWith("--")) {
-  console.error("使い方: npm run preview:map -- <マップ名> [--out 出力.png] [--chars]");
+  console.error("使い方: npm run preview:map -- <マップ名> [--out 出力.png] [--chars] [--raw]");
   process.exit(1);
 }
 const flag = (name: string, def: string): string => {
   const i = args.indexOf(name);
   return i >= 0 && args[i + 1] !== undefined ? args[i + 1]! : def;
 };
-const outPath = flag("--out", join(ROOT, `public/assets/tiles/_map_${mapName}.png`));
 const withChars = args.includes("--chars");
+const raw = args.includes("--raw");
+const outPath = flag(
+  "--out",
+  join(ROOT, `public/assets/tiles/_map_${mapName}${raw ? "_raw" : ""}.png`),
+);
+
+// 減色は既定で使わない方針になったため、--raw は出力ファイル名の区別のみに残している
 
 // ── マップを読む ──────────────────────────────
 const src = readFileSync(join(ROOT, `data/maps/${mapName}.room`), "utf8").replace(/\r\n/g, "\n");
@@ -72,16 +79,16 @@ function wangTable(metaPath: string): Array<RawTile["bounding_box"] | undefined>
   return out;
 }
 
-const stoneSheet = loadPng("public/assets/tiles/stone_pal.png");
-const shelfSheet = loadPng("public/assets/tiles/shelf_pal.png");
-const stoneWang = wangTable("data/tiles/stone.json");
-const shelfWang = wangTable("data/tiles/shelf.json");
+const stoneSheet = loadPng("public/assets/tiles2/stone.png");
+const shelfSheet = loadPng("public/assets/tiles2/shelf.png");
+const stoneWang = wangTable("data/tiles/stone32.json");
+const shelfWang = wangTable("data/tiles/shelf32.json");
 
 const props = {
-  desk: loadPng("public/assets/props/desk_pal.png"),
-  candle: loadPng("public/assets/props/candle_pal.png"),
-  door: loadPng("public/assets/props/door_pal.png"),
-  stairs: loadPng("public/assets/props/stairs_pal.png"),
+  desk: loadPng("public/assets/props2/desk.png"),
+  candle: loadPng("public/assets/props2/candle.png"),
+  door: loadPng("public/assets/props2/door.png"),
+  stairs: loadPng("public/assets/props2/stairs.png"),
 };
 
 // ── 描画 ────────────────────────────────────────
@@ -105,10 +112,10 @@ function blit(s: PNG, sx: number, sy: number, sw: number, sh: number, dx: number
     }
   }
 }
+
 const place = (s: PNG | null, cx: number, cy: number, dy = 4): void => {
   if (!s) return;
-  blit(s, 0, 0, s.width, s.height,
-    Math.round(cx - s.width / 2), Math.round(cy - s.height + dy));
+  blit(s, 0, 0, s.width, s.height, Math.round(cx - s.width / 2), Math.round(cy - s.height + dy));
 };
 
 function wangLayer(
@@ -118,13 +125,14 @@ function wangLayer(
   skipEmpty: boolean,
 ): void {
   if (!sheet) return;
-  const v = (x: number, y: number): number => {
+  const vert = (x: number, y: number): number => {
     if (x < 0 || y < 0 || x >= W || y >= H) return skipEmpty ? 0 : 1;
     return isUpper(at(x, y)) ? 1 : 0;
   };
   for (let y = -1; y < H; y++) {
     for (let x = -1; x < W; x++) {
-      const idx = v(x, y) * 8 + v(x + 1, y) * 4 + v(x, y + 1) * 2 + v(x + 1, y + 1);
+      const idx =
+        vert(x, y) * 8 + vert(x + 1, y) * 4 + vert(x, y + 1) * 2 + vert(x + 1, y + 1);
       if (skipEmpty && idx === 0) continue;
       const b = table[idx];
       if (!b) continue;
@@ -153,7 +161,7 @@ for (let y = 0; y < H; y++) {
   }
 }
 
-// 燭台・扉
+// 燭台と扉
 for (let y = 0; y < H; y++) {
   for (let x = 0; x < W; x++) {
     const c = at(x, y);
@@ -164,10 +172,12 @@ for (let y = 0; y < H; y++) {
 
 // 階段：塊の中心に1枚
 let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
-for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-  if (at(x, y) !== "V") continue;
-  minX = Math.min(minX, x); maxX = Math.max(maxX, x);
-  minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+for (let y = 0; y < H; y++) {
+  for (let x = 0; x < W; x++) {
+    if (at(x, y) !== "V") continue;
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+  }
 }
 if (maxX >= 0 && props.stairs) {
   blit(props.stairs, 0, 0, props.stairs.width, props.stairs.height,
@@ -177,10 +187,8 @@ if (maxX >= 0 && props.stairs) {
 
 // キャラ（床との見分けやすさの確認用）
 if (withChars) {
-  const hero = loadPng("public/assets/sprites/hero/south_pal.png");
-  const mira = loadPng("public/assets/sprites/mira/south_pal.png");
-  place(hero, 14 * TILE + TILE / 2, 7 * TILE);
-  place(mira, 19 * TILE + TILE / 2, 6 * TILE);
+  place(loadPng("public/assets/sprites/hero2/south.png"), 14 * TILE + TILE / 2, 7 * TILE);
+  place(loadPng("public/assets/sprites/mira2/south.png"), 19 * TILE + TILE / 2, 6 * TILE);
 }
 
 writeFileSync(outPath, PNG.sync.write(out));

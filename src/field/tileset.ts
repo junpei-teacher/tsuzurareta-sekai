@@ -1,5 +1,5 @@
-import rawStone from "../../data/tiles/stone.json";
-import rawShelf from "../../data/tiles/shelf.json";
+import rawStone from "../../data/tiles/stone32.json";
+import rawShelf from "../../data/tiles/shelf32.json";
 
 /**
  * PixelLab の Wang タイルセット（16タイル）。

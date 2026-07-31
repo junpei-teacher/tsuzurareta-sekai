@@ -2,8 +2,23 @@ import { PAL } from "./palette.ts";
 
 // 設計書 7.2 — 内部解像度 480x270、整数倍スケール
 
+/**
+ * 座標系（デザイン単位）。全シーンはこの座標で描く。
+ * 実際のキャンバスは PIXEL_SCALE 倍で、変換行列が自動で拡大する。
+ */
 export const SCREEN_W = 480;
 export const SCREEN_H = 270;
+
+/**
+ * デザイン単位あたりの実ピクセル数。
+ *
+ * 1 だった頃はタイル16px・キャラ32pxで、「これ以上細かく描けない」状態だった。
+ * 2 にすることで**素材の情報量が4倍**になる。タイルは32px、キャラは64px。
+ * UIの座標は1つも書き換えずに済むよう、変換行列で吸収している。
+ *
+ * 実解像度 960x540。1920x1080 にちょうど2倍で収まる。
+ */
+export const PIXEL_SCALE = 2;
 
 /** 日本語ドットフォント。Phase 0-5 で PixelMplus12 を入れるまでは等幅で代用する */
 const FONT_STACK = "'PixelMplus12', 'MS Gothic', monospace";
@@ -14,8 +29,8 @@ export class Display {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    canvas.width = SCREEN_W;
-    canvas.height = SCREEN_H;
+    canvas.width = SCREEN_W * PIXEL_SCALE;
+    canvas.height = SCREEN_H * PIXEL_SCALE;
 
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) throw new Error("2Dコンテキストを取得できませんでした");
@@ -40,6 +55,9 @@ export class Display {
   }
 
   clear(color: string = PAL.bg): void {
+    // 毎フレームここで変換行列を張り直す。以降の描画はすべてデザイン単位でよい
+    this.ctx.setTransform(PIXEL_SCALE, 0, 0, PIXEL_SCALE, 0, 0);
+    this.ctx.imageSmoothingEnabled = false;
     this.ctx.fillStyle = color;
     this.ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
   }
@@ -71,18 +89,30 @@ export class Display {
     this.ctx.fillText(str, (x - w) | 0, y | 0);
   }
 
-  /** スプライトを等倍で描く。座標は整数に丸めてドットを崩さない */
+  /**
+   * スプライトを等倍で描く。
+   *
+   * 変換行列が PIXEL_SCALE 倍かかっているので、
+   * **デザイン単位では 1/PIXEL_SCALE のサイズで置く**。
+   * 結果として実ピクセルは1:1になり、ドットが崩れない。
+   */
   sprite(img: HTMLImageElement, x: number, y: number): void {
-    this.ctx.drawImage(img, x | 0, y | 0);
+    this.ctx.drawImage(
+      img, x | 0, y | 0,
+      img.width / PIXEL_SCALE, img.height / PIXEL_SCALE,
+    );
   }
 
-  /** スプライトシートの一部を等倍で切り出して描く */
+  /** スプライトシートの一部を等倍で描く */
   spriteRect(
     img: HTMLImageElement,
     sx: number, sy: number, sw: number, sh: number,
     dx: number, dy: number,
   ): void {
-    this.ctx.drawImage(img, sx, sy, sw, sh, dx | 0, dy | 0, sw, sh);
+    this.ctx.drawImage(
+      img, sx, sy, sw, sh,
+      dx | 0, dy | 0, sw / PIXEL_SCALE, sh / PIXEL_SCALE,
+    );
   }
 
   measure(str: string, size = 12): number {
