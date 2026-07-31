@@ -33,9 +33,16 @@ export const MANIFEST: Record<string, string> = {
   ...seq("hero.walk.east", "/assets/sprites/hero/walk/east_{i}_pal.png", 4),
   ...seq("hero.walk.west", "/assets/sprites/hero/walk/west_{i}_pal.png", 4),
 
-  // 石床↔石壁の Wang タイルセット（16タイル・4x4シート）
+  // Wang タイルセット（各16タイル・4x4シート）
   "tiles.stone": "/assets/tiles/stone_pal.png",
-  "prop.bookshelf": "/assets/props/bookshelf_pal.png",
+  "tiles.shelf": "/assets/tiles/shelf_pal.png",
+
+  // 家具。マスに乗せるスプライト
+  "prop.desk": "/assets/props/desk_pal.png",
+  "prop.candle": "/assets/props/candle_pal.png",
+  "prop.door": "/assets/props/door_pal.png",
+  "prop.stairs": "/assets/props/stairs_pal.png",
+  "prop.rubble": "/assets/props/rubble_pal.png",
 
   "mira.south": "/assets/sprites/mira/south_pal.png",
   "mira.north": "/assets/sprites/mira/north_pal.png",

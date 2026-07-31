@@ -5,7 +5,7 @@ import type { Scene } from "../core/scene.ts";
 import type { Player } from "../game/player.ts";
 import { getMap, walkable, type GameMap, type MapEntity, type Tile } from "../field/mapFormat.ts";
 import type { FieldState } from "../field/state.ts";
-import { WANG } from "../field/tileset.ts";
+import { WANG_SHELF, WANG_STONE, type WangTable } from "../field/tileset.ts";
 import { frames, type ImageMap } from "../core/assets.ts";
 import { BurnLayer, scorch } from "../fx/burn.ts";
 import { saveProgress } from "../game/save.ts";
@@ -296,24 +296,33 @@ export class FieldScene implements Scene {
   }
 
   private renderTiles(d: Display): void {
-    const sheet = this.images["tiles.stone"];
-    if (sheet) {
-      this.renderWang(d, sheet);
-      // 床と壁はタイルセットが描いたので、その上に家具だけ重ねる
+    const stone = this.images["tiles.stone"];
+    if (!stone) {
+      // タイルセット未投入のあいだは手描きの矩形で全部描く
       for (let y = 0; y < this.map.h; y++) {
         for (let x = 0; x < this.map.w; x++) {
-          const t = this.tileAt(x, y);
-          if (t !== "#" && t !== ".") this.drawTile(d, x, y, t);
+          this.drawTile(d, x, y, this.tileAt(x, y));
         }
       }
       return;
     }
 
-    // タイルセット未投入のあいだは手描きの矩形で全部描く
+    // 1層目：石床と石壁を全面に敷く
+    this.renderWang(d, stone, WANG_STONE, (t) => t === "#", false);
+
+    // 2層目：本棚。全て床の組み合わせ（index 0）は描かない
+    const shelf = this.images["tiles.shelf"];
+    if (shelf) this.renderWang(d, shelf, WANG_SHELF, (t) => t === "B", true);
+    else this.forEachTile("B", (x, y) => this.drawTile(d, x, y, "B"));
+
+    // 3層目：家具のスプライト
+    this.renderProps(d);
+  }
+
+  /** 指定タイルのマスを走査する */
+  private forEachTile(tile: Tile, fn: (x: number, y: number) => void): void {
     for (let y = 0; y < this.map.h; y++) {
-      for (let x = 0; x < this.map.w; x++) {
-        this.drawTile(d, x, y, this.tileAt(x, y));
-      }
+      for (let x = 0; x < this.map.w; x++) if (this.tileAt(x, y) === tile) fn(x, y);
     }
   }
 
@@ -322,29 +331,109 @@ export class FieldScene implements Scene {
    *
    * タイルセットは「頂点」で地形を定義するが、本作のマップは「マス」で持っている。
    * そこで**マスの中心を頂点とみなし、タイルを半マスずらして描く**。
-   * こうすると壁と床の境界がマスの境界に乗り、当たり判定と絵が一致する。
-   * 画面端は外側を壁とみなして1枚はみ出して描く。
+   * こうすると境界がマスの境界に乗り、当たり判定と絵が一致する。
+   * 画面端は外側を upper とみなして1枚はみ出して描く。
+   *
+   * @param skipEmpty 4隅すべてが lower のとき描かない。重ね貼りする層で使う
    */
-  private renderWang(d: Display, sheet: HTMLImageElement): void {
-    const isWall = (x: number, y: number): number => {
-      if (x < 0 || y < 0 || x >= this.map.w || y >= this.map.h) return 1;
-      return this.tileAt(x, y) === "#" ? 1 : 0;
+  private renderWang(
+    d: Display,
+    sheet: HTMLImageElement,
+    table: WangTable,
+    isUpper: (t: Tile) => boolean,
+    skipEmpty: boolean,
+  ): void {
+    const at = (x: number, y: number): number => {
+      if (x < 0 || y < 0 || x >= this.map.w || y >= this.map.h) return skipEmpty ? 0 : 1;
+      return isUpper(this.tileAt(x, y)) ? 1 : 0;
     };
 
     for (let y = -1; y < this.map.h; y++) {
       for (let x = -1; x < this.map.w; x++) {
         const idx =
-          isWall(x, y) * 8 +
-          isWall(x + 1, y) * 4 +
-          isWall(x, y + 1) * 2 +
-          isWall(x + 1, y + 1);
-        const r = WANG[idx];
+          at(x, y) * 8 + at(x + 1, y) * 4 + at(x, y + 1) * 2 + at(x + 1, y + 1);
+        if (skipEmpty && idx === 0) continue;
+        const r = table[idx];
         if (!r) continue;
         d.spriteRect(
           sheet, r.sx, r.sy, r.w, r.h,
           ORIGIN_X + x * TILE + TILE / 2,
           ORIGIN_Y + y * TILE + TILE / 2,
         );
+      }
+    }
+  }
+
+  /** 家具のスプライト。無いものは手描きの矩形に落ちる */
+  private renderProps(d: Display): void {
+    // 写字机は2マス幅。横に連なるマスの先頭から2マスおきに置く
+    const desk = this.images["prop.desk"];
+    for (let y = 0; y < this.map.h; y++) {
+      let runStart = -1;
+      for (let x = 0; x <= this.map.w; x++) {
+        const isDesk = x < this.map.w && this.tileAt(x, y) === "T";
+        if (isDesk && runStart < 0) runStart = x;
+        if (!isDesk && runStart >= 0) {
+          // 上の段にも机があるなら、そちらが先頭。ここでは描かない
+          if (this.tileAt(runStart, y - 1) !== "T") {
+            for (let i = runStart; i < x; i += 2) {
+              if (desk) d.sprite(desk, ORIGIN_X + i * TILE, ORIGIN_Y + y * TILE);
+              else d.rect(ORIGIN_X + i * TILE, ORIGIN_Y + y * TILE, TILE * 2, TILE * 2, this.col("#4a3826"));
+            }
+          }
+          runStart = -1;
+        }
+      }
+    }
+
+    // 燭台。炎だけは手描きのまま重ねる。ゆらぐほうが書庫に合う
+    const candle = this.images["prop.candle"];
+    this.forEachTile("C", (x, y) => {
+      const px = ORIGIN_X + x * TILE;
+      const py = ORIGIN_Y + y * TILE;
+      if (candle) d.sprite(candle, px + TILE / 2 - candle.width / 2, py + TILE - candle.height + 4);
+      const flick = 0.6 + 0.4 * Math.sin(this.time * 9 + x * 3 + y);
+      d.ctx.globalAlpha = flick;
+      d.rect(px + 7, py - 12, 2, 4, "#f0b83c");
+      d.ctx.globalAlpha = flick * 0.22;
+      d.rect(px - 2, py - 18, 20, 22, "#c8912f");
+      d.ctx.globalAlpha = 1;
+    });
+
+    // 階段。塊の中心に1枚置く
+    const stairs = this.images["prop.stairs"];
+    if (stairs) {
+      let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
+      this.forEachTile("V", (x, y) => {
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      });
+      if (maxX >= 0) {
+        const cx = ORIGIN_X + ((minX + maxX + 1) * TILE) / 2;
+        const cy = ORIGIN_Y + ((minY + maxY + 1) * TILE) / 2;
+        d.sprite(stairs, cx - stairs.width / 2, cy - stairs.height / 2);
+      }
+    } else {
+      this.forEachTile("V", (x, y) => this.drawTile(d, x, y, "V"));
+    }
+
+    // カウンターは手描きのまま
+    this.forEachTile("=", (x, y) => this.drawTile(d, x, y, "="));
+
+    // 第2章で塞がれたマスに落ちた梁を置く
+    if (this.state.burning) {
+      const rubble = this.images["prop.rubble"];
+      for (let y = 0; y < this.map.h; y++) {
+        for (let x = 0; x < this.map.w; x++) {
+          if (!this.state.isBlocked(this.map.id, x, y)) continue;
+          const px = ORIGIN_X + x * TILE;
+          const py = ORIGIN_Y + y * TILE;
+          if (rubble) d.sprite(rubble, px + TILE / 2 - rubble.width / 2, py + TILE - rubble.height + 4);
+          else {
+            d.rect(px + 1, py + 4, TILE - 2, 5, "#4a2a18");
+            d.rect(px + 3, py + 9, TILE - 7, 4, "#33200f");
+          }
+        }
       }
     }
   }
@@ -398,12 +487,6 @@ export class FieldScene implements Scene {
         break;
     }
 
-    // 焼け落ちた梁で塞がれたマス
-    if (this.state.isBlocked(this.map.id, x, y)) {
-      d.rect(px + 1, py + 4, TILE - 2, 5, "#4a2a18");
-      d.rect(px + 3, py + 9, TILE - 7, 4, "#33200f");
-      d.rect(px + 1, py + 4, TILE - 2, 1, "#7a3f20");
-    }
   }
 
   private renderEntities(d: Display): void {
@@ -412,8 +495,13 @@ export class FieldScene implements Scene {
       const py = ORIGIN_Y + e.y * TILE;
 
       if (e.kind === "door") {
-        d.rect(px, py, TILE, TILE, "#120f0d");
-        d.rect(px + 6, py + 6, 4, 4, PAL.accent);
+        const img = this.images["prop.door"];
+        if (img) {
+          d.sprite(img, px + TILE / 2 - img.width / 2, py + TILE - img.height + 6);
+        } else {
+          d.rect(px, py, TILE, TILE, "#120f0d");
+          d.rect(px + 6, py + 6, 4, 4, PAL.accent);
+        }
         continue;
       }
       if (e.kind === "sign") {

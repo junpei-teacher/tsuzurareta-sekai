@@ -1,126 +1,186 @@
 /**
  * .room マップを PNG に書き出す（Phase 7 の目視確認用）。
  *
- *   npm run preview:map -- ch1_reading [出力先.png]
+ *   npm run preview:map -- ch1_reading [--out 出力.png] [--chars]
  *
- * ゲーム本体と同じ Wang 判定でタイルを並べるので、
- * ブラウザを開かずに壁と床のつながりを確認できる。
+ * **ゲーム本体（src/scenes/field.ts）と同じ手順で描く。**
+ *   1層目 石床↔石壁の Wang
+ *   2層目 石床↔本棚の Wang（全て床の組み合わせは描かない）
+ *   3層目 家具スプライト（机・燭台・階段・扉）
+ * ブラウザを開かずに、壁のつながりと家具の位置を確認できる。
  *
- * 【Wang の並べ方】タイルセットは「頂点」で地形を定義する。
- * マスの中心を頂点とみなし、タイルを半マスずらして (w+1)x(h+1) 枚描く。
- * 画面外は壁として扱う。src/scenes/field.ts の renderWang と同じ規則。
+ * --chars を付けると主人公とミラを置いて、床とキャラの見分けやすさを確認できる。
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { PNG } from "pngjs";
 
 const ROOT = join(import.meta.dirname, "..");
 const TILE = 16;
 
-const mapName = process.argv[2];
-if (!mapName) {
-  console.error("使い方: npm run preview:map -- <マップ名> [出力先.png]");
+const args = process.argv.slice(2);
+const mapName = args[0];
+if (!mapName || mapName.startsWith("--")) {
+  console.error("使い方: npm run preview:map -- <マップ名> [--out 出力.png] [--chars]");
   process.exit(1);
 }
-const args = process.argv.slice(2);
 const flag = (name: string, def: string): string => {
   const i = args.indexOf(name);
   return i >= 0 && args[i + 1] !== undefined ? args[i + 1]! : def;
 };
 const outPath = flag("--out", join(ROOT, `public/assets/tiles/_map_${mapName}.png`));
-const sheetPath = flag("--sheet", join(ROOT, "public/assets/tiles/stone_pal.png"));
+const withChars = args.includes("--chars");
 
-// ── マップを読む（!指示行は読み飛ばして本体だけ使う） ──────────
+// ── マップを読む ──────────────────────────────
 const src = readFileSync(join(ROOT, `data/maps/${mapName}.room`), "utf8").replace(/\r\n/g, "\n");
 const lines = src.split("\n");
-const start = lines.findIndex((l) => l.startsWith("!map")) + 1;
-if (start === 0) throw new Error(`${mapName}: !map が見つかりません`);
-const rows = lines.slice(start);
-while (rows.length > 0 && rows[rows.length - 1]!.trim() === "") rows.pop();
+const mapStart = lines.findIndex((l) => l.startsWith("!map")) + 1;
+if (mapStart === 0) throw new Error(`${mapName}: !map が見つかりません`);
 
+/** 指示行から、扉として使われている文字を集める */
+const doorChars = new Set<string>();
+for (const l of lines.slice(0, mapStart)) {
+  const m = /^!door\s+(\S+)/.exec(l);
+  if (m) doorChars.add(m[1]!);
+}
+
+const rows = lines.slice(mapStart);
+while (rows.length > 0 && rows[rows.length - 1]!.trim() === "") rows.pop();
 const H = rows.length;
 const W = Math.max(...rows.map((r) => r.length));
-const isWall = (x: number, y: number): number => {
-  if (x < 0 || y < 0 || x >= W || y >= H) return 1;
-  return (rows[y]![x] ?? "#") === "#" ? 1 : 0;
-};
+const at = (x: number, y: number): string => (rows[y]?.[x] ?? "#");
 
-// ── タイルセット ────────────────────────────────
+// ── 画像を読む ────────────────────────────────
+const loadPng = (p: string): PNG | null =>
+  existsSync(join(ROOT, p)) ? PNG.sync.read(readFileSync(join(ROOT, p))) : null;
+
 type RawTile = {
   corners: { NW: string; NE: string; SW: string; SE: string };
   bounding_box: { x: number; y: number; width: number; height: number };
 };
-const meta = JSON.parse(readFileSync(join(ROOT, "data/tiles/stone.json"), "utf8")) as {
-  tileset_data: { tiles: RawTile[] };
-};
-const sheet = PNG.sync.read(readFileSync(sheetPath));
-
-const wang = new Array<RawTile["bounding_box"] | undefined>(16);
-for (const t of meta.tileset_data.tiles) {
-  const i =
-    (t.corners.NW === "upper" ? 8 : 0) +
-    (t.corners.NE === "upper" ? 4 : 0) +
-    (t.corners.SW === "upper" ? 2 : 0) +
-    (t.corners.SE === "upper" ? 1 : 0);
-  wang[i] = t.bounding_box;
+function wangTable(metaPath: string): Array<RawTile["bounding_box"] | undefined> {
+  const meta = JSON.parse(readFileSync(join(ROOT, metaPath), "utf8")) as {
+    tileset_data: { tiles: RawTile[] };
+  };
+  const out = new Array<RawTile["bounding_box"] | undefined>(16);
+  for (const t of meta.tileset_data.tiles) {
+    const i =
+      (t.corners.NW === "upper" ? 8 : 0) + (t.corners.NE === "upper" ? 4 : 0) +
+      (t.corners.SW === "upper" ? 2 : 0) + (t.corners.SE === "upper" ? 1 : 0);
+    out[i] = t.bounding_box;
+  }
+  return out;
 }
-const missing = wang.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0);
-if (missing.length) console.warn(`Wang欠番: ${missing.join(", ")}`);
+
+const stoneSheet = loadPng("public/assets/tiles/stone_pal.png");
+const shelfSheet = loadPng("public/assets/tiles/shelf_pal.png");
+const stoneWang = wangTable("data/tiles/stone.json");
+const shelfWang = wangTable("data/tiles/shelf.json");
+
+const props = {
+  desk: loadPng("public/assets/props/desk_pal.png"),
+  candle: loadPng("public/assets/props/candle_pal.png"),
+  door: loadPng("public/assets/props/door_pal.png"),
+  stairs: loadPng("public/assets/props/stairs_pal.png"),
+};
 
 // ── 描画 ────────────────────────────────────────
 const out = new PNG({ width: W * TILE, height: H * TILE });
-// 背景は闇で塗る
 for (let i = 0; i < out.data.length; i += 4) {
   out.data[i] = 0x14; out.data[i + 1] = 0x10; out.data[i + 2] = 0x0f; out.data[i + 3] = 255;
 }
 
-function blit(src: PNG, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number): void {
+function blit(s: PNG, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number): void {
   for (let y = 0; y < sh; y++) {
     const py = dy + y;
     if (py < 0 || py >= out.height) continue;
     for (let x = 0; x < sw; x++) {
       const px = dx + x;
       if (px < 0 || px >= out.width) continue;
-      const s = ((sy + y) * src.width + (sx + x)) * 4;
-      if (src.data[s + 3]! < 128) continue;
-      const dst = (py * out.width + px) * 4;
-      out.data[dst] = src.data[s]!;
-      out.data[dst + 1] = src.data[s + 1]!;
-      out.data[dst + 2] = src.data[s + 2]!;
-      out.data[dst + 3] = 255;
+      const si = ((sy + y) * s.width + (sx + x)) * 4;
+      if (s.data[si + 3]! < 128) continue;
+      const di = (py * out.width + px) * 4;
+      out.data[di] = s.data[si]!; out.data[di + 1] = s.data[si + 1]!;
+      out.data[di + 2] = s.data[si + 2]!; out.data[di + 3] = 255;
+    }
+  }
+}
+const place = (s: PNG | null, cx: number, cy: number, dy = 4): void => {
+  if (!s) return;
+  blit(s, 0, 0, s.width, s.height,
+    Math.round(cx - s.width / 2), Math.round(cy - s.height + dy));
+};
+
+function wangLayer(
+  sheet: PNG | null,
+  table: Array<RawTile["bounding_box"] | undefined>,
+  isUpper: (c: string) => boolean,
+  skipEmpty: boolean,
+): void {
+  if (!sheet) return;
+  const v = (x: number, y: number): number => {
+    if (x < 0 || y < 0 || x >= W || y >= H) return skipEmpty ? 0 : 1;
+    return isUpper(at(x, y)) ? 1 : 0;
+  };
+  for (let y = -1; y < H; y++) {
+    for (let x = -1; x < W; x++) {
+      const idx = v(x, y) * 8 + v(x + 1, y) * 4 + v(x, y + 1) * 2 + v(x + 1, y + 1);
+      if (skipEmpty && idx === 0) continue;
+      const b = table[idx];
+      if (!b) continue;
+      blit(sheet, b.x, b.y, b.width, b.height, x * TILE + TILE / 2, y * TILE + TILE / 2);
     }
   }
 }
 
-for (let y = -1; y < H; y++) {
-  for (let x = -1; x < W; x++) {
-    const idx =
-      isWall(x, y) * 8 + isWall(x + 1, y) * 4 + isWall(x, y + 1) * 2 + isWall(x + 1, y + 1);
-    const b = wang[idx];
-    if (!b) continue;
-    blit(sheet, b.x, b.y, b.width, b.height, x * TILE + TILE / 2, y * TILE + TILE / 2);
+wangLayer(stoneSheet, stoneWang, (c) => c === "#", false);
+wangLayer(shelfSheet, shelfWang, (c) => c === "B", true);
+
+// 写字机：横に連なるマスの先頭から2マスおき
+for (let y = 0; y < H; y++) {
+  let run = -1;
+  for (let x = 0; x <= W; x++) {
+    const isDesk = x < W && at(x, y) === "T";
+    if (isDesk && run < 0) run = x;
+    if (!isDesk && run >= 0) {
+      if (at(run, y - 1) !== "T") {
+        for (let i = run; i < x; i += 2) {
+          if (props.desk) blit(props.desk, 0, 0, props.desk.width, props.desk.height, i * TILE, y * TILE);
+        }
+      }
+      run = -1;
+    }
   }
 }
 
-// 家具は判別できる色の矩形で置く（本体側の描画とは別物、位置確認用）
-const PROP: Record<string, [number, number, number]> = {
-  B: [0x5c, 0x4b, 0x3a],
-  T: [0x7a, 0x3f, 0x20],
-  C: [0xf0, 0xb8, 0x3c],
-  "=": [0x3b, 0x32, 0x2a],
-  V: [0x24, 0x1d, 0x16],
-};
+// 燭台・扉
 for (let y = 0; y < H; y++) {
   for (let x = 0; x < W; x++) {
-    const c = PROP[rows[y]![x] ?? ""];
-    if (!c) continue;
-    for (let py = 2; py < TILE - 2; py++) {
-      for (let px = 2; px < TILE - 2; px++) {
-        const d = ((y * TILE + py) * out.width + (x * TILE + px)) * 4;
-        out.data[d] = c[0]; out.data[d + 1] = c[1]; out.data[d + 2] = c[2]; out.data[d + 3] = 255;
-      }
-    }
+    const c = at(x, y);
+    if (c === "C") place(props.candle, x * TILE + TILE / 2, (y + 1) * TILE);
+    else if (doorChars.has(c)) place(props.door, x * TILE + TILE / 2, (y + 1) * TILE, 6);
   }
+}
+
+// 階段：塊の中心に1枚
+let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  if (at(x, y) !== "V") continue;
+  minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+  minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+}
+if (maxX >= 0 && props.stairs) {
+  blit(props.stairs, 0, 0, props.stairs.width, props.stairs.height,
+    Math.round(((minX + maxX + 1) * TILE - props.stairs.width) / 2),
+    Math.round(((minY + maxY + 1) * TILE - props.stairs.height) / 2));
+}
+
+// キャラ（床との見分けやすさの確認用）
+if (withChars) {
+  const hero = loadPng("public/assets/sprites/hero/south_pal.png");
+  const mira = loadPng("public/assets/sprites/mira/south_pal.png");
+  place(hero, 14 * TILE + TILE / 2, 7 * TILE);
+  place(mira, 19 * TILE + TILE / 2, 6 * TILE);
 }
 
 writeFileSync(outPath, PNG.sync.write(out));

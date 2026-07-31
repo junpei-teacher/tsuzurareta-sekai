@@ -1,4 +1,5 @@
-import raw from "../../data/tiles/stone.json";
+import rawStone from "../../data/tiles/stone.json";
+import rawShelf from "../../data/tiles/shelf.json";
 
 /**
  * PixelLab の Wang タイルセット（16タイル）。
@@ -13,13 +14,10 @@ import raw from "../../data/tiles/stone.json";
  * **マスの中心を頂点とみなし、タイル層だけを半マスずらして描く**（src/scenes/field.ts）。
  * こうすると壁と床の境界がマスの境界にぴったり乗り、当たり判定と一致する。
  *
- * 【メタデータとシートの対応について】
- * data/tiles/stone.json は最初に生成したタイルセット（b20705b0…）のもので、
- * public/assets/tiles/stone.png は2枚目（cda35706…）のシート。
- * PixelLab のレイアウト名が両方とも `tileset15_4x4` で、
- * この対応表で描いて壁が正しく繋がることを目視確認済み。
- * 3枚目以降を追加するときは、必ずプレビュー（npm run preview:map）で
- * 壁の連続性を確認すること。ズレていればそのセット専用のメタデータが要る。
+ * 【2層構成】
+ *   stone … 石床↔石壁。全面に敷く
+ *   shelf … 石床↔本棚。本棚のあるマスにだけ重ねる（全て床の組み合わせは描かない）
+ * どちらも同じ「石床」ベースタイルから生成しているので、境目が揃う。
  */
 
 type Corner = "upper" | "lower";
@@ -30,19 +28,13 @@ type RawTile = {
   bounding_box: { x: number; y: number; width: number; height: number };
 };
 
-const data = raw as unknown as {
-  tileset_data: {
-    tiles: RawTile[];
-    tile_size: { width: number; height: number };
-  };
-};
+type RawSet = { tileset_data: { tiles: RawTile[]; tile_size: { width: number; height: number } } };
 
 export type SrcRect = { sx: number; sy: number; w: number; h: number };
+export type WangTable = ReadonlyArray<SrcRect | undefined>;
 
-export const TILESET_SIZE = data.tileset_data.tile_size;
-
-/** Wang番号（NW*8 + NE*4 + SW*2 + SE*1）→ シート上の切り出し位置 */
-export const WANG: ReadonlyArray<SrcRect | undefined> = (() => {
+function build(raw: unknown): WangTable {
+  const data = raw as RawSet;
   const out = new Array<SrcRect | undefined>(16);
   for (const t of data.tileset_data.tiles) {
     const i =
@@ -58,11 +50,16 @@ export const WANG: ReadonlyArray<SrcRect | undefined> = (() => {
     };
   }
   return out;
-})();
+}
+
+export const WANG_STONE = build(rawStone);
+export const WANG_SHELF = build(rawShelf);
 
 /** 16通りすべてが埋まっているかの自己点検 */
-export function missingWangIndices(): number[] {
-  const out: number[] = [];
-  for (let i = 0; i < 16; i++) if (!WANG[i]) out.push(i);
+export function missingWangIndices(): string[] {
+  const out: string[] = [];
+  for (const [name, table] of [["stone", WANG_STONE], ["shelf", WANG_SHELF]] as const) {
+    for (let i = 0; i < 16; i++) if (!table[i]) out.push(`${name}#${i}`);
+  }
   return out;
 }

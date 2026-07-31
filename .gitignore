@@ -4,5 +4,8 @@ dist/
 .DS_Store
 tools/candidates.md
 
+# PixelLab の APIトークン。絶対にコミットしない
+.pixellab.token
+
 # 目視確認用の一覧シート。npm run palettize と作図スクリプトで再生成できる
 public/assets/**/_*.png
