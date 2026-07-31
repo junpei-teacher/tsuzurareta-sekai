@@ -10,7 +10,8 @@
     "verify:dist": "tsx tools/verify-distribution.ts",
     "forge": "tsx tools/spell-forge.ts",
     "palettize": "tsx tools/palettize.ts",
-    "fetch": "tsx tools/fetch-frames.ts"
+    "fetch": "tsx tools/fetch-frames.ts",
+    "preview:map": "tsx tools/preview-map.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

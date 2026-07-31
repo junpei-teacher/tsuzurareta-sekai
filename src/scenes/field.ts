@@ -5,6 +5,7 @@ import type { Scene } from "../core/scene.ts";
 import type { Player } from "../game/player.ts";
 import { getMap, walkable, type GameMap, type MapEntity, type Tile } from "../field/mapFormat.ts";
 import type { FieldState } from "../field/state.ts";
+import { WANG } from "../field/tileset.ts";
 import { frames, type ImageMap } from "../core/assets.ts";
 import { BurnLayer, scorch } from "../fx/burn.ts";
 import { saveProgress } from "../game/save.ts";
@@ -295,9 +296,55 @@ export class FieldScene implements Scene {
   }
 
   private renderTiles(d: Display): void {
+    const sheet = this.images["tiles.stone"];
+    if (sheet) {
+      this.renderWang(d, sheet);
+      // 床と壁はタイルセットが描いたので、その上に家具だけ重ねる
+      for (let y = 0; y < this.map.h; y++) {
+        for (let x = 0; x < this.map.w; x++) {
+          const t = this.tileAt(x, y);
+          if (t !== "#" && t !== ".") this.drawTile(d, x, y, t);
+        }
+      }
+      return;
+    }
+
+    // タイルセット未投入のあいだは手描きの矩形で全部描く
     for (let y = 0; y < this.map.h; y++) {
       for (let x = 0; x < this.map.w; x++) {
         this.drawTile(d, x, y, this.tileAt(x, y));
+      }
+    }
+  }
+
+  /**
+   * Wang タイル層（設計書 7.4 / src/field/tileset.ts）。
+   *
+   * タイルセットは「頂点」で地形を定義するが、本作のマップは「マス」で持っている。
+   * そこで**マスの中心を頂点とみなし、タイルを半マスずらして描く**。
+   * こうすると壁と床の境界がマスの境界に乗り、当たり判定と絵が一致する。
+   * 画面端は外側を壁とみなして1枚はみ出して描く。
+   */
+  private renderWang(d: Display, sheet: HTMLImageElement): void {
+    const isWall = (x: number, y: number): number => {
+      if (x < 0 || y < 0 || x >= this.map.w || y >= this.map.h) return 1;
+      return this.tileAt(x, y) === "#" ? 1 : 0;
+    };
+
+    for (let y = -1; y < this.map.h; y++) {
+      for (let x = -1; x < this.map.w; x++) {
+        const idx =
+          isWall(x, y) * 8 +
+          isWall(x + 1, y) * 4 +
+          isWall(x, y + 1) * 2 +
+          isWall(x + 1, y + 1);
+        const r = WANG[idx];
+        if (!r) continue;
+        d.spriteRect(
+          sheet, r.sx, r.sy, r.w, r.h,
+          ORIGIN_X + x * TILE + TILE / 2,
+          ORIGIN_Y + y * TILE + TILE / 2,
+        );
       }
     }
   }

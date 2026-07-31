@@ -6,6 +6,7 @@ import { Player } from "./game/player.ts";
 import { FieldState } from "./field/state.ts";
 import { ENEMIES } from "./battle/model.ts";
 import { loadProgress, saveProgress } from "./game/save.ts";
+import { missingWangIndices } from "./field/tileset.ts";
 import { verifyCanonicals } from "./spell/book.ts";
 import { BattleScene } from "./scenes/battle.ts";
 import { CasterTestScene } from "./scenes/casterTest.ts";
@@ -22,6 +23,10 @@ if (!canvas) throw new Error("#screen が見つかりません");
 const errors = verifyCanonicals();
 if (errors.length > 0) {
   console.error("呪文表の canonical が不整合です:\n" + errors.join("\n"));
+}
+const missingWang = missingWangIndices();
+if (missingWang.length > 0) {
+  console.error(`Wangタイルに欠番があります: ${missingWang.join(", ")}`);
 }
 
 const display = new Display(canvas);

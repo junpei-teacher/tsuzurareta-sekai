@@ -33,6 +33,10 @@ export const MANIFEST: Record<string, string> = {
   ...seq("hero.walk.east", "/assets/sprites/hero/walk/east_{i}_pal.png", 4),
   ...seq("hero.walk.west", "/assets/sprites/hero/walk/west_{i}_pal.png", 4),
 
+  // 石床↔石壁の Wang タイルセット（16タイル・4x4シート）
+  "tiles.stone": "/assets/tiles/stone_pal.png",
+  "prop.bookshelf": "/assets/props/bookshelf_pal.png",
+
   "mira.south": "/assets/sprites/mira/south_pal.png",
   "mira.north": "/assets/sprites/mira/north_pal.png",
   "mira.east": "/assets/sprites/mira/east_pal.png",

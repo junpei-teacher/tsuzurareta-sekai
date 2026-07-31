@@ -76,6 +76,15 @@ export class Display {
     this.ctx.drawImage(img, x | 0, y | 0);
   }
 
+  /** スプライトシートの一部を等倍で切り出して描く */
+  spriteRect(
+    img: HTMLImageElement,
+    sx: number, sy: number, sw: number, sh: number,
+    dx: number, dy: number,
+  ): void {
+    this.ctx.drawImage(img, sx, sy, sw, sh, dx | 0, dy | 0, sw, sh);
+  }
+
   measure(str: string, size = 12): number {
     this.ctx.font = `${size}px ${FONT_STACK}`;
     return this.ctx.measureText(str).width;
