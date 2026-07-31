@@ -76,7 +76,9 @@ export function elementMultiplier(e: Element, enemy: EnemyInst): number {
 
 // ── 戦闘 ──────────────────────────────────────
 
-export type Phase = "COMMAND" | "CASTING" | "ITEM" | "MESSAGE" | "WIN" | "LOSE" | "FLED";
+export type Phase =
+  | "COMMAND" | "CASTING" | "ITEM" | "GRIMOIRE" | "MESSAGE"
+  | "WIN" | "LOSE" | "FLED";
 
 export type CastReport = {
   /** DUD=不発 / CAST=発動 / LOCKED=MP不足で唱えられなかった / REFUSED=既知だがMP不足 */
@@ -115,8 +117,12 @@ export class Battle {
     this.phase = "MESSAGE";
   }
 
-  /** サジェストを封じられているか（読まれなかった詩の「詠唱妨害」） */
-  get suggestionsBlocked(): boolean {
+  /**
+   * 記憶を封じられているか（抹消された名前の者の「忘却」）。
+   * このあいだは**呪文帳が開けず、サジェストも出ない**（設計書 4.3.1）。
+   * 手元の記憶だけで打つしかなくなる。
+   */
+  get memorySealed(): boolean {
     return has(this.player, "SILENCE");
   }
 
@@ -136,7 +142,7 @@ export class Battle {
       const cost = Math.min(3, this.player.mp);
       this.player.mp -= cost;
       this.lastCast = { kind: "DUD", word: res.word, resolution: res, firstTime: false };
-      this.say("言葉は、意味をなさなかった。", `（MP ${cost} を失った）`);
+      this.say("その呪文は、存在しなかった。", `（MP ${cost} を失った）`);
       this.after = "ENEMY";
       return this.lastCast;
     }

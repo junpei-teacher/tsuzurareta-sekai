@@ -4,15 +4,20 @@ import type { Scene } from "../core/scene.ts";
 import type { Player } from "../game/player.ts";
 import { ENEMIES, type EnemyDef } from "../battle/model.ts";
 import { bar, windowBox } from "../ui/hud.ts";
+import { GrimoireView } from "../ui/grimoire.ts";
 import { LEVELS } from "../game/player.ts";
 
 /**
  * Phase 3 の動作確認用メニュー。
  * 製品には残さない。Phase 4 でフィールドに置き換わる。
  */
+const EXTRAS = ["HP/MP/道具を全回復", "呪文帳を見る", "呪文帳を初期化", "詠唱テストベッドへ"];
+
 export class SelectScene implements Scene {
   private index = 0;
   private caret = 0;
+  private viewing = false;
+  private readonly grimoire = new GrimoireView();
 
   constructor(
     private readonly player: Player,
@@ -21,12 +26,16 @@ export class SelectScene implements Scene {
   ) {}
 
   private get rows(): number {
-    return ENEMIES.length + 3;
+    return ENEMIES.length + EXTRAS.length;
   }
 
   update(dt: number, keys: string[]): void {
     this.caret += dt;
     for (const key of keys) {
+      if (this.viewing) {
+        if (this.grimoire.handle(key, this.player)) this.viewing = false;
+        continue;
+      }
       if (key === "ArrowUp") this.index = (this.index + this.rows - 1) % this.rows;
       if (key === "ArrowDown") this.index = (this.index + 1) % this.rows;
       if (key === "ArrowLeft") this.player.setLevel(this.player.level - 1);
@@ -40,16 +49,22 @@ export class SelectScene implements Scene {
       this.onFight(ENEMIES[this.index]!);
       return;
     }
-    const extra = this.index - ENEMIES.length;
-    if (extra === 0) {
-      this.player.restore();
-      this.player.items = { ink: 3, drop: 1 };
-    } else if (extra === 1) {
-      this.player.grimoire.clear();
-      this.player.unspoken.clear();
-      this.player.grimoire.set(20, "ROZHA"); // 熾火だけは最初から
-    } else {
-      this.onTestbed();
+    switch (this.index - ENEMIES.length) {
+      case 0:
+        this.player.restore();
+        this.player.items = { ink: 3, drop: 1 };
+        break;
+      case 1:
+        this.viewing = true;
+        this.grimoire.reset();
+        break;
+      case 2:
+        this.player.grimoire.clear();
+        this.player.unspoken.clear();
+        this.player.grimoire.set(20, "ROZHA"); // 熾火だけは最初から
+        break;
+      default:
+        this.onTestbed();
     }
   }
 
@@ -58,19 +73,24 @@ export class SelectScene implements Scene {
     d.text("PHASE 3 ／ 戦闘テスト", 16, 8, PAL.accent);
     d.textRight("←→ でレベル変更", SCREEN_W - 16, 8, PAL.dim);
 
+    if (this.viewing) {
+      this.grimoire.render(d, 16, 26, 448, 184, this.player);
+      d.textRight("↑↓ 選択　ESC とじる", 452, 216, PAL.line);
+      return;
+    }
+
     windowBox(d, 16, 26, 250, 180);
     ENEMIES.forEach((e, i) => {
-      const y = 34 + i * 15;
+      const y = 32 + i * 13;
       const on = i === this.index;
       if (on) d.text("▸", 26, y, PAL.accent);
       d.text(e.name, 40, y, on ? PAL.ink : PAL.dim);
       d.textRight(`ch${e.chapter}`, 256, y, PAL.line);
     });
 
-    const extras = ["HP/MP/道具を全回復", "呪文帳を初期化", "詠唱テストベッドへ"];
-    extras.forEach((label, k) => {
+    EXTRAS.forEach((label, k) => {
       const i = ENEMIES.length + k;
-      const y = 34 + i * 15 + 8;
+      const y = 32 + i * 13 + 8;
       const on = i === this.index;
       if (on) d.text("▸", 26, y, PAL.accent);
       d.text(label, 40, y, on ? PAL.ink : PAL.line);

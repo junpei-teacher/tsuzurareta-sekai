@@ -1,7 +1,13 @@
 {
   "_comment": [
-    "敵データ（設計書 4.3）。焼かれた本から漏れ出した『言葉』が形を持ったもの。",
-    "兵士は人間。希少に配置して一戦を重くする。",
+    "敵データ（設計書 4.3）。3つの系統に分け、章が進むほど異常になる。",
+    "",
+    "  第1章 書庫の生き物   … 平時から棲んでいる害獣。日常の延長",
+    "  第2章 召喚された魔物 … 焚書隊が焼くために連れてきた。侵入者と一緒に来た",
+    "  第3章 言葉が変じたもの … 焼かれた言葉が形を持ったもの。最も不気味",
+    "",
+    "『なぜ書庫に魔物がいるのか』は焚書隊が召喚したからで説明がつく。",
+    "第1章に魔物を出さないことで、平時の書庫の静けさが保たれる。",
     "",
     "weak ×2.0 / resist ×0.5 / immune ×0（設計書 4.4）。",
     "tags は特効判定に使う（断蟲 は INSECT に特効）。",
@@ -10,41 +16,41 @@
 
   "enemies": [
     {
-      "id": "shimi", "name": "紙魚", "chapter": 1,
+      "id": "bookworm", "name": "紙喰い虫", "chapter": 1, "family": "書庫の生き物",
       "hp": 24, "atk": 6, "def": 1,
       "weak": ["FIRE"], "resist": [], "immune": [],
       "tags": ["INSECT"],
-      "sprite": { "w": 28, "h": 20, "color": "#8a7f5c" },
-      "desc": "書庫の害獣。ただし、いつもより数が多い。"
+      "sprite": { "w": 30, "h": 18, "color": "#8a7f5c" },
+      "desc": "拳ほどの大きさの虫。背表紙を齧って生きている。"
     },
     {
-      "id": "ink", "name": "こぼれたインク", "chapter": 1,
+      "id": "inkslime", "name": "墨のスライム", "chapter": 1, "family": "書庫の生き物",
       "hp": 42, "atk": 7, "def": 5,
       "weak": ["BOLT"], "resist": ["ICE"], "immune": [],
-      "tags": [],
-      "sprite": { "w": 40, "h": 26, "color": "#3c3550" },
-      "desc": "床の染みが、ゆっくりと寄り集まっている。"
+      "tags": ["SLIME"],
+      "sprite": { "w": 42, "h": 28, "color": "#3c3550" },
+      "desc": "こぼれた墨に棲みついた粘体。硬いが、電気に弱い。"
     },
     {
-      "id": "typo", "name": "誤植の群れ", "chapter": 2,
+      "id": "sootbat", "name": "煤蝙蝠の群れ", "chapter": 2, "family": "召喚された魔物",
       "hp": 34, "atk": 6, "def": 2,
       "weak": ["FIRE"], "resist": ["NONE"], "immune": [],
       "tags": ["SWARM"],
-      "sprite": { "w": 52, "h": 22, "color": "#6b5f4d" },
-      "desc": "間違った文字ばかりが、群れて飛んでいる。",
-      "skill": { "name": "書き換え", "kind": "DEF_DOWN", "chance": 0.3 }
+      "sprite": { "w": 54, "h": 24, "color": "#4a3f38" },
+      "desc": "煙とともに湧いた蝙蝠。羽ばたきが灰を巻き上げる。",
+      "skill": { "name": "目つぶし", "kind": "ACC_DOWN", "chance": 0.3 }
     },
     {
-      "id": "poem", "name": "読まれなかった詩", "chapter": 2,
-      "hp": 58, "atk": 11, "def": 3,
-      "weak": ["NAME"], "resist": ["FIRE"], "immune": [],
-      "tags": [],
-      "sprite": { "w": 34, "h": 44, "color": "#4a5a6b" },
-      "desc": "誰にも開かれないまま、燃えた。",
-      "skill": { "name": "詠唱妨害", "kind": "SILENCE", "chance": 0.35 }
+      "id": "emberfiend", "name": "焔鬼", "chapter": 2, "family": "召喚された魔物",
+      "hp": 58, "atk": 12, "def": 4,
+      "weak": ["ICE"], "resist": ["FIRE"], "immune": [],
+      "tags": ["DEMON"],
+      "sprite": { "w": 30, "h": 42, "color": "#a04a2a" },
+      "desc": "焚書のために呼ばれた小鬼。火を吐いて棚を舐める。",
+      "skill": { "name": "火を吐く", "kind": "BURN", "chance": 0.35 }
     },
     {
-      "id": "soldier", "name": "焚書隊の兵士", "chapter": 2,
+      "id": "soldier", "name": "焚書隊の兵士", "chapter": 2, "family": "人間",
       "hp": 76, "atk": 17, "def": 10,
       "weak": [], "resist": ["FIRE"], "immune": [],
       "tags": ["HUMAN"],
@@ -52,22 +58,31 @@
       "desc": "人間だ。命令で来ている。"
     },
     {
-      "id": "erased", "name": "抹消された名前", "chapter": 3,
+      "id": "erased", "name": "抹消された名前の者", "chapter": 3, "family": "言葉が変じたもの",
       "hp": 96, "atk": 15, "def": 8,
       "weak": ["NAME"], "resist": [], "immune": ["FIRE", "ICE", "BOLT"],
       "tags": ["ERASED"],
-      "sprite": { "w": 30, "h": 40, "color": "#2b2b33" },
-      "desc": "誰も覚えていない。だから、傷つけられない。",
-      "skill": { "name": "忘却", "kind": "ACC_DOWN", "chance": 0.3 }
+      "sprite": { "w": 30, "h": 44, "color": "#2b2b33" },
+      "desc": "顔がない。誰も覚えていないから、傷つけようがない。",
+      "skill": { "name": "忘却", "kind": "SILENCE", "chance": 0.35 }
     },
     {
-      "id": "ash", "name": "灰の中の声", "chapter": 3, "boss": true,
+      "id": "ashvoice", "name": "灰の中の声", "chapter": 3, "boss": true, "family": "言葉が変じたもの",
       "hp": 190, "atk": 20, "def": 7,
       "weak": ["ICE"], "resist": ["FIRE"], "immune": [],
       "tags": [],
-      "sprite": { "w": 60, "h": 54, "color": "#5a4038" },
-      "desc": "焼けた頁のあいだから、まだ何かが喋っている。",
+      "sprite": { "w": 62, "h": 54, "color": "#5a4038" },
+      "desc": "焼けた頁の山。その奥から、まだ何かが喋っている。",
       "skill": { "name": "灰を撒く", "kind": "BURN", "chance": 0.4 }
+    },
+    {
+      "id": "archdemon", "name": "業魔", "chapter": 3, "boss": true, "family": "召喚された魔物",
+      "hp": 240, "atk": 24, "def": 12,
+      "weak": ["NAME"], "resist": ["FIRE", "BOLT"], "immune": [],
+      "tags": ["DEMON"],
+      "sprite": { "w": 56, "h": 66, "color": "#5c2440" },
+      "desc": "焚書を指揮する者が連れてきた大鬼。真名だけが、これを縛る。",
+      "skill": { "name": "呪縛", "kind": "SLOW", "chance": 0.35 }
     }
   ]
 }

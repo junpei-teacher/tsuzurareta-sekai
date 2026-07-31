@@ -6,8 +6,9 @@ import type { Player } from "../game/player.ts";
 import { Battle, spawn, type EnemyDef } from "../battle/model.ts";
 import { TextField } from "../ui/textField.ts";
 import { bar, statusTags, windowBox } from "../ui/hud.ts";
+import { GrimoireView } from "../ui/grimoire.ts";
 
-const COMMANDS = ["詠唱", "道具", "逃げる"] as const;
+const COMMANDS = ["詠唱", "呪文帳", "道具", "逃げる"] as const;
 
 /**
  * 戦闘画面（手順書 Phase 3）。
@@ -20,6 +21,7 @@ export class BattleScene implements Scene {
 
   private readonly fx = new CastFx();
   private readonly field = new TextField();
+  private readonly grimoire = new GrimoireView();
 
   private cmd = 0;
   private item = 0;
@@ -35,10 +37,10 @@ export class BattleScene implements Scene {
     this.syncDictionary();
   }
 
-  /** サジェスト辞書を呪文帳と同期する。詠唱妨害中は空にする */
+  /** サジェスト辞書を呪文帳と同期する。記憶を封じられているあいだは空にする */
   private syncDictionary(): void {
     this.field.setDictionary(
-      this.battle.suggestionsBlocked ? [] : this.player.knownWords(),
+      this.battle.memorySealed ? [] : this.player.knownWords(),
     );
   }
 
@@ -73,12 +75,25 @@ export class BattleScene implements Scene {
             this.field.clear();
             this.syncDictionary();
           } else if (this.cmd === 1) {
+            // 記憶を封じられていると呪文帳が開けない
+            if (b.memorySealed) {
+              b.messages.push("呪文帳を開いた。", "……頁の文字が、読めない。");
+              b.phase = "MESSAGE";
+            } else {
+              b.phase = "GRIMOIRE";
+              this.grimoire.reset();
+            }
+          } else if (this.cmd === 2) {
             b.phase = "ITEM";
             this.item = 0;
           } else {
             b.flee();
           }
         }
+        return;
+
+      case "GRIMOIRE":
+        if (this.grimoire.handle(key, this.player)) b.phase = "COMMAND";
         return;
 
       case "CASTING": {
@@ -130,7 +145,12 @@ export class BattleScene implements Scene {
     d.ctx.save();
     d.ctx.translate(sh.x, sh.y);
     this.renderEnemy(d);
-    this.renderWindow(d);
+    if (this.battle.phase === "GRIMOIRE") {
+      this.grimoire.render(d, 16, 20, 448, 184, this.player);
+      d.textRight("↑↓ 選択　ESC とじる", 452, 208, PAL.line);
+    } else {
+      this.renderWindow(d);
+    }
     this.renderPlayer(d);
     d.ctx.restore();
 
@@ -199,7 +219,7 @@ export class BattleScene implements Scene {
         const cursorOn = Math.floor(this.caret * 2) % 2 === 0;
         d.text(`> ${this.field.value}${cursorOn ? "_" : ""}`, 30, 146, PAL.ink);
 
-        if (b.suggestionsBlocked) {
+        if (b.memorySealed) {
           d.text("覚えていたはずの綴りが、思い出せない。", 30, 168, PAL.danger);
         } else if (this.field.suggestions.length > 0) {
           this.field.suggestions.forEach((s, i) => {
