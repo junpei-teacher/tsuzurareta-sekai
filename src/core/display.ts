@@ -103,6 +103,24 @@ export class Display {
     );
   }
 
+  /** スプライトの幅・高さをデザイン単位で返す */
+  spriteW(img: HTMLImageElement): number {
+    return img.width / PIXEL_SCALE;
+  }
+  spriteH(img: HTMLImageElement): number {
+    return img.height / PIXEL_SCALE;
+  }
+
+  /**
+   * 足元を (cx, bottomY) に合わせて置く。横は中央揃え。
+   *
+   * **スプライトの寸法は生ピクセルなので、位置合わせには必ずデザイン単位へ直す。**
+   * ここを直し忘れると、解像度を上げたときにキャラだけ数マス浮いて描かれる。
+   */
+  spriteFoot(img: HTMLImageElement, cx: number, bottomY: number): void {
+    this.sprite(img, cx - this.spriteW(img) / 2, bottomY - this.spriteH(img));
+  }
+
   /** スプライトシートの一部を等倍で描く */
   spriteRect(
     img: HTMLImageElement,

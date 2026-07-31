@@ -427,7 +427,7 @@ export class FieldScene implements Scene {
     this.forEachTile("C", (x, y) => {
       const px = ORIGIN_X + x * TILE;
       const py = ORIGIN_Y + y * TILE;
-      if (candle) d.sprite(candle, px + TILE / 2 - candle.width / 2, py + TILE - candle.height + 4);
+      if (candle) d.spriteFoot(candle, px + TILE / 2, py + TILE + 4);
       const flick = 0.6 + 0.4 * Math.sin(this.time * 9 + x * 3 + y);
       d.ctx.globalAlpha = flick;
       d.rect(px + 7, py - 12, 2, 4, "#f0b83c");
@@ -447,7 +447,7 @@ export class FieldScene implements Scene {
       if (maxX >= 0) {
         const cx = ORIGIN_X + ((minX + maxX + 1) * TILE) / 2;
         const cy = ORIGIN_Y + ((minY + maxY + 1) * TILE) / 2;
-        d.sprite(stairs, cx - stairs.width / 2, cy - stairs.height / 2);
+        d.spriteFoot(stairs, cx, cy + d.spriteH(stairs) / 2);
       }
     } else {
       this.forEachTile("V", (x, y) => this.drawTile(d, x, y, "V"));
@@ -464,7 +464,7 @@ export class FieldScene implements Scene {
           if (!this.state.isBlocked(this.map.id, x, y)) continue;
           const px = ORIGIN_X + x * TILE;
           const py = ORIGIN_Y + y * TILE;
-          if (rubble) d.sprite(rubble, px + TILE / 2 - rubble.width / 2, py + TILE - rubble.height + 4);
+          if (rubble) d.spriteFoot(rubble, px + TILE / 2, py + TILE + 4);
           else {
             d.rect(px + 1, py + 4, TILE - 2, 5, "#4a2a18");
             d.rect(px + 3, py + 9, TILE - 7, 4, "#33200f");
@@ -533,7 +533,8 @@ export class FieldScene implements Scene {
       if (e.kind === "door") {
         const img = this.images["prop.door"];
         if (img) {
-          d.sprite(img, px + TILE / 2 - img.width / 2, py + TILE - img.height + 6);
+          // 扉は壁の開口部に立つ。上へ伸びすぎないよう足元を少し下げる
+          d.spriteFoot(img, px + TILE / 2, py + TILE + 6);
         } else {
           d.rect(px, py, TILE, TILE, "#120f0d");
           d.rect(px + 6, py + 6, 4, 4, PAL.accent);
@@ -581,7 +582,7 @@ export class FieldScene implements Scene {
         : this.images[`${e.ref}.south`];
       if (img) {
         // 48x48 のキャンバスを、足元がマスの下端に来るように置く
-        d.sprite(img, px + (TILE - img.width) / 2, py + TILE - img.height + SPRITE_FOOT);
+        d.spriteFoot(img, px + TILE / 2, py + TILE + SPRITE_FOOT);
         continue;
       }
       const sp = speaker(e.ref);
@@ -607,7 +608,7 @@ export class FieldScene implements Scene {
       : this.images[`hero.${compass}`] ?? walk[0];
 
     if (img) {
-      d.sprite(img, px + (TILE - img.width) / 2, py + TILE - img.height + SPRITE_FOOT);
+      d.spriteFoot(img, px + TILE / 2, py + TILE + SPRITE_FOOT);
       return;
     }
 
