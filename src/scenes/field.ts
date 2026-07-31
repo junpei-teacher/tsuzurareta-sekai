@@ -48,6 +48,7 @@ export class FieldScene implements Scene {
     private readonly player: Player,
     private readonly state: FieldState,
     private readonly onBattle: (enemyId: string, cellKey: string) => void,
+    private readonly onVault: () => void,
     private readonly onExit: () => void,
   ) {
     this.map = getMap(state.mapId);
@@ -132,8 +133,9 @@ export class FieldScene implements Scene {
     // NPCは押しのけられない
     const npc = this.entityAt(x, y, "npc");
     if (npc && this.npcVisible(npc)) return false;
-    // 張り紙・落書きは壁や机の上にあるので通り抜けられない
+    // 張り紙・落書き・禁書の台は通り抜けられない
     if (this.entityAt(x, y, "sign")) return false;
+    if (this.entityAt(x, y, "vault")) return false;
     return true;
   }
 
@@ -160,8 +162,17 @@ export class FieldScene implements Scene {
   private onArrive(): void {
     const { x, y } = this.state;
 
+    // 崩れた階段。第3章へ降りる
     if (this.state.isOpened(this.map.id, x, y)) {
-      this.showNotice("……降りるしかない。");
+      this.state.startChapter(3, this.player);
+      this.map = getMap(this.state.mapId);
+      this.fromX = this.state.x;
+      this.fromY = this.state.y;
+      this.stepT = 0;
+      if (this.state.intro.length > 0) {
+        this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, this.state.intro);
+        this.state.intro = [];
+      }
       return;
     }
 
@@ -187,6 +198,12 @@ export class FieldScene implements Scene {
     const d = DIRS[this.state.facing];
     const tx = this.state.x + d.x;
     const ty = this.state.y + d.y;
+
+    // 禁書。調べると書き込みへ
+    if (this.entityAt(tx, ty, "vault")) {
+      this.onVault();
+      return;
+    }
 
     const target =
       this.entityAt(tx, ty, "npc") ?? this.entityAt(tx, ty, "sign");
@@ -331,6 +348,18 @@ export class FieldScene implements Scene {
         d.frame(px + 3, py + 3, 10, 10, "#241a11");
         d.rect(px + 5, py + 6, 6, 1, "#4a4038");
         d.rect(px + 5, py + 9, 6, 1, "#4a4038");
+        continue;
+      }
+
+      if (e.kind === "vault") {
+        // 台に置かれた、開かれたままの本
+        const glow = 0.4 + 0.25 * Math.sin(this.time * 1.6);
+        d.ctx.globalAlpha = glow * 0.5;
+        d.rect(px - 4, py - 4, TILE + 8, TILE + 8, "#c8912f");
+        d.ctx.globalAlpha = 1;
+        d.rect(px + 1, py + 5, 14, 9, "#241d16");
+        d.rect(px + 2, py + 6, 6, 7, "#d8cfb4");
+        d.rect(px + 8, py + 6, 6, 7, "#d8cfb4");
         continue;
       }
 

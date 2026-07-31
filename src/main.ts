@@ -10,6 +10,9 @@ import { BattleScene } from "./scenes/battle.ts";
 import { CasterTestScene } from "./scenes/casterTest.ts";
 import { FieldScene } from "./scenes/field.ts";
 import { SelectScene } from "./scenes/select.ts";
+import { VaultScene } from "./scenes/vault.ts";
+import { EndingScene } from "./scenes/ending.ts";
+import { resolveEnding } from "./ending/resolve.ts";
 
 const canvas = document.getElementById("screen") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("#screen が見つかりません");
@@ -39,6 +42,7 @@ function goSelect(): void {
     },
     () => { scene = new CasterTestScene(goSelect); },
     (chapter) => { field.startChapter(chapter, player); goField(); },
+    goVault,
   );
 }
 
@@ -56,8 +60,16 @@ function goField(): void {
         goField();
       });
     },
+    goVault,
     goSelect,
   );
+}
+
+function goVault(): void {
+  scene = new VaultScene((words) => {
+    const result = resolveEnding(words, player.name);
+    scene = new EndingScene(result, player, goSelect);
+  });
 }
 
 goSelect();

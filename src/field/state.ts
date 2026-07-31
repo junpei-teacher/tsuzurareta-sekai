@@ -9,7 +9,7 @@ const CHAPTERS = [
   null,
   { level: 1, map: "ch1_reading", x: 14, y: 6, ink: 3, drop: 1 },
   { level: 4, map: "ch1_reading", x: 14, y: 6, ink: 2, drop: 1 },
-  { level: 8, map: "ch1_stairs", x: 12, y: 11, ink: 2, drop: 1 },
+  { level: 8, map: "ch3_vault", x: 13, y: 12, ink: 2, drop: 1 },
 ] as const;
 
 /**
@@ -95,7 +95,11 @@ export class FieldState {
       this.intro = [];
     } else {
       this.miraRoom = "";
-      this.intro = [];
+      this.intro = [
+        "階段は、思っていたより長かった。",
+        "降りきったところに、扉はなかった。",
+        "部屋があるだけだった。",
+      ];
     }
   }
 }

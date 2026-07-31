@@ -1,4 +1,5 @@
 import rawCh1 from "../../data/dialogue/ch1.json";
+import rawCh3 from "../../data/dialogue/ch3.json";
 import { Display, SCREEN_W } from "../core/display.ts";
 import { PAL } from "../core/palette.ts";
 import { windowBox } from "./hud.ts";
@@ -11,7 +12,10 @@ export type Speaker = {
   found?: Record<string, string>;
 };
 
-const TABLE = rawCh1 as unknown as Record<string, Speaker>;
+const TABLE = {
+  ...(rawCh1 as unknown as Record<string, Speaker>),
+  ...(rawCh3 as unknown as Record<string, Speaker>),
+};
 
 export function speaker(id: string): Speaker | undefined {
   const s = TABLE[id];

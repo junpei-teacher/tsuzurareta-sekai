@@ -13,7 +13,8 @@
  *   !npc   a mira                 … 文字 a の位置に NPC mira を置く
  *   !enemy 1 bookworm             … 文字 1 の位置に敵シンボルを置く
  *   !door  d ch1_stacks 14 1      … 文字 d の位置に別マップへの出入口
- *   !sign  s stairs_locked        … 文字 s の位置に調べられる点（姿は無い）
+ *   !sign  s notice_board         … 文字 s の位置に調べられる張り紙
+ *   !vault k                      … 文字 k の位置に禁書（調べると書き込みへ）
  *   !map                          … これ以降がマップ本体
  *
  * タイル（大文字と記号）:
@@ -33,7 +34,7 @@ export function walkable(t: Tile): boolean {
   return t === ".";
 }
 
-export type EntityKind = "npc" | "enemy" | "door" | "sign";
+export type EntityKind = "npc" | "enemy" | "door" | "sign" | "vault";
 
 export type MapEntity = {
   kind: EntityKind;
@@ -80,6 +81,7 @@ export function parseMap(text: string): GameMap {
       case "npc":   decls.set(args[0]!, { kind: "npc", ref: args[1] ?? "" }); break;
       case "enemy": decls.set(args[0]!, { kind: "enemy", ref: args[1] ?? "" }); break;
       case "sign":  decls.set(args[0]!, { kind: "sign", ref: args[1] ?? "" }); break;
+      case "vault": decls.set(args[0]!, { kind: "vault", ref: "vault_altar" }); break;
       case "door":
         decls.set(args[0]!, {
           kind: "door", ref: args[1] ?? "",

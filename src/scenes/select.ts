@@ -15,6 +15,7 @@ import { clearProgress } from "../game/save.ts";
 const EXTRAS = [
   "第1章を歩く　静かな書庫",
   "第2章を歩く　炎上",
+  "禁書を開く　終章",
   "HP/MP/道具を全回復",
   "呪文帳を見る",
   "呪文帳を初期化（セーブも消す）",
@@ -32,6 +33,7 @@ export class SelectScene implements Scene {
     private readonly onFight: (e: EnemyDef) => void,
     private readonly onTestbed: () => void,
     private readonly onField: (chapter: number) => void,
+    private readonly onVault: () => void,
   ) {}
 
   private get rows(): number {
@@ -61,17 +63,20 @@ export class SelectScene implements Scene {
     switch (this.index - ENEMIES.length) {
       case 0: this.onField(1); break;
       case 1: this.onField(2); break;
-      case 2:
+      case 2: this.onVault(); break;
+      case 3:
         this.player.restore();
         this.player.items = { ink: 3, drop: 1 };
         break;
-      case 3:
+      case 4:
         this.viewing = true;
         this.grimoire.reset();
         break;
-      case 4:
+      case 5:
         this.player.grimoire.clear();
         this.player.unspoken.clear();
+        this.player.seenEndings.clear();
+        this.player.seenFragments.clear();
         this.player.grimoire.set(20, "ROZHA"); // 熾火だけは最初から
         clearProgress();
         break;

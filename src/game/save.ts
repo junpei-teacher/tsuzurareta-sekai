@@ -20,7 +20,6 @@ type SaveData = {
   version: 1;
   grimoire: Array<[number, string]>;
   unspoken: number[];
-  /** Phase 6 で使う */
   fragments?: number[];
   endings?: string[];
 };
@@ -30,6 +29,8 @@ export function saveProgress(player: Player): void {
     version: 1,
     grimoire: [...player.grimoire.entries()],
     unspoken: [...player.unspoken],
+    fragments: [...player.seenFragments],
+    endings: [...player.seenEndings],
   };
   try {
     localStorage.setItem(KEY, JSON.stringify(data));
@@ -53,6 +54,8 @@ export function loadProgress(player: Player): boolean {
     if (data.version !== 1 || !Array.isArray(data.grimoire)) return false;
     player.grimoire = new Map(data.grimoire);
     player.unspoken = new Set(data.unspoken ?? []);
+    player.seenFragments = new Set(data.fragments ?? []);
+    player.seenEndings = new Set(data.endings ?? []);
     return true;
   } catch (e) {
     // 壊れたセーブでクラッシュさせない（手順書 9-3）

@@ -42,6 +42,11 @@ export class Player {
   /** 引き当てたがMPが足りず唱えられなかった呪文（設計書 3.6） */
   unspoken = new Set<number>();
 
+  /** 到達した専用エンディングのキー。周回を跨いで残る */
+  seenEndings = new Set<string>();
+  /** 見た断章の番号。周回を跨いで残る */
+  seenFragments = new Set<number>();
+
   items = { ink: 3, drop: 1 };
 
   get maxHp(): number {
