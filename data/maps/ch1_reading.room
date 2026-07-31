@@ -3,11 +3,12 @@
 !spawn 14 6
 !npc a mira
 !npc b librarian
+!sign p duty_board
 !door e ch1_desks 1 6
 !door s ch1_stacks 13 1
 !map
 ############################
-#..........................#
+#....p.....................#
 #..BBBB.......C......BBBB..#
 #..BBBB..............BBBB..#
 #..........................#

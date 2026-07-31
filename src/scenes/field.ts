@@ -113,6 +113,8 @@ export class FieldScene implements Scene {
     // NPCは押しのけられない
     const npc = this.entityAt(x, y, "npc");
     if (npc && this.npcVisible(npc)) return false;
+    // 張り紙・落書きは壁や机の上にあるので通り抜けられない
+    if (this.entityAt(x, y, "sign")) return false;
     return true;
   }
 
@@ -165,7 +167,8 @@ export class FieldScene implements Scene {
       const t = this.tileAt(tx, ty);
       if (t === "B") this.showNotice("背表紙の題名を、目録に書き写す。それが仕事だ。");
       else if (t === "C") this.showNotice("燭台。書庫でいちばん危険な道具。");
-      else if (t === "V") this.showNotice("下へ続く階段。");
+      else if (t === "V") this.showNotice("下へ続く階段。見習いは、ここから先へ行ってはいけない。");
+      else if (t === "T") this.showNotice("写字机。天板が、いくつも傷んでいる。");
       return;
     }
     if (target.kind === "npc" && !this.npcVisible(target)) return;
@@ -173,7 +176,11 @@ export class FieldScene implements Scene {
     const sp = speaker(target.ref);
     if (!sp) return;
     const i = this.state.nextTalk(target.ref, sp.talks.length);
-    this.dialogue.open(sp, sp.talks[i] ?? []);
+    const talk = [...(sp.talks[i] ?? [])];
+    // ミラは巡回中。見つけた部屋によって、していることが違う
+    const found = sp.found?.[this.map.id];
+    if (found) talk.unshift(found);
+    this.dialogue.open(sp, talk);
     this.lastTalkedMira = target.ref === "mira";
   }
 
@@ -281,7 +288,13 @@ export class FieldScene implements Scene {
         d.rect(px + 6, py + 6, 4, 4, PAL.accent);
         continue;
       }
-      if (e.kind === "sign") continue; // 姿は無い
+      if (e.kind === "sign") {
+        d.rect(px + 3, py + 3, 10, 10, "#8a8070");
+        d.frame(px + 3, py + 3, 10, 10, "#241a11");
+        d.rect(px + 5, py + 6, 6, 1, "#4a4038");
+        d.rect(px + 5, py + 9, 6, 1, "#4a4038");
+        continue;
+      }
 
       if (e.kind === "enemy") {
         if (this.state.defeated.has(`${this.map.id}:${e.x},${e.y}`)) continue;

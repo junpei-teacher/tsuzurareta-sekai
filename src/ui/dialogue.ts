@@ -3,7 +3,13 @@ import { Display, SCREEN_W } from "../core/display.ts";
 import { PAL } from "../core/palette.ts";
 import { windowBox } from "./hud.ts";
 
-export type Speaker = { name: string; color: string; talks: string[][] };
+export type Speaker = {
+  name: string;
+  color: string;
+  talks: string[][];
+  /** 部屋ごとの「見つけたときの様子」。会話の頭に1行入る */
+  found?: Record<string, string>;
+};
 
 const TABLE = rawCh1 as unknown as Record<string, Speaker>;
 
