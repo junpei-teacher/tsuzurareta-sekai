@@ -23,6 +23,16 @@ function seq(key: string, template: string, count: number): Record<string, strin
  * 4方向の歩行が要るのは主人公のみ（docs/アートバイブル.md 第6節）。
  */
 export const MANIFEST: Record<string, string> = {
+  // 主人公。画面内を歩く唯一のキャラなので4方向の歩行を持つ
+  "hero.south": "/assets/sprites/hero/south_pal.png",
+  "hero.north": "/assets/sprites/hero/north_pal.png",
+  "hero.east": "/assets/sprites/hero/east_pal.png",
+  "hero.west": "/assets/sprites/hero/west_pal.png",
+  ...seq("hero.walk.south", "/assets/sprites/hero/walk/south_{i}_pal.png", 4),
+  ...seq("hero.walk.north", "/assets/sprites/hero/walk/north_{i}_pal.png", 4),
+  ...seq("hero.walk.east", "/assets/sprites/hero/walk/east_{i}_pal.png", 4),
+  ...seq("hero.walk.west", "/assets/sprites/hero/walk/west_{i}_pal.png", 4),
+
   "mira.south": "/assets/sprites/mira/south_pal.png",
   "mira.north": "/assets/sprites/mira/north_pal.png",
   "mira.east": "/assets/sprites/mira/east_pal.png",

@@ -25,6 +25,12 @@ const STEP_TIME = 0.15;
 const SPRITE_FOOT = 4;
 /** 待機モーションの再生速度（1秒あたりのコマ数）。ゆっくりでいい */
 const IDLE_FPS = 5;
+/**
+ * 歩行サイクルの再生速度。
+ * 1マス0.15秒なので、4フレームなら約6.7fpsで1マス1周する。
+ * 足が地面を滑らないよう、この2つは揃えておく。
+ */
+const WALK_FPS = 6.7;
 
 const DIRS = {
   up: { x: 0, y: -1, key: "ArrowUp" },
@@ -34,6 +40,14 @@ const DIRS = {
 } as const;
 
 type Dir = keyof typeof DIRS;
+
+/** 内部の向き名 → アセットの方位名。PixelLab の出力が方位で並ぶため */
+const COMPASS: Record<Dir, string> = {
+  up: "north",
+  down: "south",
+  left: "west",
+  right: "east",
+};
 
 export class FieldScene implements Scene {
   private map: GameMap;
@@ -47,6 +61,8 @@ export class FieldScene implements Scene {
   private fromX = 0;
   private fromY = 0;
   private lastTalkedMira = false;
+  /** 歩行サイクルの位相。歩いているあいだだけ進む */
+  private walkPhase = 0;
   private time = 0;
   private notice = "";
   private noticeT = 0;
@@ -110,6 +126,7 @@ export class FieldScene implements Scene {
 
   private updateMovement(dt: number): void {
     if (this.stepT > 0) {
+      this.walkPhase += dt;
       this.stepT = Math.max(0, this.stepT - dt / STEP_TIME);
       if (this.stepT === 0) this.onArrive();
       return;
@@ -410,10 +427,23 @@ export class FieldScene implements Scene {
     const px = Math.round(ORIGIN_X + gx * TILE);
     const py = Math.round(ORIGIN_Y + gy * TILE);
 
+    const dir = this.state.facing;
+    const compass = COMPASS[dir];
+    const walk = frames(this.images, `hero.walk.${compass}`);
+    // 歩行サイクルは歩いているあいだだけ進む。止まれば立ち姿に戻る
+    const img = this.stepT > 0 && walk.length > 0
+      ? walk[Math.floor(this.walkPhase * WALK_FPS) % walk.length]
+      : this.images[`hero.${compass}`] ?? walk[0];
+
+    if (img) {
+      d.sprite(img, px + (TILE - img.width) / 2, py + TILE - img.height + SPRITE_FOOT);
+      return;
+    }
+
+    // アセット未投入のあいだは矩形（Phase 7 は差し替え途中でも動く）
     d.rect(px + 3, py + 2, 10, 13, "#d8c8a0");
     d.rect(px + 3, py + 2, 10, 4, "#8a7a58");
-    // 向きの目印
-    const f = DIRS[this.state.facing];
+    const f = DIRS[dir];
     d.rect(px + 7 + f.x * 4, py + 8 + f.y * 5, 2, 2, "#3a2f22");
   }
 

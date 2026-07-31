@@ -120,7 +120,8 @@ if (import.meta.env.DEV) {
       release: (name: string) => window.dispatchEvent(
         new KeyboardEvent("keyup", { key: name, bubbles: true, cancelable: true }),
       ),
-      player, field,
+      player, field, keyboard,
+      sceneName: () => scene.constructor.name,
     },
   });
 }

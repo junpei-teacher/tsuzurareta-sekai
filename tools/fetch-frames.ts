@@ -25,8 +25,9 @@ if (!outDir || !template || !Number.isFinite(count) || count <= 0) {
   );
   process.exit(1);
 }
-if (!template.includes("{i}")) {
-  console.error("URLテンプレートに {i} が含まれていません");
+// 連番のときだけ {i} が要る。1枚だけ落とす場合（回転画像など）は不要
+if (count > 1 && !template.includes("{i}")) {
+  console.error("2枚以上を落とすには URLテンプレートに {i} が必要です");
   process.exit(1);
 }
 
@@ -54,7 +55,8 @@ async function getWithRetry(url: string, tries = 3): Promise<Buffer> {
 let ok = 0;
 for (let i = 0; i < count; i++) {
   const url = template.replace("{i}", String(i));
-  const file = join(outDir, `${prefix}_${i}.png`);
+  // 1枚だけなら連番を付けない（south.png のように使いたいので）
+  const file = join(outDir, count === 1 ? `${prefix}.png` : `${prefix}_${i}.png`);
   try {
     const buf = await getWithRetry(url);
     writeFileSync(file, buf);
