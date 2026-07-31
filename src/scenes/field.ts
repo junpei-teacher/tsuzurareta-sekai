@@ -5,7 +5,7 @@ import type { Scene } from "../core/scene.ts";
 import type { Player } from "../game/player.ts";
 import { getMap, walkable, type GameMap, type MapEntity, type Tile } from "../field/mapFormat.ts";
 import type { FieldState } from "../field/state.ts";
-import type { ImageMap } from "../core/assets.ts";
+import { frames, type ImageMap } from "../core/assets.ts";
 import { BurnLayer, scorch } from "../fx/burn.ts";
 import { saveProgress } from "../game/save.ts";
 import { DialogueBox, speaker } from "../ui/dialogue.ts";
@@ -23,6 +23,8 @@ const STEP_TIME = 0.15;
  * PixelLab の出力はキャンバス内で少し浮いているので、その分を吸収する。
  */
 const SPRITE_FOOT = 4;
+/** 待機モーションの再生速度（1秒あたりのコマ数）。ゆっくりでいい */
+const IDLE_FPS = 5;
 
 const DIRS = {
   up: { x: 0, y: -1, key: "ArrowUp" },
@@ -381,8 +383,14 @@ export class FieldScene implements Scene {
 
       if (!this.npcVisible(e)) continue;
 
-      // ドット絵があれば使う。無ければ矩形のまま（Phase 7 は差し替え途中でも動く）
-      const img = this.images[`${e.ref}.south`];
+      // 待機モーションがあれば再生。無ければ静止画。どちらも無ければ矩形
+      // （Phase 7 は差し替え途中でも動くようにしておく）
+      const loop = frames(this.images, `${e.ref}.idle`);
+      // NPCごとに位相をずらす。並んだときに同じ動きで揃うと不自然
+      const phase = (e.x * 7 + e.y * 13) % 97;
+      const img = loop.length > 0
+        ? loop[Math.floor(this.time * IDLE_FPS + phase) % loop.length]
+        : this.images[`${e.ref}.south`];
       if (img) {
         // 48x48 のキャンバスを、足元がマスの下端に来るように置く
         d.sprite(img, px + (TILE - img.width) / 2, py + TILE - img.height + SPRITE_FOOT);
