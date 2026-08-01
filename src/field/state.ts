@@ -116,4 +116,30 @@ export class FieldState {
       ];
     }
   }
+
+  /**
+   * 負けたときのやり直し。
+   *
+   * 章の頭からやり直す（設計書 5：章内が一つの勝負単位）。HPもMPも道具も戻り、
+   * 倒した敵は復活する。**そのかわり、ミラとの会話の進み具合と呪文帳は残す。**
+   *
+   * 話の続きまで巻き戻すと、負けた罰が「同じ会話をもう一度読む」になってしまう。
+   * それは罰ではなく、ただの苦行である。
+   *
+   * 死んだのではない。目の前が白くなって、目が覚めただけ。
+   */
+  restartChapter(player: Player): void {
+    const talks = new Map(this.talkIndex);
+    const notices = new Map(this.noticeIndex);
+    const mira = this.miraRoom;
+    this.startChapter(this.chapter, player);
+    this.talkIndex = talks;
+    this.noticeIndex = notices;
+    if (mira) this.miraRoom = mira;
+    this.intro = [
+      "目が覚めた。",
+      "どれくらい倒れていたのか、分からない。",
+      "書架のあいだは、まだ同じ夜だった。",
+    ];
+  }
 }

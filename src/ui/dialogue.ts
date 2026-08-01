@@ -10,8 +10,18 @@ export type Speaker = {
   name: string;
   color: string;
   talks: string[][];
-  /** 部屋ごとの「見つけたときの様子」。会話の頭に1行入る */
-  found?: Record<string, string>;
+  /**
+   * 部屋ごとの「見つけたときの様子」。会話の頭に1行入る。
+   * **部屋あたり複数書ける。** 話しかけるたびに順に変わる。
+   * 1つしか無いと、16回の会話で同じ一行を16回読むことになり、
+   * 「彼女を探して話しかける作業」に見えてしまう。
+   */
+  found?: Record<string, string[]>;
+  /**
+   * この会話で呪文帳に書き加わる言葉。`talk` は何番目の会話か。
+   * 巻物を拾わせるのではなく、**人から教わる**形にするために使う。
+   */
+  grants?: { talk: number; id: number; word: string }[];
   /** 立ち絵のアセットキーの末尾。`portrait.<これ>` を引く。無ければ地の文扱い */
   portrait?: string;
   /** この人物が現れる章。省略したら全章 */

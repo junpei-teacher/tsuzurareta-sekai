@@ -14,6 +14,7 @@ import { frames, type ImageMap } from "../core/assets.ts";
 import { BloomLayer, type Light } from "../fx/bloom.ts";
 import { BurnLayer, scorch } from "../fx/burn.ts";
 import { saveProgress } from "../game/save.ts";
+import { spellById } from "../spell/book.ts";
 import { DialogueBox, speaker } from "../ui/dialogue.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { bar, windowBox } from "../ui/hud.ts";
@@ -275,9 +276,19 @@ export class FieldScene implements Scene {
     if (!sp) return;
     const i = this.state.nextTalk(target.ref, sp.talks.length);
     const talk = [...(sp.talks[i] ?? [])];
-    // ミラは巡回中。見つけた部屋によって、していることが違う
+
+    // ミラは巡回中。見つけた部屋と、何度目かで、していることが違う
     const found = sp.found?.[this.map.id];
-    if (found) talk.unshift(found);
+    if (found && found.length > 0) talk.unshift(found[i % found.length]!);
+
+    // 呪文は巻物で拾うのではなく、人から教わる
+    const grant = sp.grants?.find((g) => g.talk === i);
+    if (grant && !this.player.grimoire.has(grant.id)) {
+      this.player.grimoire.set(grant.id, grant.word);
+      const name = spellById(grant.id)?.name ?? grant.word;
+      talk.push(`（呪文帳に「${name}」が書き加えられた）`);
+    }
+
     this.dialogue.open(sp, talk);
     this.lastTalkedMira = target.ref === "mira";
 

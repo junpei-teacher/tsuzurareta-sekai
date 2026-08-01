@@ -13,6 +13,20 @@
  *
  * 数えるのは「行数」ではなく「プレイヤーが必ず通る回数」であることに注意。
  * 任意で調べる張り紙に10行あっても、露出は0回かもしれない。
+ *
+ * ────────────────────────────────────────────
+ * 【この数字を目標にしてはいけない】
+ *
+ * 一度、この数を上げにいって失敗している。25回まで積んだ結果、
+ * ミラが「署名を書く装置」になり、遊んだ人の感想は
+ * 「MIRA、MIRA 言い過ぎ」「探して話しかけるだけの作業に見える」だった。
+ *
+ * **回数ではなく、覚えているかが要る。**
+ * 彼女が自分の名を綴ってみせる場面が一度あるほうが、
+ * 棚札に10回書いてあるより効く。
+ *
+ * したがって下限は 12 とする。**これは床であって、天井ではない。**
+ * 下回ったら足す。上回っても、それ以上は積まない。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -47,18 +61,17 @@ mira.talks.forEach((t, i) => {
 //
 // これは **会話1回につき必ず1行、頭に入る**。部屋はミラが移った先で決まるので、
 // 期待値は「会話数 × (MIRA を含む部屋の割合)」になる。
-const foundLines = Object.entries(mira.found ?? {});
-const foundHits = foundLines.reduce((n, [, l]) => n + count(l), 0);
-const foundExpected = foundLines.length > 0
-  ? (mira.talks.length * foundHits) / foundLines.length
+const foundRooms = Object.entries(mira.found ?? {});
+const foundAll = foundRooms.flatMap(([, ls]) => ls);
+const foundHits = foundAll.reduce((n, l) => n + count(l), 0);
+const foundExpected = foundAll.length > 0
+  ? (mira.talks.length * foundHits) / foundAll.length
   : 0;
 
 console.log("\n── ミラを見つけたときの一行 ────────────────");
-console.log(`  ${foundLines.length} 部屋中 ${foundLines.filter(([, l]) => l.includes(WORD)).length} 部屋の文に MIRA`);
-for (const [room, l] of foundLines) {
-  console.log(`    ${count(l) > 0 ? "◯" : "　"} ${room.padEnd(12)} ${l}`);
-}
-console.log(`  会話 ${mira.talks.length} 回の頭に必ず1行入るので、期待値 ${foundExpected.toFixed(1)} 回`);
+console.log(`  ${foundRooms.length} 部屋 × 各 ${foundRooms[0]?.[1].length ?? 0} 通り = ${foundAll.length} 行`);
+console.log(`  うち MIRA を含む行 ${foundAll.filter((l) => l.includes(WORD)).length}（期待値 ${foundExpected.toFixed(1)} 回）`);
+console.log("  ※ ここは毎回必ず読まれる枠なので、**詰め込むと真っ先に飽きられる。**");
 
 // ── 2. 家具を調べたときの一行 ────────────────────
 //
@@ -97,13 +110,42 @@ for (const [id, sp] of Object.entries(ch1).filter(([k]) => isData(k) && k !== "m
   console.log(`  ${sp.name || id} 全${sum}回（最初に調べた1回で ${per[0]} 回）`);
 }
 
+// ── 4. 第2章 ────────────────────────────────
+//
+// **ここを数えないのは間違いだった。** 禁書に書き込むのは第3章の終わりで、
+// 記憶がいちばん新しいのは第2章である。しかも焼け残った当番表は、
+// 彼女を探している最中に読むことになる。第1章のどの一行より強い。
+const ch2 = read("data/dialogue/ch2.json") as Record<string, Speaker>;
+console.log("\n── 第2章 ────────────────────────────────");
+let ch2Total = 0;
+const board2 = ch2["duty_board"];
+if (board2) {
+  const first = board2.talks[0]?.reduce((n, l) => n + count(l), 0) ?? 0;
+  ch2Total += first;
+  console.log(`  焼け残った当番表（最初に調べた1回で ${first} 回）`);
+  board2.talks[0]?.filter((l) => l.includes(WORD)).forEach((l) => console.log(`    ${l}`));
+}
+const ASSUMED2: Record<string, number> = { B: 6, T: 3, C: 2, V: 2 };
+for (const [tile, e] of Object.entries(notices).filter(([k]) => isData(k))) {
+  const lines = e.ch2 ?? e.ch1;
+  let n = 0;
+  for (let i = 0; i < (ASSUMED2[tile] ?? 0); i++) n += count(lines[i % lines.length]!);
+  if (n > 0) console.log(`  ${LABEL[tile]} を ${ASSUMED2[tile]} 回調べる → ${n} 回`);
+  ch2Total += n;
+}
+console.log(`  → 第2章で ${ch2Total} 回`);
+
 // ── まとめ ────────────────────────────────────
 const floor = miraTotal + foundExpected;
-const realistic = floor + firstLook + noticeExposure;
+const ch1Realistic = floor + firstLook + noticeExposure;
+const realistic = ch1Realistic + ch2Total;
 console.log("\n── まとめ ────────────────────────────────");
-console.log(`  必ず通る（ミラとの会話＋見つけたときの一行） ${floor.toFixed(1)} 回`);
-console.log(`  控えめな通し（＋掲示物を1回ずつ＋上の想定）  ${realistic.toFixed(1)} 回`);
-console.log(`  上限（掲示物も最後まで読む）                ${(floor + optional + noticeExposure).toFixed(1)} 回`);
-console.log(`\n  目標 20 回 … ${realistic >= 20 ? "達成" : "**未達**"}`);
+console.log(`  必ず通る（ミラとの会話）                    ${floor.toFixed(1)} 回`);
+console.log(`  第1章の控えめな通し                        ${ch1Realistic.toFixed(1)} 回`);
+console.log(`  ＋ 第2章                                   ${ch2Total} 回`);
+console.log(`  合計                                       ${realistic.toFixed(1)} 回`);
+const FLOOR = 12;
+console.log(`\n  下限 ${FLOOR} 回 … ${realistic >= FLOOR ? "満たしている" : "**足りない**"}`);
+console.log("  （下限であって目標ではない。上回っても積み増さないこと）");
 
-if (realistic < 20) process.exitCode = 1;
+if (realistic < FLOOR) process.exitCode = 1;
