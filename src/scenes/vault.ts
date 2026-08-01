@@ -104,8 +104,8 @@ export class VaultScene implements Scene {
       d.text(text + caret, x + 8, y + 6, PAL.ink);
     }
 
-    d.textRight("TAB 欄を移る", x0 + totalW, y + 34, PAL.line);
-    d.text("ENTER 書き終える", x0, y + 34, PAL.line);
+    d.textRight("TAB 欄を移る", x0 + totalW, y + 34, PAL.hint);
+    d.text("ENTER 書き終える", x0, y + 34, PAL.hint);
 
     // 暗転から明ける
     if (this.fade > 0) {

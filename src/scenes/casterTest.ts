@@ -89,7 +89,7 @@ export class CasterTestScene implements Scene {
       } else {
         const sp = spellById(latest.spellId);
         d.text(sp ? `${sp.name}　${sp.element}　MP${sp.mp}` : `#${latest.index}`, 28, 90, PAL.dim);
-        if (this.lastWasShort) d.text("［短縮演出］", 240, 90, PAL.line);
+        if (this.lastWasShort) d.text("［短縮演出］", 240, 90, PAL.hint);
       }
       d.textRight(latest.word, SCREEN_W - 28, 64, PAL.ink);
       d.textRight(
@@ -117,7 +117,7 @@ export class CasterTestScene implements Scene {
       d.text(t.label, x, 186, TIER_COLOR[t.tier]);
       d.text(`${n}`, x, 202, PAL.ink);
       d.text(`${pct.toFixed(1)}%`, x, 216, PAL.dim);
-      d.text(`設計 ${t.designedRate}%`, x, 230, PAL.line);
+      d.text(`設計 ${t.designedRate}%`, x, 230, PAL.hint);
     });
 
     d.textRight(`総詠唱 ${this.total}`, SCREEN_W - 16, 202, PAL.ink);

@@ -69,7 +69,7 @@ export class GrimoireView {
 
     // スクロール位置
     if (ids.length > ROWS) {
-      d.textRight(`${this.index + 1} / ${ids.length}`, x + w - 14, y + h - 30, PAL.line);
+      d.textRight(`${this.index + 1} / ${ids.length}`, x + w - 14, y + h - 30, PAL.hint);
     }
 
     // 選択中の呪文のフレーバー

@@ -92,7 +92,7 @@ export class SelectScene implements Scene {
 
     if (this.viewing) {
       this.grimoire.render(d, 16, 26, 448, 184, this.player);
-      d.textRight("↑↓ 選択　ESC とじる", 452, 216, PAL.line);
+      d.textRight("↑↓ 選択　ESC とじる", 452, 216, PAL.hint);
       return;
     }
 
@@ -102,7 +102,7 @@ export class SelectScene implements Scene {
       const on = i === this.index;
       if (on) d.text("▸", 26, y, PAL.accent);
       d.text(e.name, 40, y, on ? PAL.ink : PAL.dim);
-      d.textRight(`ch${e.chapter}`, 256, y, PAL.line);
+      d.textRight(`ch${e.chapter}`, 256, y, PAL.hint);
     });
 
     EXTRAS.forEach((label, k) => {
@@ -110,7 +110,7 @@ export class SelectScene implements Scene {
       const y = 32 + i * 13 + 8;
       const on = i === this.index;
       if (on) d.text("▸", 26, y, PAL.accent);
-      d.text(label, 40, y, on ? PAL.ink : PAL.line);
+      d.text(label, 40, y, on ? PAL.ink : PAL.dim);
     });
 
     // 選択中の敵の説明
@@ -123,7 +123,7 @@ export class SelectScene implements Scene {
       if (sel.resist.length) d.text(`耐性 ${sel.resist.join("・")}`, 284, 82, PAL.dim);
       if (sel.immune.length) d.text(`無効 ${sel.immune.join("・")}`, 284, 96, PAL.danger);
       if (sel.skill) d.text(`技 ${sel.skill.name}`, 284, 112, PAL.dim);
-      this.wrap(sel.desc, 14).forEach((line, i) => d.text(line, 284, 134 + i * 14, PAL.line));
+      this.wrap(sel.desc, 14).forEach((line, i) => d.text(line, 284, 134 + i * 14, PAL.dim));
     }
 
     // プレイヤー状態
@@ -141,7 +141,7 @@ export class SelectScene implements Scene {
       `インク壺 ${p.items.ink}　魔力の雫 ${p.items.drop}`,
       28, 238, PAL.dim,
     );
-    d.textRight(`最大 Lv${LEVELS.length - 1}`, 452, 238, PAL.line);
+    d.textRight(`最大 Lv${LEVELS.length - 1}`, 452, 238, PAL.hint);
   }
 
   /** 日本語の素朴な折り返し */

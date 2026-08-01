@@ -278,7 +278,7 @@ export class FieldScene implements Scene {
     d.clear();
 
     d.text(this.map.name, 18, 8, this.state.burning ? "#e07a34" : PAL.accent);
-    d.textRight("TAB 呪文帳　ENTER しらべる　ESC もどる", SCREEN_W - 16, 8, PAL.line);
+    d.textRight("TAB 呪文帳　ENTER しらべる　ESC もどる", SCREEN_W - 16, 8, PAL.hint);
 
     this.renderTiles(d);
     this.renderEntities(d);
@@ -297,7 +297,7 @@ export class FieldScene implements Scene {
     this.dialogue.render(d, this.images);
     if (this.grimoireOpen) {
       this.grimoire.render(d, 16, 26, SCREEN_W - 32, 184, this.player);
-      d.textRight("↑↓ 選択　ESC とじる", SCREEN_W - 20, 214, PAL.line);
+      d.textRight("↑↓ 選択　ESC とじる", SCREEN_W - 20, 214, PAL.hint);
     }
   }
 

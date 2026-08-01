@@ -163,7 +163,7 @@ export class BattleScene implements Scene {
     this.renderEnemy(d);
     if (this.battle.phase === "GRIMOIRE") {
       this.grimoire.render(d, 16, 20, 448, 184, this.player);
-      d.textRight("↑↓ 選択　ESC とじる", 452, 208, PAL.line);
+      d.textRight("↑↓ 選択　ESC とじる", 452, 208, PAL.hint);
     } else {
       this.renderWindow(d);
     }
@@ -242,7 +242,7 @@ export class BattleScene implements Scene {
           const blink = Math.floor(this.caret * 3) % 2 === 0;
           if (blink) d.text("▼", 446, 188, PAL.accent);
         } else {
-          d.textRight("ENTER", 452, 188, PAL.line);
+          d.textRight("ENTER", 452, 188, PAL.hint);
         }
         break;
       }
@@ -253,7 +253,7 @@ export class BattleScene implements Scene {
           if (i === this.cmd) d.text("▸", 30, y, PAL.accent);
           d.text(c, 44, y, i === this.cmd ? PAL.ink : PAL.dim);
         });
-        d.text("↑↓ 選択　ENTER 決定", 200, 148, PAL.line);
+        d.text("↑↓ 選択　ENTER 決定", 200, 148, PAL.hint);
         break;
 
       case "CASTING": {
@@ -269,11 +269,12 @@ export class BattleScene implements Scene {
             if (on) d.rect(28, y - 1, 200, 13, "#2c241f");
             d.text(s, 32, y, on ? PAL.accent : PAL.dim);
           });
-          d.text("TAB 候補", 380, 164, PAL.line);
+          d.text("TAB 候補", 380, 164, PAL.hint);
         } else if (this.field.value.length > 0) {
-          d.text("（呪文帳にない言葉）", 30, 168, PAL.line);
+          // 打っている最中の重要な手がかり。ヒントではなく本文の扱いにする
+          d.text("（呪文帳にない言葉）", 30, 168, PAL.dim);
         }
-        d.textRight("ESC もどる", 452, 188, PAL.line);
+        d.textRight("ESC もどる", 452, 188, PAL.hint);
         break;
       }
 
