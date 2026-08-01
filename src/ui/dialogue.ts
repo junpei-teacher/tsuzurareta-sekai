@@ -1,5 +1,6 @@
 import rawCh1 from "../../data/dialogue/ch1.json";
 import rawCh3 from "../../data/dialogue/ch3.json";
+import type { ImageMap } from "../core/assets.ts";
 import { Display, SCREEN_W } from "../core/display.ts";
 import { PAL } from "../core/palette.ts";
 import { windowBox } from "./hud.ts";
@@ -10,6 +11,8 @@ export type Speaker = {
   talks: string[][];
   /** 部屋ごとの「見つけたときの様子」。会話の頭に1行入る */
   found?: Record<string, string>;
+  /** 立ち絵のアセットキーの末尾。`portrait.<これ>` を引く。無ければ地の文扱い */
+  portrait?: string;
 };
 
 const TABLE = {
@@ -23,6 +26,8 @@ export function speaker(id: string): Speaker | undefined {
 }
 
 const LINES_PER_PAGE = 3;
+/** 立ち絵の一辺（デザイン単位）。素材は倍の128pxで作る */
+const PORTRAIT = 64;
 /** 1秒あたりの表示文字数 */
 const TYPE_SPEED = 42;
 
@@ -38,6 +43,7 @@ export class DialogueBox {
   private name = "";
   private color: string = PAL.ink;
   private caret = 0;
+  private portrait: string | undefined;
 
   open(sp: Speaker, talk: string[]): void {
     this.pages = [];
@@ -48,6 +54,7 @@ export class DialogueBox {
     this.revealed = 0;
     this.name = sp.name;
     this.color = sp.color;
+    this.portrait = sp.portrait;
     this.active = this.pages.length > 0;
   }
 
@@ -77,10 +84,25 @@ export class DialogueBox {
     return false;
   }
 
-  render(d: Display): void {
+  /**
+   * @param images 立ち絵を引くため。地の文しか出さない場面では省略してよい
+   */
+  render(d: Display, images?: ImageMap): void {
     if (!this.active) return;
-    const x = 16, y = 190, w = SCREEN_W - 32, h = 68;
+    // 枠の位置は話者の有無で動かさない。喋る／地の文で窓が跳ねると読みにくい
+    const x = 16, y = 182, w = SCREEN_W - 32, h = 76;
     windowBox(d, x, y, w, h);
+
+    const face = this.portrait ? images?.[`portrait.${this.portrait}`] : undefined;
+    // 立ち絵があるぶんだけ本文を右へ寄せる
+    const textX = face ? x + PORTRAIT + 18 : x + 14;
+
+    if (face) {
+      const fx = x + 7, fy = y + 6;
+      d.rect(fx, fy, PORTRAIT, PORTRAIT, PAL.bg);
+      d.spriteFoot(face, fx + PORTRAIT / 2, fy + PORTRAIT);
+      d.frame(fx, fy, PORTRAIT, PORTRAIT, PAL.line);
+    }
 
     if (this.name) {
       const nw = Math.ceil(d.measure(this.name)) + 12;
@@ -95,7 +117,7 @@ export class DialogueBox {
     lines.forEach((line, i) => {
       const shown = line.slice(0, Math.max(0, budget));
       budget -= line.length;
-      d.text(shown, x + 14, y + 10 + i * 16, PAL.ink);
+      d.text(shown, textX, y + 12 + i * 16, PAL.ink);
     });
 
     if (this.revealed >= this.pageLength) {

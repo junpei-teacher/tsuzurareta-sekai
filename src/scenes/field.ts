@@ -294,7 +294,7 @@ export class FieldScene implements Scene {
       d.text(this.notice, 28, 220, PAL.dim);
     }
 
-    this.dialogue.render(d);
+    this.dialogue.render(d, this.images);
     if (this.grimoireOpen) {
       this.grimoire.render(d, 16, 26, SCREEN_W - 32, 184, this.player);
       d.textRight("↑↓ 選択　ESC とじる", SCREEN_W - 20, 214, PAL.line);

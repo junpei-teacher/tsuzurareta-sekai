@@ -46,10 +46,18 @@ export const MANIFEST: Record<string, string> = {
   "prop.stairs": "/assets/props2/stairs.png",
   "prop.rubble": "/assets/props2/rubble.png",
 
-  "mira.south": "/assets/sprites/mira2/south.png",
-  "mira.north": "/assets/sprites/mira2/north.png",
-  "mira.east": "/assets/sprites/mira2/east.png",
-  "mira.west": "/assets/sprites/mira2/west.png",
+  // NPC。画面内を歩かないので待機の4方向だけ。キーの頭は .room の !npc の ref と揃える
+  ...facing("mira", "/assets/sprites/mira2"),
+  ...facing("librarian", "/assets/sprites/librarian"),
+  ...facing("halven", "/assets/sprites/halven"),
+
+  // 立ち絵。素材は128pxで、64デザイン単位の枠にちょうど収まる。
+  // 全て character_to_portrait で**フィールドの姿から起こしている**ので、
+  // 顔と服がマップ上のドット絵と食い違わない
+  "portrait.hero": "/assets/portraits/hero.png",
+  "portrait.mira": "/assets/portraits/mira.png",
+  "portrait.librarian": "/assets/portraits/librarian.png",
+  "portrait.halven": "/assets/portraits/halven.png",
 
   // 敵。戦闘は正面から見るだけなので、回転もアニメも持たない1枚絵。
   // そのぶんの予算を1枚の質に寄せてある（create_image_pro・候補から選抜）。
@@ -64,6 +72,13 @@ export const MANIFEST: Record<string, string> = {
 function enemySprites(...ids: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const id of ids) out[`enemy.${id}`] = `/assets/enemies/${id}.png`;
+  return out;
+}
+
+/** 4方向の待機エントリをまとめて作る */
+function facing(key: string, dir: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const d of ["south", "north", "east", "west"]) out[`${key}.${d}`] = `${dir}/${d}.png`;
   return out;
 }
 
