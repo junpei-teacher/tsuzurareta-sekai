@@ -12,7 +12,8 @@
     "palettize": "tsx tools/palettize.ts",
     "fetch": "tsx tools/fetch-frames.ts",
     "preview:map": "tsx tools/preview-map.ts",
-    "fetch:auth": "tsx tools/fetch-auth.ts"
+    "fetch:auth": "tsx tools/fetch-auth.ts",
+    "count:mira": "tsx tools/count-exposure.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

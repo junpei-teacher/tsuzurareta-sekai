@@ -67,7 +67,28 @@ export class BurnLayer {
     this.embers = this.embers.filter((e) => e.life > 0 && e.y > -8);
   }
 
-  /** タイルの上、UIの下に重ねる */
+  /**
+   * 絵そのものを炎の色へ寄せる。**タイルと家具を描いた直後、ブルームより前**に呼ぶ。
+   *
+   * `scorch()` は色を1つずつ変換する関数で、矩形を手描きしていた頃はそれで足りた。
+   * タイルセットを入れてからは絵が画像になったので、**関数では色を触れない。**
+   * そのため第2章が第1章と同じ見た目のままになっていた。
+   *
+   * 乗算合成なら画像の上からまとめて色を寄せられる。
+   * 冷たい灰色の石床が、熾火に照らされた石の色になる。
+   * 加算（`render` のほう）では明るくするしかできず、これはできない。
+   */
+  renderTint(d: Display): void {
+    const ctx = d.ctx;
+    const pulse = 0.66 + 0.06 * Math.sin(this.t * 2.3);
+    ctx.save();
+    ctx.globalCompositeOperation = "multiply";
+    ctx.globalAlpha = pulse;
+    d.rect(0, 0, SCREEN_W, SCREEN_H, "#ff8438");
+    ctx.restore();
+  }
+
+  /** ブルームの後、UIの前に重ねる。火の粉と煙 */
   render(d: Display): void {
     const ctx = d.ctx;
 

@@ -4,6 +4,7 @@ import { PAL } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
 import type { Player } from "../game/player.ts";
 import { getMap, walkable, type GameMap, type MapEntity, type Tile } from "../field/mapFormat.ts";
+import { nextNotice } from "../field/notices.ts";
 import type { FieldState } from "../field/state.ts";
 import { WANG_SHELF, WANG_STONE, type WangTable } from "../field/tileset.ts";
 import { frames, type ImageMap } from "../core/assets.ts";
@@ -64,6 +65,8 @@ export class FieldScene implements Scene {
   private fromX = 0;
   private fromY = 0;
   private lastTalkedMira = false;
+  /** ミラの最後の会話を開いた。閉じたら第2章へ */
+  private miraFarewell = false;
   /** 歩行サイクルの位相。歩いているあいだだけ進む */
   private walkPhase = 0;
   private time = 0;
@@ -115,7 +118,10 @@ export class FieldScene implements Scene {
     if (this.dialogue.active) {
       if (key === "Enter" || key === " ") {
         const done = this.dialogue.advance();
-        if (done && this.lastTalkedMira) this.moveMira();
+        if (!done) return;
+        // 別れの挨拶を聞き終えた瞬間に夜が明ける。イベントシーンは挟まない
+        if (this.miraFarewell) { this.miraFarewell = false; this.beginChapter2(); return; }
+        if (this.lastTalkedMira) this.moveMira();
       }
       return;
     }
@@ -238,12 +244,9 @@ export class FieldScene implements Scene {
     const target =
       this.entityAt(tx, ty, "npc") ?? this.entityAt(tx, ty, "sign");
     if (!target) {
-      // 目の前が本棚なら、それらしいことを言う
-      const t = this.tileAt(tx, ty);
-      if (t === "B") this.showNotice("背表紙の題名を、目録に書き写す。それが仕事だ。");
-      else if (t === "C") this.showNotice("燭台。書庫でいちばん危険な道具。");
-      else if (t === "V") this.showNotice("下へ続く階段。見習いは、ここから先へ行ってはいけない。");
-      else if (t === "T") this.showNotice("写字机。天板が、いくつも傷んでいる。");
+      // 目の前の家具について一行返す。調べるたびに文が変わる
+      const line = nextNotice(this.tileAt(tx, ty), this.state.chapter, this.state.noticeIndex);
+      if (line) this.showNotice(line);
       return;
     }
     if (target.kind === "npc" && !this.npcVisible(target)) return;
@@ -257,6 +260,27 @@ export class FieldScene implements Scene {
     if (found) talk.unshift(found);
     this.dialogue.open(sp, talk);
     this.lastTalkedMira = target.ref === "mira";
+    // 「また明日ね。」——ミラの話が尽きたら、第1章は終わる（設計書 2.3）
+    if (this.lastTalkedMira && i === sp.talks.length - 1) this.miraFarewell = true;
+  }
+
+  /**
+   * 第2章へ。**イベントシーンは作らない。**
+   * 「また明日ね。」の直後に画面が炎上版へ切り替わり、彼女はもうどこにもいない。
+   * 別れの場面を描かないことが、この物語の設計そのものである（設計書 2.3）。
+   */
+  private beginChapter2(): void {
+    this.state.startChapter(2, this.player);
+    this.map = getMap(this.state.mapId);
+    this.fromX = this.state.x;
+    this.fromY = this.state.y;
+    this.stepT = 0;
+    this.lastTalkedMira = false;
+    if (this.state.intro.length > 0) {
+      this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, this.state.intro);
+      this.state.intro = [];
+    }
+    saveProgress(this.player);
   }
 
   /** 会話のたびにミラは別の部屋へ移る */
@@ -283,6 +307,8 @@ export class FieldScene implements Scene {
     this.renderTiles(d);
     this.renderEntities(d);
     this.renderPlayer(d);
+    // 炎の色は「絵に被せる」ので、光を足す前。順序を逆にすると光まで濁る
+    if (this.state.burning) this.burn.renderTint(d);
     // 光は絵の上、UIの下。燭台のにじみと床の光だまりがここで乗る
     this.bloom.render(d, this.collectLights(), this.state.burning ? 0.10 : 0.05,
       this.state.burning ? "#e07a34" : "#c8792f");

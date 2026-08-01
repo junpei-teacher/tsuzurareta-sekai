@@ -3,12 +3,13 @@
 !spawn 2 6
 !npc a mira
 !sign c desk_carving
+!sign m catalogue
 !enemy 2 inkslime
 !door w ch1_reading 26 6
 !map
 ############################
 #..........................#
-#...TT....TT....TT....TT...#
+#...TTm...TT....TT....TT...#
 #...TT....TT....TT....TT...#
 #..........................#
 #.....2....................#
