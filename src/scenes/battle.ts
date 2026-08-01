@@ -1,6 +1,8 @@
+import type { ImageMap } from "../core/assets.ts";
 import { Display, SCREEN_W } from "../core/display.ts";
 import { PAL, TIER_COLOR } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
+import { BloomLayer, type Light } from "../fx/bloom.ts";
 import { CastFx } from "../fx/castFx.ts";
 import type { Player } from "../game/player.ts";
 import { Battle, spawn, type EnemyDef } from "../battle/model.ts";
@@ -10,18 +12,25 @@ import { GrimoireView } from "../ui/grimoire.ts";
 
 const COMMANDS = ["詠唱", "呪文帳", "道具", "逃げる"] as const;
 
+/** 敵が立つ床の高さ。全ての敵はここに足元を合わせる */
+const GROUND_Y = 120;
+
 /**
- * 戦闘画面（手順書 Phase 3）。
- * グラフィックは矩形のまま。アセットは Phase 7 まで入れない。
+ * 戦闘画面（手順書 Phase 3、Phase 7 で敵をドット絵に差し替え）。
+ *
+ * 敵は正面1枚絵。回転もアニメも持たないかわりに、
+ * 呼吸のような上下動と、火を持つ敵のブルームで「止まって見えない」ようにする。
  */
 export class BattleScene implements Scene {
   private readonly battle: Battle;
   private readonly player: Player;
+  private readonly images: ImageMap;
   private readonly onExit: (result: "WIN" | "LOSE" | "FLED") => void;
 
   private readonly fx = new CastFx();
   private readonly field = new TextField();
   private readonly grimoire = new GrimoireView();
+  private readonly bloom = new BloomLayer();
 
   private cmd = 0;
   private item = 0;
@@ -32,10 +41,12 @@ export class BattleScene implements Scene {
   constructor(
     player: Player,
     enemyDef: EnemyDef,
+    images: ImageMap,
     onExit: (result: "WIN" | "LOSE" | "FLED") => void,
   ) {
     this.player = player;
     this.battle = new Battle(player, spawn(enemyDef));
+    this.images = images;
     this.onExit = onExit;
     this.prevEnemyHp = this.battle.enemy.hp;
     this.syncDictionary();
@@ -51,6 +62,7 @@ export class BattleScene implements Scene {
   update(dt: number, keys: string[]): void {
     this.caret += dt;
     this.fx.update(dt);
+    this.bloom.update(dt);
     if (this.hitFlash > 0) this.hitFlash = Math.max(0, this.hitFlash - dt * 4);
 
     if (this.battle.enemy.hp < this.prevEnemyHp) this.hitFlash = 1;
@@ -168,6 +180,38 @@ export class BattleScene implements Scene {
 
   private renderEnemy(d: Display): void {
     const e = this.battle.enemy;
+
+    // 呼吸のような上下動。1枚絵でも「止まっている」と感じさせないための最低限
+    const bob = Math.sin(this.caret * 2.2) * 1.5;
+    const flashing = this.hitFlash > 0.4;
+    const img = this.images[`enemy.${e.def.id}`];
+
+    if (img) {
+      // 被弾中は同じ形の白シルエットに差し替える。輪郭が保たれるので何に当たったか分かる
+      d.spriteFoot(flashing ? d.silhouette(img, "#f4e6c8") : img, SCREEN_W / 2, GROUND_Y + bob);
+    } else {
+      // 画像が無いとき用の代替。差し替え漏れに気づけるよう、黙って消さずに矩形を出す
+      const { w, h, color } = e.def.sprite;
+      const x = Math.round((SCREEN_W - w) / 2);
+      const y = Math.round(GROUND_Y + bob) - h;
+      d.rect(x, y, w, h, flashing ? "#e8dcc0" : color);
+      d.frame(x, y, w, h, PAL.line);
+    }
+
+    // 火を抱えた敵は自分の周りを照らす。フィールドと同じブルームを使い回す
+    const glow = e.def.glow;
+    if (glow) {
+      const lights: Light[] = [{
+        x: SCREEN_W / 2,
+        y: GROUND_Y + bob - glow.dy,
+        radius: glow.radius,
+        strength: glow.strength,
+        color: glow.color,
+      }];
+      this.bloom.render(d, lights, 0);
+    }
+
+    // 名前とHPは敵より後に描く。ボスは背が高く、頭がこの高さまで来るため
     const name = e.def.name;
     const nameW = d.measure(name);
     d.text(name, Math.round((SCREEN_W - nameW) / 2), 10, PAL.ink);
@@ -183,14 +227,7 @@ export class BattleScene implements Scene {
       if (parts.length) d.text(parts.join("　"), 150, 36, PAL.accent);
     }
 
-    // 敵本体（Phase 7 までは矩形）
-    const { w, h, color } = e.def.sprite;
-    const x = Math.round((SCREEN_W - w) / 2);
-    const y = 118 - h;
-    d.rect(x, y, w, h, this.hitFlash > 0.4 ? "#e8dcc0" : color);
-    d.frame(x, y, w, h, PAL.line);
-
-    statusTags(d, 150, 122, e.statuses);
+    statusTags(d, 150, 124, e.statuses);
   }
 
   private renderWindow(d: Display): void {

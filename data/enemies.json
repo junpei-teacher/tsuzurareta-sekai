@@ -11,7 +11,12 @@
     "",
     "weak ×2.0 / resist ×0.5 / immune ×0（設計書 4.4）。",
     "tags は特効判定に使う（断蟲 は INSECT に特効）。",
-    "sprite は Phase 7 でドット絵に差し替えるまでの矩形。"
+    "",
+    "sprite は public/assets/enemies/<id>.png が無いときに出る代替の矩形。",
+    "w/h は実物の寸法（デザイン単位＝実ピクセルの半分）に合わせてある。",
+    "",
+    "glow は自分から光を放つ敵だけが持つ。戦闘画面のブルームに渡す。",
+    "dy は足元から光源までの高さ（デザイン単位）。松明なら高く、口なら中ほど。"
   ],
 
   "enemies": [
@@ -20,7 +25,7 @@
       "hp": 24, "atk": 6, "def": 1,
       "weak": ["FIRE"], "resist": [], "immune": [],
       "tags": ["INSECT"],
-      "sprite": { "w": 30, "h": 18, "color": "#8a7f5c" },
+      "sprite": { "w": 32, "h": 24, "color": "#8a7f5c" },
       "desc": "拳ほどの大きさの虫。背表紙を齧って生きている。"
     },
     {
@@ -28,7 +33,7 @@
       "hp": 42, "atk": 7, "def": 5,
       "weak": ["BOLT"], "resist": ["ICE"], "immune": [],
       "tags": ["SLIME"],
-      "sprite": { "w": 42, "h": 28, "color": "#3c3550" },
+      "sprite": { "w": 48, "h": 36, "color": "#3c3550" },
       "desc": "こぼれた墨に棲みついた粘体。硬いが、電気に弱い。"
     },
     {
@@ -36,7 +41,7 @@
       "hp": 34, "atk": 6, "def": 2,
       "weak": ["FIRE"], "resist": ["NONE"], "immune": [],
       "tags": ["SWARM"],
-      "sprite": { "w": 54, "h": 24, "color": "#4a3f38" },
+      "sprite": { "w": 64, "h": 32, "color": "#4a3f38" },
       "desc": "煙とともに湧いた蝙蝠。羽ばたきが灰を巻き上げる。",
       "skill": { "name": "目つぶし", "kind": "ACC_DOWN", "chance": 0.3 }
     },
@@ -45,7 +50,8 @@
       "hp": 58, "atk": 12, "def": 4,
       "weak": ["ICE"], "resist": ["FIRE"], "immune": [],
       "tags": ["DEMON"],
-      "sprite": { "w": 30, "h": 42, "color": "#a04a2a" },
+      "sprite": { "w": 48, "h": 64, "color": "#a04a2a" },
+      "glow": { "color": "#ff7a2a", "radius": 42, "strength": 0.55, "dy": 34 },
       "desc": "焚書のために呼ばれた小鬼。火を吐いて棚を舐める。",
       "skill": { "name": "火を吐く", "kind": "BURN", "chance": 0.35 }
     },
@@ -54,7 +60,8 @@
       "hp": 76, "atk": 17, "def": 10,
       "weak": [], "resist": ["FIRE"], "immune": [],
       "tags": ["HUMAN"],
-      "sprite": { "w": 26, "h": 46, "color": "#7a3a34" },
+      "sprite": { "w": 44, "h": 64, "color": "#7a3a34" },
+      "glow": { "color": "#ffa040", "radius": 26, "strength": 0.45, "dy": 46 },
       "desc": "人間だ。命令で来ている。"
     },
     {
@@ -62,7 +69,7 @@
       "hp": 96, "atk": 15, "def": 8,
       "weak": ["NAME"], "resist": [], "immune": ["FIRE", "ICE", "BOLT"],
       "tags": ["ERASED"],
-      "sprite": { "w": 30, "h": 44, "color": "#2b2b33" },
+      "sprite": { "w": 48, "h": 64, "color": "#2b2b33" },
       "desc": "顔がない。誰も覚えていないから、傷つけようがない。",
       "skill": { "name": "忘却", "kind": "SILENCE", "chance": 0.35 }
     },
@@ -71,7 +78,8 @@
       "hp": 190, "atk": 20, "def": 7,
       "weak": ["ICE"], "resist": ["FIRE"], "immune": [],
       "tags": [],
-      "sprite": { "w": 62, "h": 54, "color": "#5a4038" },
+      "sprite": { "w": 80, "h": 60, "color": "#5a4038" },
+      "glow": { "color": "#ff6a20", "radius": 48, "strength": 0.6, "dy": 28 },
       "desc": "焼けた頁の山。その奥から、まだ何かが喋っている。",
       "skill": { "name": "灰を撒く", "kind": "BURN", "chance": 0.4 }
     },
@@ -80,7 +88,8 @@
       "hp": 240, "atk": 24, "def": 12,
       "weak": ["NAME"], "resist": ["FIRE", "BOLT"], "immune": [],
       "tags": ["DEMON"],
-      "sprite": { "w": 56, "h": 66, "color": "#5c2440" },
+      "sprite": { "w": 72, "h": 80, "color": "#5c2440" },
+      "glow": { "color": "#ffd27a", "radius": 30, "strength": 0.35, "dy": 62 },
       "desc": "焚書を指揮する者が連れてきた大鬼。真名だけが、これを縛る。",
       "skill": { "name": "呪縛", "kind": "SLOW", "chance": 0.35 }
     }

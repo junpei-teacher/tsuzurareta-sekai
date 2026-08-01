@@ -50,7 +50,22 @@ export const MANIFEST: Record<string, string> = {
   "mira.north": "/assets/sprites/mira2/north.png",
   "mira.east": "/assets/sprites/mira2/east.png",
   "mira.west": "/assets/sprites/mira2/west.png",
+
+  // 敵。戦闘は正面から見るだけなので、回転もアニメも持たない1枚絵。
+  // そのぶんの予算を1枚の質に寄せてある（create_image_pro・候補から選抜）。
+  // キーは data/enemies.json の id と対応させること
+  ...enemySprites(
+    "bookworm", "inkslime", "sootbat", "emberfiend",
+    "soldier", "erased", "ashvoice", "archdemon",
+  ),
 };
+
+/** 敵スプライトのエントリを id から作る */
+function enemySprites(...ids: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const id of ids) out[`enemy.${id}`] = `/assets/enemies/${id}.png`;
+  return out;
+}
 
 /**
  * 1枚でも欠けたら握り潰さずログに出す。

@@ -18,6 +18,8 @@ export type EnemyDef = {
   immune: Element[];
   tags: string[];
   sprite: { w: number; h: number; color: string };
+  /** 自ら光る敵だけが持つ。dy は足元から光源までの高さ（デザイン単位）*/
+  glow?: { color: string; radius: number; strength: number; dy: number };
   desc: string;
   skill?: { name: string; kind: StatusKind; chance: number };
 };

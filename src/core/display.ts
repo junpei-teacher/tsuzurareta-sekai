@@ -23,9 +23,14 @@ export const PIXEL_SCALE = 2;
 /** 日本語ドットフォント。Phase 0-5 で PixelMplus12 を入れるまでは等幅で代用する */
 const FONT_STACK = "'PixelMplus12', 'MS Gothic', monospace";
 
+/** 描画できるもの。加工した裏キャンバスも画像と同じように扱いたい */
+export type Drawable = HTMLImageElement | HTMLCanvasElement;
+
 export class Display {
   readonly ctx: CanvasRenderingContext2D;
   private readonly canvas: HTMLCanvasElement;
+  /** 単色シルエットの作り置き。画像×色ごとに一度だけ作る */
+  private readonly silhouettes = new Map<string, HTMLCanvasElement>();
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -96,7 +101,7 @@ export class Display {
    * **デザイン単位では 1/PIXEL_SCALE のサイズで置く**。
    * 結果として実ピクセルは1:1になり、ドットが崩れない。
    */
-  sprite(img: HTMLImageElement, x: number, y: number): void {
+  sprite(img: Drawable, x: number, y: number): void {
     this.ctx.drawImage(
       img, x | 0, y | 0,
       img.width / PIXEL_SCALE, img.height / PIXEL_SCALE,
@@ -104,10 +109,10 @@ export class Display {
   }
 
   /** スプライトの幅・高さをデザイン単位で返す */
-  spriteW(img: HTMLImageElement): number {
+  spriteW(img: Drawable): number {
     return img.width / PIXEL_SCALE;
   }
-  spriteH(img: HTMLImageElement): number {
+  spriteH(img: Drawable): number {
     return img.height / PIXEL_SCALE;
   }
 
@@ -117,13 +122,40 @@ export class Display {
    * **スプライトの寸法は生ピクセルなので、位置合わせには必ずデザイン単位へ直す。**
    * ここを直し忘れると、解像度を上げたときにキャラだけ数マス浮いて描かれる。
    */
-  spriteFoot(img: HTMLImageElement, cx: number, bottomY: number): void {
+  spriteFoot(img: Drawable, cx: number, bottomY: number): void {
     this.sprite(img, cx - this.spriteW(img) / 2, bottomY - this.spriteH(img));
+  }
+
+  /**
+   * 不透明な部分だけを単色で塗り潰した版を返す。被弾フラッシュに使う。
+   *
+   * ctx.filter でも似たことはできるが、対応状況に差があって黙って無視される。
+   * source-in 合成なら結果が読めるので、こちらを採る。
+   * 作り置きするので、毎フレーム呼んでも一度しか塗らない。
+   */
+  silhouette(img: Drawable, color: string): HTMLCanvasElement {
+    const key = `${img instanceof HTMLImageElement ? img.src : "canvas"}|${color}`;
+    const cached = this.silhouettes.get(key);
+    if (cached) return cached;
+
+    const c = document.createElement("canvas");
+    c.width = img.width;
+    c.height = img.height;
+    const g = c.getContext("2d");
+    if (!g) return c;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, 0, 0);
+    g.globalCompositeOperation = "source-in";
+    g.fillStyle = color;
+    g.fillRect(0, 0, c.width, c.height);
+
+    this.silhouettes.set(key, c);
+    return c;
   }
 
   /** スプライトシートの一部を等倍で描く */
   spriteRect(
-    img: HTMLImageElement,
+    img: Drawable,
     sx: number, sy: number, sw: number, sh: number,
     dx: number, dy: number,
   ): void {

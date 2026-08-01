@@ -47,7 +47,7 @@ function goSelect(): void {
   scene = new SelectScene(
     player,
     (enemy) => {
-      scene = new BattleScene(player, enemy, () => { saveProgress(player); goSelect(); });
+      scene = new BattleScene(player, enemy, images, () => { saveProgress(player); goSelect(); });
     },
     () => { scene = new CasterTestScene(goSelect); },
     (chapter) => { field.startChapter(chapter, player); goField(); },
@@ -64,7 +64,7 @@ function goField(): void {
     (enemyId, cellKey) => {
       const def = ENEMIES.find((e) => e.id === enemyId);
       if (!def) { console.warn(`敵 ${enemyId} が見つかりません`); return; }
-      scene = new BattleScene(player, def, (result) => {
+      scene = new BattleScene(player, def, images, (result) => {
         if (result === "WIN") field.defeated.add(cellKey);
         saveProgress(player);
         goField();
