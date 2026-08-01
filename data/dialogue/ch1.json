@@ -17,6 +17,7 @@
     "name": "ミラ",
     "color": "#c8845a",
     "portrait": "mira",
+    "chapters": [1],
     "found": {
       "ch1_reading": "ミラは閲覧室の隅で、返却票に MIRA と書き入れていた。",
       "ch1_desks": "ミラは机で目録を書いていた。署名欄は MIRA だらけだ。",
@@ -47,6 +48,7 @@
     "name": "司書長",
     "color": "#8a8a9a",
     "portrait": "librarian",
+    "chapters": [1],
     "talks": [
       ["読むな。書き写せ。", "それだけだ。"],
       ["ミラか。巡回はしておるようだが……", "棚の陰で、何を読んでおる。"],

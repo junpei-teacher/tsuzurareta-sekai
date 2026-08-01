@@ -9,7 +9,8 @@ const CHAPTERS = [
   null,
   { level: 1, map: "ch1_reading", x: 14, y: 6, ink: 3, drop: 1 },
   { level: 4, map: "ch1_reading", x: 14, y: 6, ink: 2, drop: 1 },
-  { level: 8, map: "ch3_vault", x: 13, y: 12, ink: 2, drop: 1 },
+  // 第3章は階段を降りた先から。禁書庫はその奥、灰の広間を抜けた先にある
+  { level: 8, map: "ch3_descent", x: 13, y: 12, ink: 2, drop: 1 },
 ] as const;
 
 /**
@@ -46,8 +47,14 @@ export class FieldState {
   /** 章の入り口で一度だけ出す文章。表示したら消す */
   intro: string[] = [];
 
+  /**
+   * 燃えているのは**第2章だけ**。
+   *
+   * 第3章は最下層で、火はまだ上にある。ここを `>= 2` にしていると
+   * 地下まで橙色になり、**燃える書庫と静かな禁書庫の対比が消える。**
+   */
   get burning(): boolean {
-    return this.chapter >= 2;
+    return this.chapter === 2;
   }
 
   /** 第2章の差分：瓦礫で塞がれたマス */

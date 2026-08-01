@@ -3,7 +3,10 @@ import type { Keyboard } from "../core/input.ts";
 import { PAL } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
 import type { Player } from "../game/player.ts";
-import { getMap, walkable, type GameMap, type MapEntity, type Tile } from "../field/mapFormat.ts";
+import {
+  enemyRefFor, getMap, walkable,
+  type GameMap, type MapEntity, type Tile,
+} from "../field/mapFormat.ts";
 import { nextNotice } from "../field/notices.ts";
 import type { FieldState } from "../field/state.ts";
 import { WANG_SHELF, WANG_STONE, type WangTable } from "../field/tileset.ts";
@@ -67,6 +70,8 @@ export class FieldScene implements Scene {
   private lastTalkedMira = false;
   /** ミラの最後の会話を開いた。閉じたら第2章へ */
   private miraFarewell = false;
+  /** 会話を閉じたら始まる戦い（ボス）*/
+  private pendingBattle: { ref: string; cellKey: string } | null = null;
   /** 歩行サイクルの位相。歩いているあいだだけ進む */
   private walkPhase = 0;
   private time = 0;
@@ -121,6 +126,12 @@ export class FieldScene implements Scene {
         if (!done) return;
         // 別れの挨拶を聞き終えた瞬間に夜が明ける。イベントシーンは挟まない
         if (this.miraFarewell) { this.miraFarewell = false; this.beginChapter2(); return; }
+        if (this.pendingBattle && !this.state.defeated.has(this.pendingBattle.cellKey)) {
+          const b = this.pendingBattle;
+          this.pendingBattle = null;
+          this.onBattle(b.ref, b.cellKey);
+          return;
+        }
         if (this.lastTalkedMira) this.moveMira();
       }
       return;
@@ -186,13 +197,20 @@ export class FieldScene implements Scene {
   }
 
   /**
-   * ミラは今いる部屋にしか現れない。
-   * 炎上後は誰もいない——NPCの配置を読み込まない（設計書 2.8）。
+   * その人物が今この部屋にいるか。
+   *
+   * 出る章は会話データの `chapters` が持つ（無ければ全章）。
+   * ミラだけは、そのうえで巡回先の部屋にしかいない。
+   * **第2章で彼女がいないのは特別扱いではなく、`chapters: [1]` の結果である。**
    */
   private npcVisible(e: MapEntity): boolean {
-    if (this.state.burning) return false;
-    if (e.ref !== "mira") return true;
-    return this.state.miraRoom === this.map.id;
+    const sp = speaker(e.ref, this.state.chapter);
+    if (!sp) return false;
+    if (sp.chapters && !sp.chapters.includes(this.state.chapter)) return false;
+    // 戦って勝った相手は、もうそこにいない。道も開く
+    if (sp.battleAfter && this.state.defeated.has(`${this.map.id}:npc:${e.ref}`)) return false;
+    if (e.ref === "mira") return this.state.miraRoom === this.map.id;
+    return true;
   }
 
   private onArrive(): void {
@@ -225,8 +243,10 @@ export class FieldScene implements Scene {
 
     const enemy = this.entityAt(x, y, "enemy");
     if (enemy) {
+      // 同じマスでも、第1章と第2章では出るものが違う（設計書 2.8）
+      const ref = enemyRefFor(enemy, this.state.chapter);
       const cellKey = `${this.map.id}:${x},${y}`;
-      if (!this.state.defeated.has(cellKey)) this.onBattle(enemy.ref, cellKey);
+      if (ref && !this.state.defeated.has(cellKey)) this.onBattle(ref, cellKey);
     }
   }
 
@@ -251,7 +271,7 @@ export class FieldScene implements Scene {
     }
     if (target.kind === "npc" && !this.npcVisible(target)) return;
 
-    const sp = speaker(target.ref);
+    const sp = speaker(target.ref, this.state.chapter);
     if (!sp) return;
     const i = this.state.nextTalk(target.ref, sp.talks.length);
     const talk = [...(sp.talks[i] ?? [])];
@@ -260,8 +280,14 @@ export class FieldScene implements Scene {
     if (found) talk.unshift(found);
     this.dialogue.open(sp, talk);
     this.lastTalkedMira = target.ref === "mira";
+
+    const last = i === sp.talks.length - 1;
     // 「また明日ね。」——ミラの話が尽きたら、第1章は終わる（設計書 2.3）
-    if (this.lastTalkedMira && i === sp.talks.length - 1) this.miraFarewell = true;
+    if (this.lastTalkedMira && last) this.miraFarewell = true;
+    // ボスは話し終えてから始まる。会話を閉じた瞬間が開戦
+    this.pendingBattle = last && sp.battleAfter
+      ? { ref: sp.battleAfter, cellKey: `${this.map.id}:npc:${target.ref}` }
+      : null;
   }
 
   /**
@@ -589,7 +615,10 @@ export class FieldScene implements Scene {
 
       if (e.kind === "enemy") {
         if (this.state.defeated.has(`${this.map.id}:${e.x},${e.y}`)) continue;
-        const def = ENEMIES.find((x) => x.id === e.ref);
+        // その章に出ない敵は、シンボルごと出さない
+        const ref = enemyRefFor(e, this.state.chapter);
+        if (!ref) continue;
+        const def = ENEMIES.find((x) => x.id === ref);
         const bob = Math.round(Math.sin(this.time * 4 + e.x) * 1.5);
         d.rect(px + 2, py + 4 + bob, 12, 10, def?.sprite.color ?? "#7a3a34");
         d.frame(px + 2, py + 4 + bob, 12, 10, "#120f0d");
@@ -600,18 +629,20 @@ export class FieldScene implements Scene {
 
       // 待機モーションがあれば再生。無ければ静止画。どちらも無ければ矩形
       // （Phase 7 は差し替え途中でも動くようにしておく）
-      const loop = frames(this.images, `${e.ref}.idle`);
+      // 会話IDと絵は1対1ではない。兵士は場面ごとに別IDだが、絵は同じもの
+      const art = speaker(e.ref, this.state.chapter)?.sprite ?? e.ref;
+      const loop = frames(this.images, `${art}.idle`);
       // NPCごとに位相をずらす。並んだときに同じ動きで揃うと不自然
       const phase = (e.x * 7 + e.y * 13) % 97;
       const img = loop.length > 0
         ? loop[Math.floor(this.time * IDLE_FPS + phase) % loop.length]
-        : this.images[`${e.ref}.south`];
+        : this.images[`${art}.south`];
       if (img) {
         // 48x48 のキャンバスを、足元がマスの下端に来るように置く
         d.spriteFoot(img, px + TILE / 2, py + TILE + SPRITE_FOOT);
         continue;
       }
-      const sp = speaker(e.ref);
+      const sp = speaker(e.ref, this.state.chapter);
       d.rect(px + 3, py + 2, 10, 13, sp?.color ?? "#8a8a9a");
       d.rect(px + 3, py + 2, 10, 4, "#241a11");
     }

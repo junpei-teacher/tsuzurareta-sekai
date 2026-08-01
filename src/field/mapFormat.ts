@@ -11,7 +11,10 @@
  *   !name  閲覧室                  … 画面に出す部屋名
  *   !spawn 14 6                   … 初期位置（デバッグ用の既定値）
  *   !npc   a mira                 … 文字 a の位置に NPC mira を置く
- *   !enemy 1 bookworm             … 文字 1 の位置に敵シンボルを置く
+ *   !enemy 1 bookworm sootbat     … 文字 1 の位置に敵シンボル。
+ *                                    2つ目を書くと第2章ではそちらが出る。
+ *                                    片方だけの章にしたいときは `-` を置く
+ *                                    （例: `!enemy 3 - emberfiend` は第2章のみ）
  *   !door  d ch1_stacks 14 1      … 文字 d の位置に別マップへの出入口
  *   !sign  s notice_board         … 文字 s の位置に調べられる張り紙
  *   !vault k                      … 文字 k の位置に禁書（調べると書き込みへ）
@@ -45,7 +48,15 @@ export type MapEntity = {
   /** door の遷移先座標 */
   toX?: number;
   toY?: number;
+  /** enemy のみ。第2章で入れ替わる敵ID。`-` はその章に出ないことを表す */
+  ref2?: string;
 };
+
+/** 章に応じた敵ID。その章に出ないなら undefined */
+export function enemyRefFor(e: MapEntity, chapter: number): string | undefined {
+  const ref = chapter >= 2 && e.ref2 !== undefined ? e.ref2 : e.ref;
+  return ref === "-" ? undefined : ref;
+}
 
 export type GameMap = {
   id: string;
@@ -58,7 +69,7 @@ export type GameMap = {
   spawn: { x: number; y: number };
 };
 
-type Decl = { kind: EntityKind; ref: string; toX?: number; toY?: number };
+type Decl = { kind: EntityKind; ref: string; toX?: number; toY?: number; ref2?: string };
 
 export function parseMap(text: string): GameMap {
   const lines = text.replace(/\r\n/g, "\n").split("\n");
@@ -79,7 +90,9 @@ export function parseMap(text: string): GameMap {
       case "name":  name = args.join(" "); break;
       case "spawn": spawn = { x: Number(args[0]), y: Number(args[1]) }; break;
       case "npc":   decls.set(args[0]!, { kind: "npc", ref: args[1] ?? "" }); break;
-      case "enemy": decls.set(args[0]!, { kind: "enemy", ref: args[1] ?? "" }); break;
+      case "enemy":
+        decls.set(args[0]!, { kind: "enemy", ref: args[1] ?? "", ref2: args[2] });
+        break;
       case "sign":  decls.set(args[0]!, { kind: "sign", ref: args[1] ?? "" }); break;
       case "vault": decls.set(args[0]!, { kind: "vault", ref: "vault_altar" }); break;
       case "door":
@@ -118,7 +131,10 @@ export function parseMap(text: string): GameMap {
       }
       const decl = decls.get(ch);
       if (decl) {
-        entities.push({ kind: decl.kind, ref: decl.ref, x, y, toX: decl.toX, toY: decl.toY });
+        entities.push({
+          kind: decl.kind, ref: decl.ref, x, y,
+          toX: decl.toX, toY: decl.toY, ref2: decl.ref2,
+        });
         row.push("."); // エンティティの足元は床
         continue;
       }

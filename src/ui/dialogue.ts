@@ -1,4 +1,5 @@
 import rawCh1 from "../../data/dialogue/ch1.json";
+import rawCh2 from "../../data/dialogue/ch2.json";
 import rawCh3 from "../../data/dialogue/ch3.json";
 import type { ImageMap } from "../core/assets.ts";
 import { Display, SCREEN_W } from "../core/display.ts";
@@ -13,15 +14,38 @@ export type Speaker = {
   found?: Record<string, string>;
   /** 立ち絵のアセットキーの末尾。`portrait.<これ>` を引く。無ければ地の文扱い */
   portrait?: string;
+  /** この人物が現れる章。省略したら全章 */
+  chapters?: number[];
+  /**
+   * フィールドの立ち姿のアセットキー。省略したら会話IDをそのまま使う。
+   * 兵士のように、場面ごとに会話IDが違っても絵は同じ、という場合に指定する
+   */
+  sprite?: string;
+  /** 最後の会話を閉じたら、この敵と戦いが始まる（ボス用） */
+  battleAfter?: string;
 };
 
-const TABLE = {
-  ...(rawCh1 as unknown as Record<string, Speaker>),
-  ...(rawCh3 as unknown as Record<string, Speaker>),
-};
+type Table = Record<string, Speaker>;
+const strip = (o: unknown): Table =>
+  Object.fromEntries(Object.entries(o as Table).filter(([k]) => !k.startsWith("_")));
 
-export function speaker(id: string): Speaker | undefined {
-  const s = TABLE[id];
+/**
+ * 章ごとの会話表。
+ *
+ * **第1章と第2章は同じマップを使う**（設計書 2.8）。同じ張り紙、同じ机を
+ * 調べても、燃えたあとでは書いてあるものが違う。
+ * そこで、まず今の章の表を引き、無ければ第1章の表に落とす。
+ * 差分だけ書けばよいので、ch2.json には「変わったものだけ」置く。
+ */
+const BY_CHAPTER: Record<number, Table> = {
+  1: strip(rawCh1),
+  2: strip(rawCh2),
+  3: strip(rawCh3),
+};
+const BASE = BY_CHAPTER[1]!;
+
+export function speaker(id: string, chapter = 1): Speaker | undefined {
+  const s = BY_CHAPTER[chapter]?.[id] ?? BASE[id];
   return s && Array.isArray(s.talks) ? s : undefined;
 }
 

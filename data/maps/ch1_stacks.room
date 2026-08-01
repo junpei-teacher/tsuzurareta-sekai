@@ -2,7 +2,9 @@
 !name 大書架
 !spawn 13 2
 !npc a mira
-!enemy 1 bookworm
+!enemy 1 bookworm emberfiend
+!enemy 2 - sootbat
+!enemy 3 bookworm -
 !door n ch1_reading 13 12
 !door e ch1_stairs 1 6
 !map
@@ -12,11 +14,11 @@
 #.BB.BB.BB.BB.BB.BB.BB.BB..#
 #.BB.BB.BB.BB.BB.BB.BB.BB..#
 #..........................#
-#..........................e
+#...................2......e
 #..........................#
 #.BB.BB.BB.BB.BB.BB.BB.BB..#
 #.BB.BB.BB.BB.BB.BB.BB.BB..#
 #.BB.BB.BB.BB.BB.BB.BB.BB..#
-#.......1.........a........#
+#.......1.........a...3....#
 #..........................#
 ############################
