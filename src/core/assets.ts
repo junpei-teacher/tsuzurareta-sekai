@@ -58,6 +58,9 @@ export const MANIFEST: Record<string, string> = {
   "portrait.mira": "/assets/portraits/mira.png",
   "portrait.librarian": "/assets/portraits/librarian.png",
   "portrait.halven": "/assets/portraits/halven.png",
+  "portrait.soldier": "/assets/portraits/soldier.png",
+  // 灰の中の声だけは変換ではなく描き起こし。本の山はキャラではないため
+  "portrait.ashvoice": "/assets/portraits/ashvoice.png",
 
   // 敵。戦闘は正面から見るだけなので、回転もアニメも持たない1枚絵。
   // そのぶんの予算を1枚の質に寄せてある（create_image_pro・候補から選抜）。
