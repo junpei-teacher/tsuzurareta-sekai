@@ -5,13 +5,14 @@
 !enemy 1 bookworm emberfiend
 !enemy 2 - sootbat
 !enemy 3 bookworm -
+!sign q stone_carving
 !door n ch1_reading 13 12
 !door e ch1_stairs 1 6
 !map
 #############n##############
 #..........................#
 #.BB.BB.BB.BB.BB.BB.BB.BB..#
-#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BBqBB.BB.BB.BB..#
 #.BB.BB.BB.BB.BB.BB.BB.BB..#
 #..........................#
 #...................2......e

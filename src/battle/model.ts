@@ -446,6 +446,12 @@ export class Battle {
     if (this.fled) this.phase = "FLED";
     else if (this.player.hp <= 0) this.phase = "LOSE";
     else if (this.enemy.hp <= 0) this.phase = "WIN";
-    else this.phase = "COMMAND";
+    else { this.phase = "COMMAND"; return; }
+
+    // 戦いが終わったら状態異常は持ち越さない。
+    // **「忘却」を残すと、以後ずっと呪文帳が開けなくなる。**
+    // 記憶を封じるのは、その一戦を素手で戦わせるための技であって、
+    // 罰ではない。
+    this.player.statuses = [];
   }
 }

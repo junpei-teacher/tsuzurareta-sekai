@@ -1,11 +1,19 @@
 import rawNotices from "../../data/dialogue/notices.json";
+import type { GameMap, Tile } from "./mapFormat.ts";
 
 /**
  * 「しらべる」で家具に向かったときの一行（data/dialogue/notices.json）。
  *
- * 調べるたびに順に進み、一巡したら先頭へ戻る。
- * **同じ物を何度も調べるのは、プレイヤーの自然な行動である。**
- * そこに毎回同じ一行を返すのは、いちばん頻度の高い露出経路を捨てるのに等しい。
+ * **同じ棚は、いつ調べても同じことを言う。**
+ *
+ * 以前は調べるたびに順送りしていた。文の数は稼げるが、
+ * 「同じ棚なのに毎回ちがうことが書いてある」ことになり、
+ * 書庫がその場ででっち上げられているように見える。
+ * 部屋を覚えることが第1章の目的（設計書 2.3）なのに、これでは覚えようがない。
+ *
+ * そこで、**家具のかたまりごとに1本の文を割り当てる。**
+ * 割り当てはマップIDと左上の座標から決まるので、データを増やす必要はなく、
+ * 同じ棚は何度調べても同じ、隣の棚は別の文になる。
  */
 
 type NoticeTable = Record<string, { ch1: string[]; ch2?: string[] }>;
@@ -15,26 +23,42 @@ const TABLE = Object.fromEntries(
 ) as NoticeTable;
 
 /**
- * タイル文字に対応する次の一行を返す。無ければ undefined。
- * @param counters 何回目かを覚えておく入れ物（FieldState が持つ）
+ * 同じタイルが続くかたまりの左上を返す。
+ * 家具は矩形なので、左へ、上へ辿れば角に着く。
  */
-export function nextNotice(
-  tile: string,
-  chapter: number,
-  counters: Map<string, number>,
+function corner(map: GameMap, x: number, y: number, t: Tile): { x: number; y: number } {
+  let cx = x;
+  let cy = y;
+  while (cx > 0 && map.tiles[cy]?.[cx - 1] === t) cx--;
+  while (cy > 0 && map.tiles[cy - 1]?.[cx] === t) cy--;
+  return { x: cx, y: cy };
+}
+
+/** 文字列から安定した整数を作る（FNV-1a。呪文のものとは別用途） */
+function keyHash(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/** その家具について返す一行。無ければ undefined */
+export function noticeFor(
+  map: GameMap, x: number, y: number, chapter: number,
 ): string | undefined {
+  const tile = map.tiles[y]?.[x];
+  if (!tile) return undefined;
   const entry = TABLE[tile];
   if (!entry) return undefined;
 
   // 炎上後は専用の文がある物だけ差し替える。無ければ平時の文で通す
-  const burning = chapter >= 2 && entry.ch2 !== undefined && entry.ch2.length > 0;
-  const lines = burning ? entry.ch2! : entry.ch1;
+  const lines = chapter === 2 && entry.ch2?.length ? entry.ch2 : entry.ch1;
   if (lines.length === 0) return undefined;
 
-  const key = `${tile}:${burning ? 2 : 1}`;
-  const i = counters.get(key) ?? 0;
-  counters.set(key, (i + 1) % lines.length);
-  return lines[i];
+  const c = corner(map, x, y, tile);
+  return lines[keyHash(`${map.id}:${tile}:${c.x},${c.y}`) % lines.length];
 }
 
 /** 露出回数を数えるツールから使う */

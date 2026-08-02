@@ -37,12 +37,6 @@ export class FieldState {
   /** NPCごとの会話の進み具合 */
   talkIndex = new Map<string, number>();
 
-  /**
-   * 家具を調べた回数。`タイル文字:章` ごとに数える。
-   * 章をまたいでも消さない。同じ棚を第2章で調べたときに
-   * 平時の続きではなく炎上版の先頭から出したいので、キーを分けてある。
-   */
-  noticeIndex = new Map<string, number>();
 
   /** 章の入り口で一度だけ出す文章。表示したら消す */
   intro: string[] = [];
@@ -130,11 +124,9 @@ export class FieldState {
    */
   restartChapter(player: Player): void {
     const talks = new Map(this.talkIndex);
-    const notices = new Map(this.noticeIndex);
     const mira = this.miraRoom;
     this.startChapter(this.chapter, player);
     this.talkIndex = talks;
-    this.noticeIndex = notices;
     if (mira) this.miraRoom = mira;
     this.intro = [
       "目が覚めた。",

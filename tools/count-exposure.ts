@@ -78,24 +78,23 @@ console.log("  ※ ここは毎回必ず読まれる枠なので、**詰め込�
 // 何回調べるかは人によるので、**控えめな見積もりを明示して**数える。
 // 第1章は4部屋を何度も往復する作りで、各部屋に本棚が4ブロックある。
 // 15分の章で本棚を10回しか調べないというのは、かなり少なめの想定である。
+// 家具は1つにつき1本の文が固定で割り当たる（src/field/notices.ts）。
+// 何本の家具を調べるかで露出が決まるので、「調べた家具の数 × MIRA を含む文の割合」で見る。
 const ASSUMED: Record<string, number> = { B: 10, T: 4, C: 4, V: 2 };
 const LABEL: Record<string, string> = { B: "本棚", T: "写字机", C: "燭台", V: "階段" };
 
-console.log("\n── 家具を調べる ──────────────────────────");
+console.log("\n── 家具を調べる（1つの家具に1本が固定で割り当たる）──");
 let noticeExposure = 0;
 for (const [tile, e] of Object.entries(notices).filter(([k]) => isData(k))) {
-  const times = ASSUMED[tile] ?? 0;
-  // 順に一巡して先頭へ戻る。実際の巡り方をそのまま再現して数える
-  let n = 0;
-  for (let i = 0; i < times; i++) n += count(e.ch1[i % e.ch1.length]!);
+  const hits = e.ch1.reduce((a, l) => a + count(l), 0);
+  const n = (ASSUMED[tile] ?? 0) * (hits / e.ch1.length);
   noticeExposure += n;
-  const perCycle = e.ch1.reduce((a, l) => a + count(l), 0);
   console.log(
-    `  ${LABEL[tile]?.padEnd(4) ?? tile}  ${e.ch1.length}行（一巡で ${perCycle} 回）` +
-    ` × ${times}回調べる → ${n} 回`,
+    `  ${LABEL[tile]?.padEnd(4) ?? tile}  ${e.ch1.length}本の文のうち MIRA 入り ${hits}本` +
+    ` × ${ASSUMED[tile]}個調べる → ${n.toFixed(1)} 回`,
   );
 }
-console.log(`  → 合計 ${noticeExposure} 回`);
+console.log(`  → 合計 ${noticeExposure.toFixed(1)} 回`);
 
 // ── 3. 張り紙・目録（任意。調べなければ0回）──────────
 console.log("\n── 掲示物（任意。調べなければ 0 回）────────");
@@ -128,12 +127,12 @@ if (board2) {
 const ASSUMED2: Record<string, number> = { B: 6, T: 3, C: 2, V: 2 };
 for (const [tile, e] of Object.entries(notices).filter(([k]) => isData(k))) {
   const lines = e.ch2 ?? e.ch1;
-  let n = 0;
-  for (let i = 0; i < (ASSUMED2[tile] ?? 0); i++) n += count(lines[i % lines.length]!);
-  if (n > 0) console.log(`  ${LABEL[tile]} を ${ASSUMED2[tile]} 回調べる → ${n} 回`);
+  const hits = lines.reduce((a, l) => a + count(l), 0);
+  const n = (ASSUMED2[tile] ?? 0) * (hits / lines.length);
+  if (n > 0) console.log(`  ${LABEL[tile]} を ${ASSUMED2[tile]}個調べる → ${n.toFixed(1)} 回`);
   ch2Total += n;
 }
-console.log(`  → 第2章で ${ch2Total} 回`);
+console.log(`  → 第2章で ${ch2Total.toFixed(1)} 回`);
 
 // ── まとめ ────────────────────────────────────
 const floor = miraTotal + foundExpected;

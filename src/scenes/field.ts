@@ -7,7 +7,7 @@ import {
   enemyRefFor, getMap, walkable,
   type GameMap, type MapEntity, type Tile,
 } from "../field/mapFormat.ts";
-import { nextNotice } from "../field/notices.ts";
+import { noticeFor } from "../field/notices.ts";
 import type { FieldState } from "../field/state.ts";
 import { WANG_SHELF, WANG_STONE, type WangTable } from "../field/tileset.ts";
 import { frames, type ImageMap } from "../core/assets.ts";
@@ -265,8 +265,8 @@ export class FieldScene implements Scene {
     const target =
       this.entityAt(tx, ty, "npc") ?? this.entityAt(tx, ty, "sign");
     if (!target) {
-      // 目の前の家具について一行返す。調べるたびに文が変わる
-      const line = nextNotice(this.tileAt(tx, ty), this.state.chapter, this.state.noticeIndex);
+      // 目の前の家具について一行返す。同じ棚なら、いつ調べても同じ文
+      const line = noticeFor(this.map, tx, ty, this.state.chapter);
       if (line) this.showNotice(line);
       return;
     }
