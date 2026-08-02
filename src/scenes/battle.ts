@@ -237,7 +237,8 @@ export class BattleScene implements Scene {
     switch (b.phase) {
       case "MESSAGE": {
         const page = b.messages.slice(0, Battle.PAGE);
-        page.forEach((m, i) => d.text(m, 30, 148 + i * 16, PAL.ink));
+        // 「ROZHA を唱えた」の呪文名は、地の文に埋もれさせない
+        page.forEach((m, i) => d.textRich(m, 30, 148 + i * 16, PAL.ink, PAL.accent));
         if (b.messages.length > Battle.PAGE) {
           const blink = Math.floor(this.caret * 3) % 2 === 0;
           if (blink) d.text("▼", 446, 188, PAL.accent);

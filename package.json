@@ -13,7 +13,8 @@
     "fetch": "tsx tools/fetch-frames.ts",
     "preview:map": "tsx tools/preview-map.ts",
     "fetch:auth": "tsx tools/fetch-auth.ts",
-    "count:mira": "tsx tools/count-exposure.ts"
+    "count:mira": "tsx tools/count-exposure.ts",
+    "lint:script": "tsx tools/lint-script.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

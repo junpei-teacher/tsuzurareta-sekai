@@ -151,7 +151,10 @@ export class DialogueBox {
     lines.forEach((line, i) => {
       const shown = line.slice(0, Math.max(0, budget));
       budget -= line.length;
-      d.text(shown, textX, y + 12 + i * 16, PAL.ink);
+      // 人が喋っている窓では、鉤括弧の無い行は地の文として一段落とす。
+      // 「階段に腰かけていた」のような描写と、本人の声を、同じ色で流さない
+      const narration = this.portrait !== undefined && !line.startsWith("「");
+      d.textRich(shown, textX, y + 12 + i * 16, narration ? PAL.dim : PAL.ink, PAL.accent, 12, line);
     });
 
     if (this.revealed >= this.pageLength) {

@@ -354,7 +354,7 @@ export class FieldScene implements Scene {
 
     if (this.noticeT > 0 && !this.dialogue.active) {
       windowBox(d, 16, 214, SCREEN_W - 32, 26);
-      d.text(this.notice, 28, 220, PAL.dim);
+      d.textRich(this.notice, 28, 220, PAL.dim, PAL.accent);
     }
 
     this.dialogue.render(d, this.images);

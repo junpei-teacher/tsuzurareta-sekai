@@ -86,6 +86,43 @@ export class Display {
     this.ctx.fillText(str, x | 0, y | 0);
   }
 
+  /**
+   * 行を描く。**大文字が3つ以上続く部分だけ色を変える。**
+   *
+   * この世界のアルファベットは、飾りではなく**打ち込む文字列**である。
+   * `ROZHA` も `MIRA` も、プレイヤーがいつか自分で打つことになる。
+   * 地の文と同じ色で流すと、ただの読み物として通り過ぎてしまう。
+   *
+   * 印を付ける必要はない。日本語の本文に大文字が3つ以上続くのは
+   * この作品では呪文か名前だけなので、そのまま拾える。
+   *
+   * @param shown 実際に描く文字列（1文字ずつ表示の途中なら、その途中まで）
+   * @param full  範囲の判定に使う全文。途中で色が変わらないように分けてある
+   */
+  textRich(
+    shown: string, x: number, y: number,
+    base: string, accent: string, size = 12, full = shown,
+  ): void {
+    const ranges: Array<[number, number]> = [];
+    for (const m of full.matchAll(/[A-Z][A-Z0-9]{2,}/g)) {
+      ranges.push([m.index, m.index + m[0].length]);
+    }
+    if (ranges.length === 0) { this.text(shown, x, y, base, size); return; }
+
+    let cx = x;
+    let i = 0;
+    while (i < shown.length) {
+      const hit = ranges.find(([s, e]) => i >= s && i < e);
+      const end = hit
+        ? Math.min(hit[1], shown.length)
+        : (ranges.find(([s]) => s > i)?.[0] ?? shown.length);
+      const seg = shown.slice(i, end);
+      this.text(seg, cx, y, hit ? accent : base, size);
+      cx += this.measure(seg, size);
+      i = end;
+    }
+  }
+
   /** 右端を x に揃えて描く */
   textRight(str: string, x: number, y: number, color: string = PAL.ink, size = 12): void {
     this.ctx.font = `${size}px ${FONT_STACK}`;
