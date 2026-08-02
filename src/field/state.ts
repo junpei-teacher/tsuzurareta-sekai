@@ -1,7 +1,7 @@
 import rawCh2 from "../../data/maps/ch2.json";
 import type { Player } from "../game/player.ts";
 
-type MapDiff = { block?: number[][]; open?: number[][]; note?: string };
+type MapDiff = { block?: number[][]; open?: number[][]; openAfter?: string; note?: string };
 const CH2 = rawCh2 as unknown as Record<string, MapDiff>;
 
 /** 章ごとの開始条件（設計書 2.7 / 4.5） */
@@ -57,10 +57,19 @@ export class FieldState {
     return (CH2[mapId]?.block ?? []).some((c) => c[0] === x && c[1] === y);
   }
 
-  /** 第2章の差分：崩れて通れるようになったマス */
+  /**
+   * 第2章の差分：崩れて通れるようになったマス。
+   *
+   * `openAfter` を持つ部屋は、**そこに書かれた相手を倒すまで開かない。**
+   * 階段は封が焼け落ちてはいるが、焼けた本の山が積まれていて降りられない。
+   * 「降りるしか残っていない」状況を作るには、降り口に代償が要る。
+   */
   isOpened(mapId: string, x: number, y: number): boolean {
     if (!this.burning) return false;
-    return (CH2[mapId]?.open ?? []).some((c) => c[0] === x && c[1] === y);
+    const diff = CH2[mapId];
+    if (!diff?.open?.some((c) => c[0] === x && c[1] === y)) return false;
+    if (diff.openAfter && !this.defeated.has(diff.openAfter)) return false;
+    return true;
   }
 
   nextTalk(id: string, total: number): number {

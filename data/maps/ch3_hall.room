@@ -1,9 +1,9 @@
 !id ch3_hall
 !name 灰の広間
 !spawn 13 11
-!npc h halven
-!enemy 3 erased
-!enemy 4 emberfiend
+!enemy h archdemon
+!enemy 3 unnamed
+!enemy 4 unnamed
 !door n ch3_vault 13 12
 !door s ch3_descent 13 2
 !map

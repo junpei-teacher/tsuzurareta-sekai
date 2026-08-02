@@ -180,9 +180,11 @@ export class FieldScene implements Scene {
     if (!walkable(this.tileAt(x, y))) return false;
     // NPCは押しのけられない
     const npc = this.entityAt(x, y, "npc");
-    if (npc && this.npcVisible(npc)) return false;
-    // 張り紙・落書き・禁書の台は通り抜けられない
-    if (this.entityAt(x, y, "sign")) return false;
+    if (npc && this.entityActive(npc)) return false;
+    // 張り紙・落書き・禁書の台は通り抜けられない。
+    // ただし**その章に存在しないもの**は、床として扱う（焼却命令書は第2章にしか無い）
+    const sign = this.entityAt(x, y, "sign");
+    if (sign && this.entityActive(sign)) return false;
     if (this.entityAt(x, y, "vault")) return false;
     return true;
   }
@@ -204,7 +206,7 @@ export class FieldScene implements Scene {
    * ミラだけは、そのうえで巡回先の部屋にしかいない。
    * **第2章で彼女がいないのは特別扱いではなく、`chapters: [1]` の結果である。**
    */
-  private npcVisible(e: MapEntity): boolean {
+  private entityActive(e: MapEntity): boolean {
     const sp = speaker(e.ref, this.state.chapter);
     if (!sp) return false;
     if (sp.chapters && !sp.chapters.includes(this.state.chapter)) return false;
@@ -270,7 +272,7 @@ export class FieldScene implements Scene {
       if (line) this.showNotice(line);
       return;
     }
-    if (target.kind === "npc" && !this.npcVisible(target)) return;
+    if (!this.entityActive(target)) return;
 
     const sp = speaker(target.ref, this.state.chapter);
     if (!sp) return;
@@ -636,7 +638,7 @@ export class FieldScene implements Scene {
         continue;
       }
 
-      if (!this.npcVisible(e)) continue;
+      if (!this.entityActive(e)) continue;
 
       // 待機モーションがあれば再生。無ければ静止画。どちらも無ければ矩形
       // （Phase 7 は差し替え途中でも動くようにしておく）

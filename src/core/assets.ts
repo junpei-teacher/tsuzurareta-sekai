@@ -61,6 +61,9 @@ export const MANIFEST: Record<string, string> = {
   "portrait.soldier": "/assets/portraits/soldier.png",
   // 灰の中の声だけは変換ではなく描き起こし。本の山はキャラではないため
   "portrait.ashvoice": "/assets/portraits/ashvoice.png",
+  // 抹消された名前の者は、顔が白紙なのでバストにする意味がない。
+  // 戦闘の立ち姿をそのまま枠に入れる。全身が枠に収まって、かえって不気味になる
+  "portrait.erased": "/assets/enemies/erased.png",
 
   // 敵。戦闘は正面から見るだけなので、回転もアニメも持たない1枚絵。
   // そのぶんの予算を1枚の質に寄せてある（create_image_pro・候補から選抜）。
@@ -69,6 +72,8 @@ export const MANIFEST: Record<string, string> = {
     "bookworm", "inkslime", "sootbat", "emberfiend",
     "soldier", "erased", "ashvoice", "archdemon",
   ),
+  // 「名を失くした頁」は抹消された名前の者の弱い同類。絵は共用する
+  "enemy.unnamed": "/assets/enemies/erased.png",
 };
 
 /** 敵スプライトのエントリを id から作る */

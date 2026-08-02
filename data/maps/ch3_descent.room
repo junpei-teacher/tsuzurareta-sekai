@@ -1,9 +1,9 @@
 !id ch3_descent
 !name 階段の下
 !spawn 13 12
-!npc v ashvoice
-!enemy 1 erased
-!enemy 2 erased
+!enemy v unnamed
+!enemy 1 unnamed
+!enemy 2 unnamed
 !door n ch3_hall 13 11
 !map
 ############################

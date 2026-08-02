@@ -22,6 +22,7 @@
   "ch1_stairs": {
     "block": [],
     "open": [[12, 10]],
-    "note": "階段の封が崩れ、地下へ降りられるようになる"
+    "openAfter": "ch1_stairs:npc:ashvoice",
+    "note": "階段の封は崩れているが、焼けた本の山が積まれている。倒すまで降りられない"
   }
 }

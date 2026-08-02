@@ -12,7 +12,7 @@
  *   3. 1会話の行数（3行で1ページ。半端だと最後のページがすかすかになる）
  *   4. 参照している立ち絵が実在するか
  */
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -42,12 +42,14 @@ const warn = (where: string, msg: string): void => {
   console.log(`  ${where}\n      ${msg}`);
 };
 
+// 立ち絵の在処は MANIFEST が決める。
+// **フォルダを見ないこと。** 抹消された名前の者のように、
+// 戦闘用の絵をそのまま立ち絵に使っている例がある。
+const manifest = readFileSync(join(ROOT, "src/core/assets.ts"), "utf8");
 const portraits = new Set(
-  existsSync(join(ROOT, "public/assets/portraits"))
-    ? readdirSync(join(ROOT, "public/assets/portraits"))
-        .filter((f) => f.endsWith(".png"))
-        .map((f) => f.replace(/\.png$/, ""))
-    : [],
+  [...manifest.matchAll(/"portrait\.([\w-]+)"\s*:\s*"([^"]+)"/g)]
+    .filter(([, , path]) => existsSync(join(ROOT, "public", path!)))
+    .map((m) => m[1]!),
 );
 
 for (const file of ["ch1", "ch2", "ch3"]) {
