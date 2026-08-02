@@ -4,6 +4,7 @@
 !npc a mira
 !npc b librarian
 !sign p duty_board
+!sign r burnt_scroll
 !npc t soldier_hall
 !enemy 1 - sootbat
 !door e ch1_desks 1 6
@@ -13,7 +14,7 @@
 #....p.....................#
 #..BBBB.......C......BBBB..#
 #..BBBB..............BBBB..#
-#.................1........#
+#.........r.......1........#
 #.......TTTT.............a.#
 #.......TTTT...............e
 #.......t..................#

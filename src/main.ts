@@ -65,7 +65,11 @@ function goField(): void {
       const def = ENEMIES.find((e) => e.id === enemyId);
       if (!def) { console.warn(`敵 ${enemyId} が見つかりません`); return; }
       scene = new BattleScene(player, def, images, (result) => {
-        if (result === "WIN") field.defeated.add(cellKey);
+        if (result === "WIN") {
+          // 同じマスを倒し直しても増えないよう、初回の勝利だけ数える
+          if (!field.defeated.has(cellKey)) field.levelUp(player);
+          field.defeated.add(cellKey);
+        }
         // 負けたらHP0のままフィールドに戻っていた。次の一戦も必ず負けるので詰む
         if (result === "LOSE") field.restartChapter(player);
         saveProgress(player);

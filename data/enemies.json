@@ -47,7 +47,7 @@
     },
     {
       "id": "emberfiend", "name": "焔鬼", "chapter": 2, "family": "召喚された魔物",
-      "hp": 58, "atk": 12, "def": 4,
+      "hp": 44, "atk": 8, "def": 4,
       "weak": ["ICE"], "resist": ["FIRE"], "immune": [],
       "tags": ["DEMON"],
       "sprite": { "w": 48, "h": 64, "color": "#a04a2a" },
@@ -57,7 +57,7 @@
     },
     {
       "id": "soldier", "name": "焚書隊の兵士", "chapter": 2, "family": "人間",
-      "hp": 76, "atk": 17, "def": 10,
+      "hp": 62, "atk": 11, "def": 7,
       "weak": [], "resist": ["FIRE"], "immune": [],
       "tags": ["HUMAN"],
       "sprite": { "w": 44, "h": 64, "color": "#7a3a34" },
@@ -66,7 +66,7 @@
     },
     {
       "id": "unnamed", "name": "名を失くした頁", "chapter": 3, "family": "言葉が変じたもの",
-      "hp": 70, "atk": 14, "def": 7,
+      "hp": 84, "atk": 12, "def": 7,
       "weak": ["NAME"], "resist": ["FIRE", "ICE", "BOLT"], "immune": [],
       "tags": ["ERASED"],
       "sprite": { "w": 48, "h": 64, "color": "#2b2b33" },
@@ -74,8 +74,8 @@
     },
     {
       "id": "erased", "name": "抹消された名前の者", "chapter": 3, "boss": true, "family": "言葉が変じたもの",
-      "hp": 210, "atk": 22, "def": 10,
-      "weak": ["NAME"], "resist": [], "immune": ["FIRE", "ICE", "BOLT"],
+      "hp": 250, "atk": 15, "def": 12,
+      "weak": [], "resist": [], "immune": ["FIRE", "ICE", "BOLT"],
       "tags": ["ERASED"],
       "sprite": { "w": 48, "h": 64, "color": "#2b2b33" },
       "desc": "見習いの服を着ている。顔があったはずの場所は、白紙だ。",
@@ -83,7 +83,7 @@
     },
     {
       "id": "ashvoice", "name": "灰の中の声", "chapter": 3, "boss": true, "family": "言葉が変じたもの",
-      "hp": 190, "atk": 20, "def": 7,
+      "hp": 84, "atk": 11, "def": 5,
       "weak": ["ICE"], "resist": ["FIRE"], "immune": [],
       "tags": [],
       "sprite": { "w": 80, "h": 60, "color": "#5a4038" },
@@ -93,7 +93,7 @@
     },
     {
       "id": "archdemon", "name": "業魔", "chapter": 3, "boss": true, "family": "召喚された魔物",
-      "hp": 240, "atk": 24, "def": 12,
+      "hp": 185, "atk": 16, "def": 10,
       "weak": ["NAME"], "resist": ["FIRE", "BOLT"], "immune": [],
       "tags": ["DEMON"],
       "sprite": { "w": 72, "h": 80, "color": "#5c2440" },

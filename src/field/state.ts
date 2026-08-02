@@ -7,10 +7,11 @@ const CH2 = rawCh2 as unknown as Record<string, MapDiff>;
 /** 章ごとの開始条件（設計書 2.7 / 4.5） */
 const CHAPTERS = [
   null,
-  { level: 1, map: "ch1_reading", x: 14, y: 6, ink: 3, drop: 1 },
-  { level: 4, map: "ch1_reading", x: 14, y: 6, ink: 2, drop: 1 },
+  // 補給は npm run balance で詰めた値。章のMP消費が8〜9割になるところ
+  { level: 1, max: 3, map: "ch1_reading", x: 14, y: 6, ink: 3, drop: 0 },
+  { level: 4, max: 7, map: "ch1_reading", x: 14, y: 6, ink: 6, drop: 1 },
   // 第3章は階段を降りた先から。禁書庫はその奥、灰の広間を抜けた先にある
-  { level: 8, map: "ch3_descent", x: 13, y: 12, ink: 2, drop: 1 },
+  { level: 8, max: 12, map: "ch3_descent", x: 13, y: 12, ink: 5, drop: 3 },
 ] as const;
 
 /**
@@ -70,6 +71,20 @@ export class FieldState {
     if (!diff?.open?.some((c) => c[0] === x && c[1] === y)) return false;
     if (diff.openAfter && !this.defeated.has(diff.openAfter)) return false;
     return true;
+  }
+
+  /**
+   * 1戦勝つごとに1つ上がる。章ごとの上限で止まる（設計書 4.5）。
+   *
+   * **経験値は無い。** レベルは物語がどこまで進んだかを表す数字であって、
+   * 稼ぐものではない。同じ敵を倒し直しても上限より上には行かない。
+   *
+   * これが無いあいだ、第3章を丸ごと Lv8 で戦うことになっていた。
+   * 設計上は終盤 Lv12（HP130/MP70）のはずが、実際は HP92/MP56 だった。
+   */
+  levelUp(player: Player): void {
+    const cap = CHAPTERS[this.chapter]?.max ?? player.level;
+    if (player.level < cap) player.setLevel(player.level + 1);
   }
 
   nextTalk(id: string, total: number): number {

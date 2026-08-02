@@ -68,6 +68,17 @@ function tick(t: HasStatuses): void {
 
 // ── 属性倍率（設計書 4.4）────────────────────────
 
+/**
+ * レベルによる威力の伸び。`1 + level × これ`。
+ *
+ * 0.15 だと Lv12 で **2.8倍**になり、敵のHPが追いつかなくなる。
+ * 実際、第3章の雑魚が一撃で沈み、章のMP消費が55%まで落ちていた。
+ * MPが尽きかけることが緊張の源（設計書 5）なのに、緊張が消える。
+ *
+ * **変えたら必ず `npm run balance` を回すこと。**
+ */
+export const LEVEL_GAIN = 0.09;
+
 export function elementMultiplier(e: Element, enemy: EnemyInst): number {
   if (e === "NONE" || e === "HEAL") return 1;
   if (enemy.def.immune.includes(e)) return 0;
@@ -224,7 +235,7 @@ export class Battle {
         this.say("欠けた頁は、一枚もない。", "（すべて元に戻った）");
         return;
       }
-      const heal = Math.floor(sp.power * (1 + this.player.level * 0.15));
+      const heal = Math.floor(sp.power * (1 + this.player.level * LEVEL_GAIN));
       const before = this.player.hp;
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
       this.say(`HP が ${this.player.hp - before} 回復した。`);
@@ -270,7 +281,7 @@ export class Battle {
     const defDown = findStatus(this.enemy, "DEF_DOWN");
     const effDef = Math.floor(this.enemy.def.def * (1 - (defDown?.magnitude ?? 0) / 100));
 
-    const base = power * (1 + this.player.level * 0.15) * useMul * special * boostMul;
+    const base = power * (1 + this.player.level * LEVEL_GAIN) * useMul * special * boostMul;
     const dmg = Math.max(1, Math.floor(base) - effDef);
 
     this.enemy.hp = Math.max(0, this.enemy.hp - dmg);
