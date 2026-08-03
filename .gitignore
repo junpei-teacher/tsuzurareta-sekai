@@ -9,3 +9,4 @@ tools/candidates.md
 
 # 目視確認用の一覧シート。npm run palettize と作図スクリプトで再生成できる
 public/assets/**/_*.png
+tools/_*.png

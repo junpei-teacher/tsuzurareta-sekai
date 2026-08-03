@@ -23,16 +23,17 @@ function seq(key: string, template: string, count: number): Record<string, strin
  * 4方向の歩行が要るのは主人公のみ（docs/アートバイブル.md 第6節）。
  */
 export const MANIFEST: Record<string, string> = {
-  // 主人公。画面内を歩く唯一のキャラなので4方向の歩行を持つ
-  // v3。フードを常に下ろした形にして、4方向で装備が食い違わないようにした
-  "hero.south": "/assets/sprites/hero3/south.png",
-  "hero.north": "/assets/sprites/hero3/north.png",
-  "hero.east": "/assets/sprites/hero3/east.png",
-  "hero.west": "/assets/sprites/hero3/west.png",
-  ...seq("hero.walk.south", "/assets/sprites/hero3/walk/south_{i}.png", 4),
-  ...seq("hero.walk.north", "/assets/sprites/hero3/walk/north_{i}.png", 4),
-  ...seq("hero.walk.east", "/assets/sprites/hero3/walk/east_{i}.png", 4),
-  ...seq("hero.walk.west", "/assets/sprites/hero3/walk/west_{i}.png", 4),
+  // 主人公。画面内を歩く唯一のキャラなので4方向の歩行を持つ。
+  // v5。**頭身を 3 → 4.5 に直した**。他のキャラが 4.5 前後なのに
+  // 主人公だけ 3 頭身で、ミラと並ぶと別のゲームの絵に見えていた
+  "hero.south": "/assets/sprites/hero5/south.png",
+  "hero.north": "/assets/sprites/hero5/north.png",
+  "hero.east": "/assets/sprites/hero5/east.png",
+  "hero.west": "/assets/sprites/hero5/west.png",
+  ...seq("hero.walk.south", "/assets/sprites/hero5/walk/south_{i}.png", 4),
+  ...seq("hero.walk.north", "/assets/sprites/hero5/walk/north_{i}.png", 4),
+  ...seq("hero.walk.east", "/assets/sprites/hero5/walk/east_{i}.png", 4),
+  ...seq("hero.walk.west", "/assets/sprites/hero5/walk/west_{i}.png", 4),
 
   // Wang タイルセット（各16タイル・4x4シート・32px）
   // 減色はかけない。生成そのままの色をそのまま使う
@@ -47,10 +48,10 @@ export const MANIFEST: Record<string, string> = {
   "prop.rubble": "/assets/props2/rubble.png",
 
   // NPC。画面内を歩かないので待機の4方向だけ。キーの頭は .room の !npc の ref と揃える
-  // ミラ v5。立ち絵と同じ人物から起こしてある（顔と服が食い違わない）。
-  // **裾が床まである服は避ける。** v3 は膝下まである長衣で、
+  // ミラ v6。立ち絵と同じ人物から起こしてある（顔と服が食い違わない）。
+  // **裾が床まである服は避ける。** 初稿は膝下まである長衣で、
   // 足が描かれないまま裾が切れ、足首から下を切断されたように見えていた
-  ...facing("mira", "/assets/sprites/mira_v5"),
+  ...facing("mira", "/assets/sprites/mira6"),
   ...facing("librarian", "/assets/sprites/librarian"),
   ...facing("halven", "/assets/sprites/halven"),
   // 会話する相手のうち、以前は色付きの矩形で代用していたもの
@@ -62,7 +63,6 @@ export const MANIFEST: Record<string, string> = {
   // 立ち絵。素材は128pxで、64デザイン単位の枠にちょうど収まる。
   // 全て character_to_portrait で**フィールドの姿から起こしている**ので、
   // 顔と服がマップ上のドット絵と食い違わない
-  "portrait.hero": "/assets/portraits/hero.png",
   "portrait.mira": "/assets/portraits/mira.png",
   "portrait.librarian": "/assets/portraits/librarian.png",
   "portrait.halven": "/assets/portraits/halven.png",

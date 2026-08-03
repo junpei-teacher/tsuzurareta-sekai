@@ -10,8 +10,11 @@
  * 絵の下に余白があるぶん、そのキャラだけ宙に浮く。
  * 実際、ミラ(128) は絵の下に32px の余白があり、16デザインpx 浮いていた。
  *
+ * **立ち姿と歩行フレームは必ず一緒に渡すこと**（ディレクトリを複数書ける）。
+ * 別々に切り出すと、立ち止まった瞬間にキャラが数ピクセル跳ぶ。
+ *
  * そこで、
- *   1. ディレクトリ内の全PNGから**まとめて**不透明部分の範囲を取る
+ *   1. 渡された全ディレクトリのPNGから**まとめて**不透明部分の範囲を取る
  *   2. 横は範囲の中心、縦は範囲の下端が「下から pad」に来るよう切り出す
  *   3. 指定サイズのキャンバスに置き直す
  *
@@ -25,9 +28,9 @@ import { join } from "node:path";
 import { PNG } from "pngjs";
 
 const args = process.argv.slice(2);
-const dir = args[0];
-if (!dir) {
-  console.error("使い方: npm run fit -- <ディレクトリ> [--size 92] [--pad 11]");
+const dirs = args.filter((a) => !a.startsWith("--") && !/^\d+$/.test(a));
+if (dirs.length === 0) {
+  console.error("使い方: npm run fit -- <ディレクトリ> [<ディレクトリ> ...] [--size 92] [--pad 11]");
   process.exit(1);
 }
 const num = (flag: string, dflt: number): number => {
@@ -37,17 +40,18 @@ const num = (flag: string, dflt: number): number => {
 const SIZE = num("--size", 92);
 const PAD = num("--pad", 11);
 
-const files = readdirSync(dir).filter((f) => f.endsWith(".png"));
-if (files.length === 0) {
-  console.error(`${dir} に png がありません`);
+type Loaded = { path: string; png: PNG };
+const loaded: Loaded[] = [];
+for (const dir of dirs) {
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".png"))) {
+    const path = join(dir, file);
+    loaded.push({ path, png: PNG.sync.read(readFileSync(path)) });
+  }
+}
+if (loaded.length === 0) {
+  console.error(`${dirs.join(" ")} に png がありません`);
   process.exit(1);
 }
-
-type Loaded = { file: string; png: PNG };
-const loaded: Loaded[] = files.map((file) => ({
-  file,
-  png: PNG.sync.read(readFileSync(join(dir, file))),
-}));
 
 // ── 1. 全フレームをまとめた不透明範囲 ──
 let x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
@@ -64,7 +68,7 @@ for (const { png } of loaded) {
 }
 const inkW = x1 - x0 + 1;
 const inkH = y1 - y0 + 1;
-console.log(`  ${files.length} 枚をまとめた絵の範囲  ${inkW}x${inkH}  (${x0},${y0})`);
+console.log(`  ${loaded.length} 枚をまとめた絵の範囲  ${inkW}x${inkH}  (${x0},${y0})`);
 
 if (inkH + PAD > SIZE) {
   console.error(
@@ -79,7 +83,7 @@ const srcCenterX = Math.round((x0 + x1) / 2);
 const offX = srcCenterX - Math.floor(SIZE / 2); // 出力(0,0)に対応する元画像のx
 const offY = y1 + PAD - (SIZE - 1);
 
-for (const { file, png } of loaded) {
+for (const { path, png } of loaded) {
   const out = new PNG({ width: SIZE, height: SIZE });
   out.data.fill(0);
   for (let y = 0; y < SIZE; y++) {
@@ -96,7 +100,7 @@ for (const { file, png } of loaded) {
       out.data[d + 3] = png.data[s + 3]!;
     }
   }
-  writeFileSync(join(dir, file), PNG.sync.write(out));
+  writeFileSync(path, PNG.sync.write(out));
 }
 
 console.log(`  → ${SIZE}x${SIZE} に揃えました（足元はキャンバス下から ${PAD}px）`);
