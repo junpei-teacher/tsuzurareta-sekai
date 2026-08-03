@@ -33,6 +33,14 @@ export type Speaker = {
   sprite?: string;
   /** 最後の会話を閉じたら、この敵と戦いが始まる（ボス用） */
   battleAfter?: string;
+  /**
+   * 部屋に入った瞬間、**全ての台詞を続けて出してから** `battleAfter` に入る。
+   *
+   * 話しかけて初めて始まる相手は、脇を通り抜けられる。
+   * 禁書の台の前に立つ者がそれでは困る。**戦わずに台へ着いてしまう。**
+   * この旗を立てた相手は、部屋に入った時点でもう始まっている。
+   */
+  onEnter?: boolean;
 };
 
 type Table = Record<string, Speaker>;

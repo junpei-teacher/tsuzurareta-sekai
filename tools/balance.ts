@@ -9,8 +9,14 @@
  *
  * 見るもの:
  *   1. 章ごとに、確実に持っている呪文だけで全戦闘を抜けられるか
- *   2. そのときMPがどれだけ残るか（**ちょうど尽きかけるのが設計値**）
+ *   2. **章を抜けたあと、何回ぶん乱打できるMPが残るか**
  *   3. 属性で詰まないか（火が無効な相手しかいないのに火しか無い、など）
+ *
+ * 2 はかつて「MPが9割減るのが設計値」だった。だがそれだと、
+ * **思いついた言葉を試す余裕が無くなる。**
+ * 打つ前に勘定してしまい、呪文帳に載っている言葉しか打たなくなる。
+ * それはこのゲームの中心を殺す。今は逆に、
+ * **余りが乱打 30 回を切っていないか**を見る（不発は MP 3）。
  *
  * ここで言う「確実に持っている呪文」は、
  * **人から教わるか、決まった場所で拾えるものだけ**である。
@@ -42,13 +48,17 @@ const SPELLS: Spell[] = read("data/spells.json").spells;
 const ENEMIES: Enemy[] = read("data/enemies.json").enemies;
 const byId = (id: number): Spell => SPELLS.find((s) => s.id === id)!;
 
-// src/game/player.ts の LEVELS と合わせること
-const LEVELS = [
-  { hp: 0, mp: 0 }, { hp: 30, mp: 30 }, { hp: 37, mp: 34 }, { hp: 45, mp: 38 },
-  { hp: 54, mp: 42 }, { hp: 63, mp: 46 }, { hp: 72, mp: 49 }, { hp: 80, mp: 52 },
-  { hp: 92, mp: 56 }, { hp: 104, mp: 60 }, { hp: 116, mp: 64 }, { hp: 123, mp: 67 },
-  { hp: 130, mp: 70 },
-];
+/**
+ * LEVELS と ITEM_MP は **src/game/player.ts から読む。**
+ * ここに書き写すと必ずずれる（補給値で一度やった）。
+ */
+const P_SRC = readFileSync(join(ROOT, "src/game/player.ts"), "utf8");
+const LEVELS = [...P_SRC.matchAll(/\{ hp:\s*(\d+), mp:\s*(\d+) \}/g)]
+  .map((m) => ({ hp: +m[1]!, mp: +m[2]! }));
+const ITEM_MP = (() => {
+  const m = /ITEM_MP = \{ ink: (\d+), drop: (\d+) \}/.exec(P_SRC)!;
+  return { ink: +m[1]!, drop: +m[2]! };
+})();
 
 /**
  * レベルと補給は **src/field/state.ts の CHAPTERS から読む。**
@@ -84,8 +94,9 @@ const PLAN = [
 
 const CHAPTERS = PLAN.map((p, i) => ({ n: i + 1, ...SUPPLY[i]!, ...p }));
 
+/** src/battle/model.ts の elementMultiplier と同じ規則。NONE も相性に乗る */
 function multiplier(e: Enemy, element: string): number {
-  if (element === "NONE" || element === "HEAL") return 1;
+  if (element === "HEAL") return 1;
   if (e.immune.includes(element)) return 0;
   if (e.weak.includes(element)) return 2;
   if (e.resist.includes(element)) return 0.5;
@@ -145,9 +156,9 @@ for (const ch of CHAPTERS) {
       } else if (mp >= best.s.mp) {
         ehp -= best.dmg; mp -= best.s.mp; used += best.s.mp;
       } else if (ink > 0) {
-        ink--; mp = Math.min(LEVELS[level]!.mp, mp + 10);
+        ink--; mp = Math.min(LEVELS[level]!.mp, mp + ITEM_MP.ink);
       } else if (drop > 0) {
-        drop--; mp = Math.min(LEVELS[level]!.mp, mp + 30);
+        drop--; mp = Math.min(LEVELS[level]!.mp, mp + ITEM_MP.drop);
       } else {
         break; // 手が無い
       }
@@ -168,13 +179,15 @@ for (const ch of CHAPTERS) {
     if (ok && level < ch.max) { level++; hp = Math.min(hp, LEVELS[level]!.hp); }
   }
 
-  const supply = LEVELS[ch.level]!.mp + ch.ink * 10 + ch.drop * 30;
+  const supply = LEVELS[ch.level]!.mp + ch.ink * ITEM_MP.ink + ch.drop * ITEM_MP.drop;
   const rate = (spent / supply) * 100;
+  // 不発は MP 3。余ったぶんを「何回そらで打てるか」に直す
+  const spare = Math.floor((supply - spent) / 3);
   console.log(
     `  ── 合計 MP消費 ${spent} / 供給 ${supply}（${rate.toFixed(0)}%）　` +
-    `未使用 インク壺${ink} 雫${drop}`,
+    `乱打の余地 ${spare} 回　未使用 インク壺${ink} 雫${drop}`,
   );
-  if (rate < 55) console.log("     余りすぎ。**MPが尽きかける緊張が無い**（設計書 5）");
+  if (spare < 30) console.log("     **試し打ちの余裕が無い。** MPか補給を増やす（設計書 5）");
   if (rate > 100) console.log("     足りない。敵のHPを下げるか、補給を増やす");
 }
 

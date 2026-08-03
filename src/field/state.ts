@@ -1,17 +1,37 @@
 import rawCh2 from "../../data/maps/ch2.json";
 import type { Player } from "../game/player.ts";
+import { enemyRefFor, getMap } from "./mapFormat.ts";
 
-type MapDiff = { block?: number[][]; open?: number[][]; openAfter?: string; note?: string };
+type MapDiff = {
+  block?: number[][];
+  open?: number[][];
+  openAfter?: string;
+  clearMaps?: string[];
+  note?: string;
+};
 const CH2 = rawCh2 as unknown as Record<string, MapDiff>;
+
+/** 第2章にその部屋へ出る敵シンボルの位置キー。倒したかの判定に使う */
+function enemyCells(mapId: string): string[] {
+  const out: string[] = [];
+  for (const e of getMap(mapId).entities) {
+    if (e.kind !== "enemy") continue;
+    if (!enemyRefFor(e, 2)) continue;
+    out.push(`${mapId}:${e.x},${e.y}`);
+  }
+  return out;
+}
 
 /** 章ごとの開始条件（設計書 2.7 / 4.5） */
 const CHAPTERS = [
   null,
-  // 補給は npm run balance で詰めた値。章のMP消費が8〜9割になるところ
-  { level: 1, max: 3, map: "ch1_reading", x: 14, y: 6, ink: 3, drop: 0 },
-  { level: 4, max: 7, map: "ch1_reading", x: 14, y: 6, ink: 6, drop: 1 },
+  // 補給は npm run balance で詰めた値。
+  // MP そのものを3倍にしたので、道具は「足りない分を埋めるもの」ではなく
+  // 「次の部屋の前に整えるもの」になった。数は少なくていい
+  { level: 1, max: 3, map: "ch1_reading", x: 14, y: 6, ink: 2, drop: 0 },
+  { level: 4, max: 7, map: "ch1_reading", x: 14, y: 6, ink: 3, drop: 1 },
   // 第3章は階段を降りた先から。禁書庫はその奥、灰の広間を抜けた先にある
-  { level: 8, max: 12, map: "ch3_descent", x: 13, y: 12, ink: 5, drop: 3 },
+  { level: 8, max: 12, map: "ch3_descent", x: 13, y: 12, ink: 3, drop: 2 },
 ] as const;
 
 /**
@@ -62,15 +82,44 @@ export class FieldState {
    * 第2章の差分：崩れて通れるようになったマス。
    *
    * `openAfter` を持つ部屋は、**そこに書かれた相手を倒すまで開かない。**
-   * 階段は封が焼け落ちてはいるが、焼けた本の山が積まれていて降りられない。
-   * 「降りるしか残っていない」状況を作るには、降り口に代償が要る。
+   * さらに `clearMaps` があれば、**その階に残る魔物を全て倒すまで開かない。**
+   *
+   * 灰の中の声だけ倒せば降りられると、階段までまっすぐ歩いて第2章が終わる。
+   * ミラを探して階を歩き回った、という時間が残らない。
    */
   isOpened(mapId: string, x: number, y: number): boolean {
     if (!this.burning) return false;
     const diff = CH2[mapId];
     if (!diff?.open?.some((c) => c[0] === x && c[1] === y)) return false;
     if (diff.openAfter && !this.defeated.has(diff.openAfter)) return false;
+    if (diff.clearMaps && this.remaining(diff.clearMaps) > 0) return false;
     return true;
+  }
+
+  /** まだ倒していない敵シンボルの数 */
+  remaining(mapIds: string[]): number {
+    let n = 0;
+    for (const id of mapIds) {
+      for (const key of enemyCells(id)) if (!this.defeated.has(key)) n++;
+    }
+    return n;
+  }
+
+  /**
+   * その階段が今なぜ降りられないのか。降りられるなら undefined。
+   * 通せんぼするだけで理由を言わないと、プレイヤーは進行不能だと思う。
+   */
+  stairsReason(mapId: string): string | undefined {
+    const diff = CH2[mapId];
+    if (!this.burning || !diff?.open) return undefined;
+    if (diff.openAfter && !this.defeated.has(diff.openAfter)) {
+      return "焼けた本の山が、階段を塞いでいる。";
+    }
+    const left = diff.clearMaps ? this.remaining(diff.clearMaps) : 0;
+    if (left > 0) {
+      return `降り口の熱が引かない。この階に、まだ ${left} つ 息をしている。`;
+    }
+    return undefined;
   }
 
   /**

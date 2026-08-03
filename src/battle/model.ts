@@ -1,7 +1,7 @@
 import rawEnemies from "../../data/enemies.json";
 import { spellFor, type Element, type Spell, type StatusKind } from "../spell/book.ts";
 import { resolveSpell, type Resolution } from "../spell/resolver.ts";
-import type { Player, StatusInst } from "../game/player.ts";
+import type { ItemKind, Player, StatusInst } from "../game/player.ts";
 
 // ── 敵 ────────────────────────────────────────
 
@@ -79,8 +79,19 @@ function tick(t: HasStatuses): void {
  */
 export const LEVEL_GAIN = 0.09;
 
+/**
+ * 属性倍率。
+ *
+ * **NONE も相性判定に乗せる。**
+ * 白紙（QOTHREN, power 55）のような無属性の大技は、
+ * 相性で止められないぶん、序盤に引き当てると他の全てを腐らせる。
+ * 「無属性だから誰にでも等しく効く」を通すと、**弱点を探す遊びが消える。**
+ * 書庫の生き物と焚書隊は NONE に耐性を持つ（data/enemies.json）。
+ *
+ * HEAL だけは敵に撃つものではないので、相性の外に置く。
+ */
 export function elementMultiplier(e: Element, enemy: EnemyInst): number {
-  if (e === "NONE" || e === "HEAL") return 1;
+  if (e === "HEAL") return 1;
   if (enemy.def.immune.includes(e)) return 0;
   if (enemy.def.weak.includes(e)) return 2;
   if (enemy.def.resist.includes(e)) return 0.5;
@@ -315,24 +326,29 @@ export class Battle {
     }
   }
 
-  useItem(kind: "ink" | "drop"): void {
-    if (this.player.items[kind] <= 0) {
+  useItem(kind: ItemKind): void {
+    const healed = this.player.useItem(kind);
+    if (healed < 0) {
       this.say("持っていない。");
       this.after = "COMMAND";
       return;
     }
-    this.player.items[kind]--;
-    const amount = kind === "ink" ? 10 : 30;
-    const before = this.player.mp;
-    this.player.mp = Math.min(this.player.maxMp, this.player.mp + amount);
     this.say(
       kind === "ink" ? "インク壺を 空けた。" : "魔力の雫を 飲んだ。",
-      `MP が ${this.player.mp - before} 回復した。`,
+      `MP が ${healed} 回復した。`,
     );
     this.after = "ENEMY";
   }
 
   flee(): void {
+    // ボスからは逃げられない。
+    // 禁書庫は一本道で、戻る扉が無い。逃げられてしまうと、
+    // **倒していないラスボスと同じ部屋に取り残される。**
+    if (this.enemy.def.boss) {
+      this.say("背を向けられなかった。");
+      this.after = "ENEMY";
+      return;
+    }
     const sure = has(this.player, "FLEE_UP");
     if (sure || Math.random() < 0.5) {
       consume(this.player, "FLEE_UP");

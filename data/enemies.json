@@ -10,6 +10,11 @@
     "第1章に魔物を出さないことで、平時の書庫の静けさが保たれる。",
     "",
     "weak ×2.0 / resist ×0.5 / immune ×0（設計書 4.4）。",
+    "",
+    "NONE（無属性）も相性の対象である。白紙 QOTHREN のような無属性の大技を",
+    "序盤に引き当てたとき、それ一本で第1・2章が終わってしまうのを防ぐため、",
+    "**書庫の生き物と焚書隊が連れてきたものには NONE 耐性を持たせてある。**",
+    "地下で言葉が変じたものだけが、無属性をまともに浴びる。",
     "tags は特効判定に使う（断蟲 は INSECT に特効）。",
     "",
     "sprite は public/assets/enemies/<id>.png が無いときに出る代替の矩形。",
@@ -23,7 +28,7 @@
     {
       "id": "bookworm", "name": "紙喰い虫", "chapter": 1, "family": "書庫の生き物",
       "hp": 24, "atk": 6, "def": 1,
-      "weak": ["FIRE"], "resist": [], "immune": [],
+      "weak": ["FIRE"], "resist": ["NONE"], "immune": [],
       "tags": ["INSECT"],
       "sprite": { "w": 32, "h": 24, "color": "#8a7f5c" },
       "desc": "拳ほどの大きさの虫。背表紙を齧って生きている。"
@@ -31,7 +36,7 @@
     {
       "id": "inkslime", "name": "墨のスライム", "chapter": 1, "family": "書庫の生き物",
       "hp": 42, "atk": 7, "def": 5,
-      "weak": ["BOLT"], "resist": ["ICE"], "immune": [],
+      "weak": ["BOLT"], "resist": ["ICE", "NONE"], "immune": [],
       "tags": ["SLIME"],
       "sprite": { "w": 48, "h": 36, "color": "#3c3550" },
       "desc": "こぼれた墨に棲みついた粘体。硬いが、電気に弱い。"
@@ -48,7 +53,7 @@
     {
       "id": "emberfiend", "name": "焔鬼", "chapter": 2, "family": "召喚された魔物",
       "hp": 44, "atk": 8, "def": 4,
-      "weak": ["ICE"], "resist": ["FIRE"], "immune": [],
+      "weak": ["ICE"], "resist": ["FIRE", "NONE"], "immune": [],
       "tags": ["DEMON"],
       "sprite": { "w": 48, "h": 64, "color": "#a04a2a" },
       "glow": { "color": "#ff7a2a", "radius": 42, "strength": 0.55, "dy": 34 },
@@ -58,7 +63,7 @@
     {
       "id": "soldier", "name": "焚書隊の兵士", "chapter": 2, "family": "人間",
       "hp": 62, "atk": 11, "def": 7,
-      "weak": [], "resist": ["FIRE"], "immune": [],
+      "weak": [], "resist": ["FIRE", "NONE"], "immune": [],
       "tags": ["HUMAN"],
       "sprite": { "w": 44, "h": 64, "color": "#7a3a34" },
       "glow": { "color": "#ffa040", "radius": 26, "strength": 0.45, "dy": 46 },
@@ -84,7 +89,7 @@
     {
       "id": "ashvoice", "name": "灰の中の声", "chapter": 3, "boss": true, "family": "言葉が変じたもの",
       "hp": 84, "atk": 11, "def": 5,
-      "weak": ["ICE"], "resist": ["FIRE"], "immune": [],
+      "weak": ["ICE"], "resist": ["FIRE", "NONE"], "immune": [],
       "tags": [],
       "sprite": { "w": 80, "h": 60, "color": "#5a4038" },
       "glow": { "color": "#ff6a20", "radius": 48, "strength": 0.6, "dy": 28 },

@@ -2,7 +2,7 @@ import { Display, SCREEN_W } from "../core/display.ts";
 import type { Keyboard } from "../core/input.ts";
 import { PAL } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
-import type { Player } from "../game/player.ts";
+import { ITEM_MP, ITEM_NAME, type ItemKind, type Player } from "../game/player.ts";
 import {
   enemyRefFor, getMap, walkable,
   type GameMap, type MapEntity, type Tile,
@@ -39,6 +39,9 @@ const IDLE_FPS = 5;
  */
 const WALK_FPS = 6.7;
 
+/** 道具袋に並ぶ順。戦闘の「道具」と同じ並びにしておく */
+const ITEMS: ItemKind[] = ["ink", "drop"];
+
 const DIRS = {
   up: { x: 0, y: -1, key: "ArrowUp" },
   down: { x: 0, y: 1, key: "ArrowDown" },
@@ -63,6 +66,9 @@ export class FieldScene implements Scene {
   private readonly burn = new BurnLayer();
   private readonly bloom = new BloomLayer();
   private grimoireOpen = false;
+  /** 道具袋を開いているか。開いているあいだは歩けない */
+  private itemOpen = false;
+  private itemIdx = 0;
 
   /** 移動中の補間。0で静止 */
   private stepT = 0;
@@ -98,6 +104,28 @@ export class FieldScene implements Scene {
       this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, state.intro);
       state.intro = [];
     }
+    this.checkOnEnter();
+  }
+
+  /**
+   * 部屋に入った時点で始まる相手がいれば、その場で会話を開いて開戦へ繋ぐ。
+   *
+   * 台詞は全て続けて出す。1回話しかけるごとに1つ、では
+   * ラスボスの登場が「同じ相手に5回話しかける作業」になってしまう。
+   */
+  private checkOnEnter(): void {
+    if (this.dialogue.active) return;
+    for (const e of this.map.entities) {
+      if (e.kind !== "npc") continue;
+      const sp = speaker(e.ref, this.state.chapter);
+      if (!sp?.onEnter || !sp.battleAfter) continue;
+      if (!this.entityActive(e)) continue;
+      const cellKey = `${this.map.id}:npc:${e.ref}`;
+      if (this.state.defeated.has(cellKey)) continue;
+      this.dialogue.open(sp, sp.talks.flat());
+      this.pendingBattle = { ref: sp.battleAfter, cellKey };
+      return;
+    }
   }
 
   /** 炎上中は色を焦がす（設計書 2.8） */
@@ -116,7 +144,7 @@ export class FieldScene implements Scene {
 
     for (const key of keys) this.handleKey(key);
 
-    if (this.dialogue.active || this.grimoireOpen) return;
+    if (this.dialogue.active || this.grimoireOpen || this.itemOpen) return;
     this.updateMovement(dt);
   }
 
@@ -141,9 +169,35 @@ export class FieldScene implements Scene {
       if (this.grimoire.handle(key, this.player)) this.grimoireOpen = false;
       return;
     }
+    if (this.itemOpen) { this.handleItemKey(key); return; }
     if (key === "Enter" || key === " ") this.interact();
     if (key === "Tab") { this.grimoireOpen = true; this.grimoire.reset(); }
+    if (key === "I") { this.itemOpen = true; this.itemIdx = 0; }
     if (key === "Escape") this.onExit();
+  }
+
+  /**
+   * 道具袋。戦闘の「道具」と同じものを、歩いているあいだにも使えるようにする。
+   * 使うのは Player.useItem（戦闘と共通）。回復量が二重管理にならないようにする。
+   */
+  private handleItemKey(key: string): void {
+    if (key === "Escape" || key === "I") { this.itemOpen = false; return; }
+    if (key === "ArrowUp") this.itemIdx = (this.itemIdx + ITEMS.length - 1) % ITEMS.length;
+    if (key === "ArrowDown") this.itemIdx = (this.itemIdx + 1) % ITEMS.length;
+    if (key !== "Enter" && key !== " ") return;
+
+    const kind = ITEMS[this.itemIdx]!;
+    if (this.player.mp >= this.player.maxMp) {
+      this.showNotice("これ以上は、注いでも溢れる。");
+      return;
+    }
+    const healed = this.player.useItem(kind);
+    if (healed < 0) {
+      this.showNotice(`${ITEM_NAME[kind]}は、もう持っていない。`);
+      return;
+    }
+    this.showNotice(`${ITEM_NAME[kind]}を 使った。　MP が ${healed} 回復した。`);
+    saveProgress(this.player);
   }
 
   private updateMovement(dt: number): void {
@@ -163,7 +217,14 @@ export class FieldScene implements Scene {
     this.state.facing = dir;
     const nx = this.state.x + DIRS[dir].x;
     const ny = this.state.y + DIRS[dir].y;
-    if (!this.canEnter(nx, ny)) return;
+    if (!this.canEnter(nx, ny)) {
+      // 階段にぶつかったなら、なぜ降りられないのかを言う
+      if (this.tileAt(nx, ny) === "V" && this.noticeT <= 0) {
+        const why = this.state.stairsReason(this.map.id);
+        if (why) this.showNotice(why);
+      }
+      return;
+    }
 
     this.fromX = this.state.x;
     this.fromY = this.state.y;
@@ -241,6 +302,7 @@ export class FieldScene implements Scene {
       this.map = getMap(door.ref);
       this.fromX = this.state.x;
       this.fromY = this.state.y;
+      this.checkOnEnter();
       return;
     }
 
@@ -341,7 +403,7 @@ export class FieldScene implements Scene {
     d.clear();
 
     d.text(this.map.name, 18, 8, this.state.burning ? "#e07a34" : PAL.accent);
-    d.textRight("TAB 呪文帳　ENTER しらべる　ESC もどる", SCREEN_W - 16, 8, PAL.hint);
+    d.textRight("TAB 呪文帳　I どうぐ　ENTER しらべる　ESC もどる", SCREEN_W - 16, 8, PAL.hint);
 
     this.renderTiles(d);
     this.renderEntities(d);
@@ -358,6 +420,8 @@ export class FieldScene implements Scene {
       windowBox(d, 16, 214, SCREEN_W - 32, 26);
       d.textRich(this.notice, 28, 220, PAL.dim, PAL.accent);
     }
+
+    if (this.itemOpen) this.renderItems(d);
 
     this.dialogue.render(d, this.images);
     if (this.grimoireOpen) {
@@ -687,6 +751,25 @@ export class FieldScene implements Scene {
     d.rect(px + 3, py + 2, 10, 4, "#8a7a58");
     const f = DIRS[dir];
     d.rect(px + 7 + f.x * 4, py + 8 + f.y * 5, 2, 2, "#3a2f22");
+  }
+
+  /** 道具袋。画面の隅に小さく開く。歩いている絵を隠しきらない大きさにする */
+  private renderItems(d: Display): void {
+    const x = 300, y = 150, w = 164, h = 60;
+    windowBox(d, x, y, w, h);
+    ITEMS.forEach((kind, i) => {
+      const ly = y + 10 + i * 16;
+      const on = i === this.itemIdx;
+      if (on) d.text("▸", x + 10, ly, PAL.accent);
+      // 持っていないものも薄く消したりはしない。PAL.line は枠線用で、
+      // 文字に使うと 1.51 の contrast になり**読めなくなる**（src/core/palette.ts）。
+      // 数が 0 であることは「×0」が言っている
+      d.text(
+        `${ITEM_NAME[kind]}　×${this.player.items[kind]}　MP+${ITEM_MP[kind]}`,
+        x + 24, ly, on ? PAL.ink : PAL.dim,
+      );
+    });
+    d.text("ENTER 使う　I とじる", x + 10, y + h - 16, PAL.hint);
   }
 
   private renderStatus(d: Display): void {
