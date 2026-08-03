@@ -1,6 +1,7 @@
 import { loadImages } from "./core/assets.ts";
 import { Display } from "./core/display.ts";
 import { Keyboard } from "./core/input.ts";
+import { Audio, type TrackId } from "./core/audio.ts";
 import type { Scene } from "./core/scene.ts";
 import { Player } from "./game/player.ts";
 import { FieldState } from "./field/state.ts";
@@ -32,6 +33,10 @@ if (missingWang.length > 0) {
 
 const display = new Display(canvas);
 const keyboard = new Keyboard();
+const audio = new Audio();
+
+/** 章に対応する曲。フィールドへ入るたびに指示する（同じ曲なら何も起きない） */
+const CHAPTER_BGM: Record<number, TrackId> = { 1: "ch1", 2: "ch2", 3: "ch3" };
 
 // ドット絵を読み終えてからループを回す。未配置のアセットは矩形のまま表示される
 const images = await loadImages();
@@ -53,6 +58,7 @@ function goSelect(): void {
     () => { scene = new CasterTestScene(goSelect); },
     (chapter) => {
       field.startChapter(chapter, player);
+      audio.play(chapter === 1 ? "opening" : CHAPTER_BGM[chapter]!);
       // 第1章だけ、世界の前提を先に置く（設計書 2.1）。
       // 第2章・第3章はデバッグ用の飛び込み口なので挟まない
       if (chapter === 1) scene = new OpeningScene(goField);
@@ -63,6 +69,7 @@ function goSelect(): void {
 }
 
 function goField(): void {
+  audio.play(CHAPTER_BGM[field.chapter] ?? "ch1");
   scene = new FieldScene(
     keyboard,
     player,
@@ -71,6 +78,8 @@ function goField(): void {
     (enemyId, cellKey) => {
       const def = ENEMIES.find((e) => e.id === enemyId);
       if (!def) { console.warn(`敵 ${enemyId} が見つかりません`); return; }
+      // 戦いが終われば goField がフィールドの曲へ戻す
+      audio.play(def.boss ? "boss" : "battle");
       scene = new BattleScene(player, def, images, (result) => {
         // 勝っても強くはならない。倒したことを覚えるだけ（設計書 4.5）
         if (result === "WIN") field.defeated.add(cellKey);
@@ -88,8 +97,11 @@ function goField(): void {
 }
 
 function goVault(): void {
+  // 禁書の前は無音。**打鍵の音だけが残る**
+  audio.stop();
   scene = new VaultScene((words) => {
     const result = resolveEnding(words, player.name);
+    audio.play("ending");
     scene = new EndingScene(result, player, goSelect);
   });
 }
@@ -105,6 +117,15 @@ function frame(now: number): void {
   last = now;
 
   const keys = keyboard.poll();
+  // ブラウザは操作があるまで音を鳴らさない。最初の1打で解禁する
+  if (keys.length > 0) audio.unlock();
+  // 音量は - と = 。**呪文は A-Z と 0-9 だけ**なので、詠唱中に押しても
+  // 綴りには入らない（src/core/input.ts）
+  for (const k of keys) {
+    if (k === "-") audio.nudge(-1);
+    if (k === "=") audio.nudge(1);
+  }
+  audio.update(dt);
   if (!paused) {
     scene.update(dt, keys);
     scene.render(display);
@@ -137,7 +158,7 @@ if (import.meta.env.DEV) {
       release: (name: string) => window.dispatchEvent(
         new KeyboardEvent("keyup", { key: name, bubbles: true, cancelable: true }),
       ),
-      player, field, keyboard,
+      player, field, keyboard, audio,
       sceneName: () => scene.constructor.name,
     },
   });

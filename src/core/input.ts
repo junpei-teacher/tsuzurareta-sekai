@@ -8,11 +8,17 @@
  * 文字列としての組み立ては TextField（src/ui/textField.ts）が担当する。
  */
 
-/** ゲームが解釈するキー。それ以外は無視する */
+/**
+ * ゲームが解釈するキー。それ以外は無視する。
+ *
+ * `-` と `=` は音量。**呪文に使われない記号でなければならない。**
+ * 呪文は A-Z と 0-9 だけなので（src/ui/textField.ts）、
+ * 記号なら詠唱中に押しても文字として入らず、音量だけが動く。
+ */
 const HANDLED = new Set([
   "Enter", "Escape", "Backspace", "Tab",
   "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
-  " ",
+  " ", "-", "=",
 ]);
 
 export class Keyboard {
