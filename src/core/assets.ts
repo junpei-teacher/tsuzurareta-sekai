@@ -47,8 +47,10 @@ export const MANIFEST: Record<string, string> = {
   "prop.rubble": "/assets/props2/rubble.png",
 
   // NPC。画面内を歩かないので待機の4方向だけ。キーの頭は .room の !npc の ref と揃える
-  // ミラ v3。立ち絵と同じ人物から起こしてある（顔と服が食い違わない）
-  ...facing("mira", "/assets/sprites/mira3"),
+  // ミラ v5。立ち絵と同じ人物から起こしてある（顔と服が食い違わない）。
+  // **裾が床まである服は避ける。** v3 は膝下まである長衣で、
+  // 足が描かれないまま裾が切れ、足首から下を切断されたように見えていた
+  ...facing("mira", "/assets/sprites/mira_v5"),
   ...facing("librarian", "/assets/sprites/librarian"),
   ...facing("halven", "/assets/sprites/halven"),
   // 会話する相手のうち、以前は色付きの矩形で代用していたもの
