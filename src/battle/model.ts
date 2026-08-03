@@ -69,15 +69,19 @@ function tick(t: HasStatuses): void {
 // ── 属性倍率（設計書 4.4）────────────────────────
 
 /**
- * レベルによる威力の伸び。`1 + level × これ`。
+ * **威力はレベルで伸びない**（設計書 4.5）。
  *
- * 0.15 だと Lv12 で **2.8倍**になり、敵のHPが追いつかなくなる。
- * 実際、第3章の雑魚が一撃で沈み、章のMP消費が55%まで落ちていた。
- * MPが尽きかけることが緊張の源（設計書 5）なのに、緊張が消える。
+ * かつては `1 + level × 0.09` を掛けていた。レベルを廃止したので、
+ * 威力を決めるのは**どの呪文を当てたか**だけになった。
+ * 同じ ROZHA は最初から最後まで 24 を出す。
+ * 強くなりたければ、より強い言葉を掘り当てるしかない。
  *
- * **変えたら必ず `npm run balance` を回すこと。**
+ * **敵のHPを触ったら必ず `npm run balance` を回すこと。**
  */
-export const LEVEL_GAIN = 0.09;
+
+/** 継続ダメージ。レベルが無いので固定値 */
+const BURN_ENEMY = 10;
+const BURN_SELF = 5;
 
 /**
  * 属性倍率。
@@ -246,7 +250,7 @@ export class Battle {
         this.say("欠けた頁は、一枚もない。", "（すべて元に戻った）");
         return;
       }
-      const heal = Math.floor(sp.power * (1 + this.player.level * LEVEL_GAIN));
+      const heal = sp.power;
       const before = this.player.hp;
       this.player.hp = Math.min(this.player.maxHp, this.player.hp + heal);
       this.say(`HP が ${this.player.hp - before} 回復した。`);
@@ -292,7 +296,7 @@ export class Battle {
     const defDown = findStatus(this.enemy, "DEF_DOWN");
     const effDef = Math.floor(this.enemy.def.def * (1 - (defDown?.magnitude ?? 0) / 100));
 
-    const base = power * (1 + this.player.level * LEVEL_GAIN) * useMul * special * boostMul;
+    const base = power * useMul * special * boostMul;
     const dmg = Math.max(1, Math.floor(base) - effDef);
 
     this.enemy.hp = Math.max(0, this.enemy.hp - dmg);
@@ -418,13 +422,13 @@ export class Battle {
   private endRound(): void {
     const burnEnemy = findStatus(this.enemy, "BURN");
     if (burnEnemy && this.enemy.hp > 0) {
-      const d = 4 + this.player.level;
+      const d = BURN_ENEMY;
       this.enemy.hp = Math.max(0, this.enemy.hp - d);
       this.say(`${this.enemy.def.name} は 燃えている。　${d} のダメージ。`);
     }
     const burnSelf = findStatus(this.player, "BURN");
     if (burnSelf && this.player.hp > 0) {
-      const d = 3 + Math.floor(this.player.level / 2);
+      const d = BURN_SELF;
       this.player.hp = Math.max(0, this.player.hp - d);
       this.say(`灰が燻っている。　${d} のダメージ。`);
     }

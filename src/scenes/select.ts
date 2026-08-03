@@ -5,7 +5,7 @@ import type { Player } from "../game/player.ts";
 import { ENEMIES, type EnemyDef } from "../battle/model.ts";
 import { bar, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
-import { ITEM_NAME, LEVELS } from "../game/player.ts";
+import { ITEM_NAME } from "../game/player.ts";
 import { clearProgress } from "../game/save.ts";
 
 /**
@@ -54,8 +54,6 @@ export class SelectScene implements Scene {
       }
       if (key === "ArrowUp") this.index = (this.index + this.rows - 1) % this.rows;
       if (key === "ArrowDown") this.index = (this.index + 1) % this.rows;
-      if (key === "ArrowLeft") this.player.setLevel(this.player.level - 1);
-      if (key === "ArrowRight") this.player.setLevel(this.player.level + 1);
       if (key === "Enter" || key === " ") this.choose();
     }
   }
@@ -94,7 +92,7 @@ export class SelectScene implements Scene {
   render(d: Display): void {
     d.clear();
     d.text("PHASE 3 ／ 戦闘テスト", 16, 8, PAL.accent);
-    d.textRight("←→ でレベル変更", SCREEN_W - 16, 8, PAL.dim);
+    d.textRight("ENTER 決定　ESC もどる", SCREEN_W - 16, 8, PAL.dim);
 
     if (this.viewing) {
       this.grimoire.render(d, 16, 26, 448, 184, this.player);
@@ -137,10 +135,9 @@ export class SelectScene implements Scene {
     // プレイヤー状態
     const p = this.player;
     windowBox(d, 16, 238, 448, 30);
-    d.text(`Lv ${p.level}`, 28, 242, PAL.ink);
-    d.text("HP", 70, 242, PAL.dim);
-    bar(d, 92, 243, 90, 8, p.hp / p.maxHp, "#a8563f");
-    d.text(`${p.hp}/${p.maxHp}`, 188, 242, PAL.dim);
+    d.text("HP", 28, 242, PAL.dim);
+    bar(d, 50, 243, 90, 8, p.hp / p.maxHp, "#a8563f");
+    d.text(`${p.hp}/${p.maxHp}`, 146, 242, PAL.dim);
     d.text("MP", 262, 242, PAL.dim);
     bar(d, 284, 243, 90, 8, p.mp / p.maxMp, "#3f6fa8");
     d.text(`${p.mp}/${p.maxMp}`, 380, 242, PAL.dim);
@@ -149,7 +146,6 @@ export class SelectScene implements Scene {
       `${ITEM_NAME.ink} ${p.items.ink}　${ITEM_NAME.drop} ${p.items.drop}`,
       28, 254, PAL.dim,
     );
-    d.textRight(`最大 Lv${LEVELS.length - 1}`, 452, 254, PAL.hint);
   }
 
   /** 日本語の素朴な折り返し */

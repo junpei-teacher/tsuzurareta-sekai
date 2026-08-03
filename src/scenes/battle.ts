@@ -314,7 +314,7 @@ export class BattleScene implements Scene {
     const p = this.player;
     windowBox(d, 16, 210, 448, 52);
 
-    d.text(`${p.name}　Lv ${p.level}`, 28, 216, PAL.ink);
+    d.text(p.name, 28, 216, PAL.ink);
     d.textRight(`呪文帳 ${p.grimoire.size} 種`, 452, 216, PAL.dim);
 
     d.text("HP", 28, 230, PAL.dim);

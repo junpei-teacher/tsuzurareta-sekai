@@ -34,16 +34,20 @@ function enemyCells(mapId: string): string[] {
   return out;
 }
 
-/** 章ごとの開始条件（設計書 2.7 / 4.5） */
+/**
+ * 章ごとの開始条件（設計書 4.5）。
+ *
+ * **レベルは無い。** 体力は章の切れ目で一段だけ上がり、章のなかでは動かない。
+ * 戦闘に勝っても増えるのは呪文帳だけである。
+ *
+ * 補給は npm run balance で詰めた値。
+ */
 const CHAPTERS = [
   null,
-  // 補給は npm run balance で詰めた値。
-  // MP そのものを3倍にしたので、道具は「足りない分を埋めるもの」ではなく
-  // 「次の部屋の前に整えるもの」になった。数は少なくていい
-  { level: 1, max: 3, map: "ch1_reading", x: 14, y: 6, ink: 2, drop: 0 },
-  { level: 4, max: 7, map: "ch1_reading", x: 14, y: 6, ink: 3, drop: 1 },
+  { map: "ch1_reading", x: 14, y: 6, hp: 30, mp: 90, ink: 3, drop: 0 },
+  { map: "ch1_reading", x: 14, y: 6, hp: 70, mp: 140, ink: 3, drop: 1 },
   // 第3章は階段を降りた先から。禁書庫はその奥、灰の広間を抜けた先にある
-  { level: 8, max: 12, map: "ch3_descent", x: 13, y: 12, ink: 3, drop: 2 },
+  { map: "ch3_descent", x: 13, y: 12, hp: 150, mp: 200, ink: 3, drop: 2 },
 ] as const;
 
 /**
@@ -145,20 +149,6 @@ export class FieldState {
     return undefined;
   }
 
-  /**
-   * 1戦勝つごとに1つ上がる。章ごとの上限で止まる（設計書 4.5）。
-   *
-   * **経験値は無い。** レベルは物語がどこまで進んだかを表す数字であって、
-   * 稼ぐものではない。同じ敵を倒し直しても上限より上には行かない。
-   *
-   * これが無いあいだ、第3章を丸ごと Lv8 で戦うことになっていた。
-   * 設計上は終盤 Lv12（HP130/MP70）のはずが、実際は HP92/MP56 だった。
-   */
-  levelUp(player: Player): void {
-    const cap = CHAPTERS[this.chapter]?.max ?? player.level;
-    if (player.level < cap) player.setLevel(player.level + 1);
-  }
-
   nextTalk(id: string, total: number): number {
     const i = this.talkIndex.get(id) ?? 0;
     // 最後まで行ったら最後の1つを繰り返す
@@ -182,7 +172,7 @@ export class FieldState {
     this.defeated.clear();
     this.talkIndex.clear();
 
-    player.setLevel(c.level);
+    player.setBody(c.hp, c.mp);
     player.restore();
     player.items = { ink: c.ink, drop: c.drop };
     this.pendingReward = null;

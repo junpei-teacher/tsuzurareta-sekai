@@ -111,7 +111,7 @@ export class EndingScene implements Scene {
       d.textRight(
         `専用 ${this.player.seenEndings.size}/${authoredCount()}　` +
         `断章 ${this.player.seenFragments.size}/${fragmentCount()}`,
-        SCREEN_W - x, SCREEN_H - 36, PAL.line,
+        SCREEN_W - x, SCREEN_H - 36, PAL.hint,
       );
       if (blink) d.textRight("ENTER", SCREEN_W - x, SCREEN_H - 20, PAL.dim);
     }

@@ -37,31 +37,19 @@ type Enemy = {
   weak: string[]; resist: string[]; immune: string[]; boss?: boolean;
 };
 
-/** src/battle/model.ts の LEVEL_GAIN を読む。二重管理しない */
-const LEVEL_GAIN = Number(
-  /export const LEVEL_GAIN = ([\d.]+)/.exec(
-    readFileSync(join(ROOT, "src/battle/model.ts"), "utf8"),
-  )![1],
-);
-
 const SPELLS: Spell[] = read("data/spells.json").spells;
 const ENEMIES: Enemy[] = read("data/enemies.json").enemies;
 const byId = (id: number): Spell => SPELLS.find((s) => s.id === id)!;
 
-/**
- * LEVELS と ITEM_MP は **src/game/player.ts から読む。**
- * ここに書き写すと必ずずれる（補給値で一度やった）。
- */
-const P_SRC = readFileSync(join(ROOT, "src/game/player.ts"), "utf8");
-const LEVELS = [...P_SRC.matchAll(/\{ hp:\s*(\d+), mp:\s*(\d+) \}/g)]
-  .map((m) => ({ hp: +m[1]!, mp: +m[2]! }));
+/** ITEM_MP は **src/game/player.ts から読む。** 書き写すと必ずずれる */
 const ITEM_MP = (() => {
-  const m = /ITEM_MP = \{ ink: (\d+), drop: (\d+) \}/.exec(P_SRC)!;
+  const src = readFileSync(join(ROOT, "src/game/player.ts"), "utf8");
+  const m = /ITEM_MP = \{ ink: (\d+), drop: (\d+) \}/.exec(src)!;
   return { ink: +m[1]!, drop: +m[2]! };
 })();
 
 /**
- * レベルと補給は **src/field/state.ts の CHAPTERS から読む。**
+ * 体力と補給は **src/field/state.ts の CHAPTERS から読む。**
  * ここに書き写すと必ずずれる（実際、一度ずれかけた）。
  *
  * 呪文と戦闘の並びだけは、ここに書く。
@@ -70,9 +58,9 @@ const ITEM_MP = (() => {
  */
 const CH_SRC = readFileSync(join(ROOT, "src/field/state.ts"), "utf8");
 const SUPPLY = [...CH_SRC.matchAll(
-  /\{ level: (\d+), max: (\d+),[^}]*ink: (\d+), drop: (\d+) \}/g,
+  /hp: (\d+), mp: (\d+), ink: (\d+), drop: (\d+) \}/g,
 )].map((m) => ({
-  level: +m[1]!, max: +m[2]!, ink: +m[3]!, drop: +m[4]!,
+  hp: +m[1]!, mp: +m[2]!, ink: +m[3]!, drop: +m[4]!,
 }));
 
 const PLAN = [
@@ -105,10 +93,11 @@ function multiplier(e: Enemy, element: string): number {
   return 1;
 }
 
-function damage(sp: Spell, e: Enemy, level: number): number {
+/** レベルは無い。威力はどの呪文を当てたかだけで決まる（設計書 4.5） */
+function damage(sp: Spell, e: Enemy): number {
   const mul = multiplier(e, sp.element);
   if (mul === 0) return 0;
-  return Math.max(1, Math.floor(sp.power * (1 + level * LEVEL_GAIN) * mul) - e.def);
+  return Math.max(1, Math.floor(sp.power * mul) - e.def);
 }
 
 let bad = 0;
@@ -117,25 +106,28 @@ for (const ch of CHAPTERS) {
   console.log(`\n══ 第${ch.n}章 ═══════════════════════════════`);
   const arsenal = ch.spells.map(byId);
   const attacks = arsenal.filter((s) => s.element !== "HEAL");
-  const heal = arsenal.find((s) => s.element === "HEAL");
+  // いちばん大きい回復を使う。find だと PROSO(14) を掴んで
+  // LEPRU(34) を持っているのに延々と回復し続ける絵になる
+  const heal = arsenal
+    .filter((s) => s.element === "HEAL")
+    .sort((a, b) => b.power - a.power)[0];
   console.log(
     `  確実に持つ呪文  ${arsenal.map((s) => `${s.canonical}(${s.name} MP${s.mp})`).join("　")}`,
   );
 
-  let level = ch.level;
-  let mp = LEVELS[level]!.mp;
-  let hp = LEVELS[level]!.hp;
+  const maxHp = ch.hp;
+  let mp = ch.mp;
+  let hp = ch.hp;
   let ink = ch.ink;
   let drop = ch.drop;
   let spent = 0;
 
   for (const id of ch.battles) {
     const e = ENEMIES.find((x) => x.id === id)!;
-    const maxHp = LEVELS[level]!.hp;
 
     // いちばんMP効率の良い攻撃を選ぶ。効かないものは除く
     const usable = attacks
-      .map((s) => ({ s, dmg: damage(s, e, level) }))
+      .map((s) => ({ s, dmg: damage(s, e) }))
       .filter((x) => x.dmg > 0)
       .sort((a, b) => b.dmg / b.s.mp - a.dmg / a.s.mp);
 
@@ -153,14 +145,14 @@ for (const ch of CHAPTERS) {
     while (ehp > 0 && turns < 60) {
       // 次の一撃で落ちるなら回復を優先する
       if (heal && hp <= e.atk * 2 && mp >= heal.mp) {
-        hp = Math.min(maxHp, hp + Math.floor(heal.power * (1 + level * LEVEL_GAIN)));
+        hp = Math.min(maxHp, hp + heal.power);
         mp -= heal.mp; used += heal.mp; healed++;
       } else if (mp >= best.s.mp) {
         ehp -= best.dmg; mp -= best.s.mp; used += best.s.mp;
       } else if (ink > 0) {
-        ink--; mp = Math.min(LEVELS[level]!.mp, mp + ITEM_MP.ink);
+        ink--; mp = Math.min(ch.mp, mp + ITEM_MP.ink);
       } else if (drop > 0) {
-        drop--; mp = Math.min(LEVELS[level]!.mp, mp + ITEM_MP.drop);
+        drop--; mp = Math.min(ch.mp, mp + ITEM_MP.drop);
       } else {
         break; // 手が無い
       }
@@ -178,10 +170,9 @@ for (const ch of CHAPTERS) {
       `${healed ? `　回復${healed}回` : ""}${ok ? "" : "　**倒せない**"}`,
     );
 
-    if (ok && level < ch.max) { level++; hp = Math.min(hp, LEVELS[level]!.hp); }
   }
 
-  const supply = LEVELS[ch.level]!.mp + ch.ink * ITEM_MP.ink + ch.drop * ITEM_MP.drop;
+  const supply = ch.mp + ch.ink * ITEM_MP.ink + ch.drop * ITEM_MP.drop;
   const rate = (spent / supply) * 100;
   // 不発は MP 3。余ったぶんを「何回そらで打てるか」に直す
   const spare = Math.floor((supply - spent) / 3);

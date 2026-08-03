@@ -71,7 +71,7 @@
     },
     {
       "id": "unnamed", "name": "名を失くした頁", "chapter": 3, "family": "言葉が変じたもの",
-      "hp": 84, "atk": 12, "def": 7,
+      "hp": 66, "atk": 12, "def": 7,
       "weak": ["NAME"], "resist": ["FIRE", "ICE", "BOLT"], "immune": [],
       "tags": ["ERASED"],
       "sprite": { "w": 48, "h": 64, "color": "#2b2b33" },
@@ -79,7 +79,7 @@
     },
     {
       "id": "erased", "name": "抹消された名前の者", "chapter": 3, "boss": true, "family": "言葉が変じたもの",
-      "hp": 300, "atk": 15, "def": 12,
+      "hp": 190, "atk": 12, "def": 4,
       "weak": [], "resist": [], "immune": ["FIRE", "ICE", "BOLT"],
       "tags": ["ERASED"],
       "sprite": { "w": 48, "h": 64, "color": "#2b2b33" },
@@ -98,7 +98,7 @@
     },
     {
       "id": "archdemon", "name": "業魔", "chapter": 3, "boss": true, "family": "召喚された魔物",
-      "hp": 185, "atk": 16, "def": 10,
+      "hp": 185, "atk": 14, "def": 10,
       "weak": ["NAME"], "resist": ["FIRE", "BOLT"], "immune": [],
       "tags": ["DEMON"],
       "sprite": { "w": 72, "h": 80, "color": "#5c2440" },

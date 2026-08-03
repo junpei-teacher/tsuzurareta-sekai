@@ -1,4 +1,4 @@
-import { Display, SCREEN_W } from "../core/display.ts";
+import { Display, SCREEN_H, SCREEN_W } from "../core/display.ts";
 import type { Keyboard } from "../core/input.ts";
 import { PAL } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
@@ -24,6 +24,9 @@ import { ENEMIES } from "../battle/model.ts";
 const TILE = 16;
 const ORIGIN_X = 16;
 const ORIGIN_Y = 26;
+/** 上下の帯。部屋の絵はこのあいだにだけ見える */
+const HEADER_H = 22;
+const FOOTER_Y = 249;
 /** 1マス進むのにかかる秒数 */
 const STEP_TIME = 0.15;
 /**
@@ -452,9 +455,6 @@ export class FieldScene implements Scene {
   render(d: Display): void {
     d.clear();
 
-    d.text(this.map.name, 18, 8, this.state.burning ? "#e07a34" : PAL.accent);
-    d.textRight("TAB 呪文帳　I どうぐ　ENTER しらべる　ESC もどる", SCREEN_W - 16, 8, PAL.hint);
-
     this.renderTiles(d);
     this.renderEntities(d);
     this.renderPlayer(d);
@@ -464,7 +464,7 @@ export class FieldScene implements Scene {
     this.bloom.render(d, this.collectLights(), this.state.burning ? 0.10 : 0.05,
       this.state.burning ? "#e07a34" : "#c8792f");
     if (this.state.burning) this.burn.render(d);
-    this.renderStatus(d);
+    this.renderChrome(d);
 
     if (this.noticeT > 0 && !this.dialogue.active) {
       windowBox(d, 16, 214, SCREEN_W - 32, 26);
@@ -715,8 +715,9 @@ export class FieldScene implements Scene {
       if (e.kind === "door") {
         const img = this.images["prop.door"];
         if (img) {
-          // 扉は壁の開口部に立つ。上へ伸びすぎないよう足元を少し下げる
-          d.spriteFoot(img, px + TILE / 2, py + TILE + 6);
+          // 扉は壁の開口部に立つ。上へ伸びすぎないよう足元を少し下げるが、
+          // 最下段の扉が下の帯に潜って土台が切れるので、そこで止める
+          d.spriteFoot(img, px + TILE / 2, Math.min(py + TILE + 6, FOOTER_Y - 1));
         } else {
           d.rect(px, py, TILE, TILE, "#120f0d");
           d.rect(px + 6, py + 6, 4, 4, PAL.accent);
@@ -825,12 +826,29 @@ export class FieldScene implements Scene {
     d.text("ENTER 使う　I とじる", x + 10, y + h - 16, PAL.hint);
   }
 
-  private renderStatus(d: Display): void {
+  /**
+   * 画面の上下の帯と、そこに乗る文字。
+   *
+   * **タイルの上に直接文字を置いていたので、模様と重なって読めなかった。**
+   * 部屋は 26〜250 に描かれるが、Wangタイルは半マスはみ出して 18〜258 まで来る。
+   * その上下を不透明な帯で覆い、文字はその中だけに置く。
+   *
+   * 帯は絵より後、会話ウィンドウより前に描く。
+   */
+  private renderChrome(d: Display): void {
     const p = this.player;
-    d.text("HP", 18, 252, PAL.dim);
-    bar(d, 40, 253, 90, 7, p.hp / p.maxHp, "#a8563f");
-    d.text("MP", 146, 252, PAL.dim);
-    bar(d, 168, 253, 90, 7, p.mp / p.maxMp, "#3f6fa8");
-    d.textRight(`呪文帳 ${p.grimoire.size} 種　インク壺 ${p.items.ink}`, SCREEN_W - 16, 252, PAL.dim);
+
+    d.rect(0, 0, SCREEN_W, HEADER_H, PAL.bg);
+    d.rect(0, HEADER_H, SCREEN_W, 1, PAL.line);
+    d.text(this.map.name, 18, 6, this.state.burning ? "#e07a34" : PAL.accent);
+    d.textRight("TAB 呪文帳　I どうぐ　ENTER しらべる　ESC もどる", SCREEN_W - 16, 6, PAL.hint);
+
+    d.rect(0, FOOTER_Y, SCREEN_W, SCREEN_H - FOOTER_Y, PAL.bg);
+    d.rect(0, FOOTER_Y, SCREEN_W, 1, PAL.line);
+    d.text("HP", 18, 253, PAL.dim);
+    bar(d, 40, 254, 90, 7, p.hp / p.maxHp, "#a8563f");
+    d.text("MP", 146, 253, PAL.dim);
+    bar(d, 168, 254, 90, 7, p.mp / p.maxMp, "#3f6fa8");
+    d.textRight(`呪文帳 ${p.grimoire.size} 種　インク壺 ${p.items.ink}`, SCREEN_W - 16, 253, PAL.dim);
   }
 }

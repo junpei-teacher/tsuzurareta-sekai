@@ -11,6 +11,7 @@ import { verifyCanonicals } from "./spell/book.ts";
 import { BattleScene } from "./scenes/battle.ts";
 import { CasterTestScene } from "./scenes/casterTest.ts";
 import { FieldScene } from "./scenes/field.ts";
+import { OpeningScene } from "./scenes/opening.ts";
 import { SelectScene } from "./scenes/select.ts";
 import { VaultScene } from "./scenes/vault.ts";
 import { EndingScene } from "./scenes/ending.ts";
@@ -50,7 +51,13 @@ function goSelect(): void {
       scene = new BattleScene(player, enemy, images, () => { saveProgress(player); goSelect(); });
     },
     () => { scene = new CasterTestScene(goSelect); },
-    (chapter) => { field.startChapter(chapter, player); goField(); },
+    (chapter) => {
+      field.startChapter(chapter, player);
+      // 第1章だけ、世界の前提を先に置く（設計書 2.1）。
+      // 第2章・第3章はデバッグ用の飛び込み口なので挟まない
+      if (chapter === 1) scene = new OpeningScene(goField);
+      else goField();
+    },
     goVault,
   );
 }
@@ -65,11 +72,8 @@ function goField(): void {
       const def = ENEMIES.find((e) => e.id === enemyId);
       if (!def) { console.warn(`敵 ${enemyId} が見つかりません`); return; }
       scene = new BattleScene(player, def, images, (result) => {
-        if (result === "WIN") {
-          // 同じマスを倒し直しても増えないよう、初回の勝利だけ数える
-          if (!field.defeated.has(cellKey)) field.levelUp(player);
-          field.defeated.add(cellKey);
-        }
+        // 勝っても強くはならない。倒したことを覚えるだけ（設計書 4.5）
+        if (result === "WIN") field.defeated.add(cellKey);
         // 勝ち取るものは勝ったときだけ。逃げても負けても手には入らない
         if (result !== "WIN") field.pendingReward = null;
         // 負けたらHP0のままフィールドに戻っていた。次の一戦も必ず負けるので詰む
