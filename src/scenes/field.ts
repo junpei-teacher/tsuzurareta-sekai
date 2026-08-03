@@ -104,21 +104,29 @@ export class FieldScene implements Scene {
     this.fromY = state.y;
     saveProgress(player);
 
-    // 章の扉。幕が上がるまで他は何も動かない
-    if (state.titleCard) {
-      this.title.start(state.titleCard);
-      state.titleCard = null;
-    }
+    // 直前の戦いに勝って手に入れたものが先。章の切り替えとは同時に起きない
+    if (!this.claimReward()) this.openChapter();
+  }
 
-    // 直前の戦いに勝って手に入れたもの。章の頭の文より先に出す
-    if (!this.claimReward()) {
-      // 章の入り口で一度だけ出す文章
-      if (state.intro.length > 0) {
-        this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, state.intro);
-        state.intro = [];
-      }
-      this.checkOnEnter();
+  /**
+   * 章が切り替わった直後の一式：**扉 → 章頭の地の文 → 入室時の会話。**
+   *
+   * これを場面の constructor にしか書いていなかったので、
+   * デバッグメニューから章へ飛んだときだけ扉が出て、
+   * **物語の流れで次の章へ進むと出なかった。**
+   * 章が変わる場所は3つ（起動時・ミラとの別れ・階段）あるので、必ずここを通す。
+   */
+  private openChapter(): void {
+    const st = this.state;
+    if (st.titleCard) {
+      this.title.start(st.titleCard);
+      st.titleCard = null;
     }
+    if (st.intro.length > 0) {
+      this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, st.intro);
+      st.intro = [];
+    }
+    this.checkOnEnter();
   }
 
   /**
@@ -338,10 +346,7 @@ export class FieldScene implements Scene {
       this.fromX = this.state.x;
       this.fromY = this.state.y;
       this.stepT = 0;
-      if (this.state.intro.length > 0) {
-        this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, this.state.intro);
-        this.state.intro = [];
-      }
+      this.openChapter();
       return;
     }
 
@@ -396,12 +401,15 @@ export class FieldScene implements Scene {
     const found = sp.found?.[this.map.id];
     if (found && found.length > 0) talk.unshift(found[i % found.length]!);
 
-    // 呪文は巻物で拾うのではなく、人から教わる
-    const grant = sp.grants?.find((g) => g.talk === i);
-    if (grant && !this.player.grimoire.has(grant.id)) {
-      this.player.grimoire.set(grant.id, grant.word);
-      const name = spellById(grant.id)?.name ?? grant.word;
+    // 呪文は巻物で拾うのではなく、人から教わる。
+    // **`=== i` にすると、その回をちょうど開かないと一生手に入らない。**
+    // 話しかける回数は人任せなので、通り過ぎていれば渡す
+    for (const g of sp.grants ?? []) {
+      if (i < g.talk || this.player.grimoire.has(g.id)) continue;
+      this.player.grimoire.set(g.id, g.word);
+      const name = spellById(g.id)?.name ?? g.word;
       talk.push(`（呪文帳に「${name}」が書き加えられた）`);
+      saveProgress(this.player);
     }
 
     this.dialogue.open(sp, talk);
@@ -430,10 +438,7 @@ export class FieldScene implements Scene {
     this.fromY = this.state.y;
     this.stepT = 0;
     this.lastTalkedMira = false;
-    if (this.state.intro.length > 0) {
-      this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, this.state.intro);
-      this.state.intro = [];
-    }
+    this.openChapter();
     saveProgress(this.player);
   }
 
@@ -845,10 +850,13 @@ export class FieldScene implements Scene {
 
     d.rect(0, FOOTER_Y, SCREEN_W, SCREEN_H - FOOTER_Y, PAL.bg);
     d.rect(0, FOOTER_Y, SCREEN_W, 1, PAL.line);
+    // 数字が無いと、あと何発撃てるのかが棒の長さでしか分からない
     d.text("HP", 18, 253, PAL.dim);
-    bar(d, 40, 254, 90, 7, p.hp / p.maxHp, "#a8563f");
-    d.text("MP", 146, 253, PAL.dim);
-    bar(d, 168, 254, 90, 7, p.mp / p.maxMp, "#3f6fa8");
-    d.textRight(`呪文帳 ${p.grimoire.size} 種　インク壺 ${p.items.ink}`, SCREEN_W - 16, 253, PAL.dim);
+    bar(d, 36, 254, 70, 7, p.hp / p.maxHp, "#a8563f");
+    d.text(`${p.hp}/${p.maxHp}`, 110, 253, PAL.ink);
+    d.text("MP", 170, 253, PAL.dim);
+    bar(d, 188, 254, 70, 7, p.mp / p.maxMp, "#3f6fa8");
+    d.text(`${p.mp}/${p.maxMp}`, 262, 253, PAL.ink);
+    d.textRight(`呪文帳 ${p.grimoire.size}　壺 ${p.items.ink}`, SCREEN_W - 16, 253, PAL.dim);
   }
 }
