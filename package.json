@@ -15,7 +15,8 @@
     "fetch:auth": "tsx tools/fetch-auth.ts",
     "count:mira": "tsx tools/count-exposure.ts",
     "lint:script": "tsx tools/lint-script.ts",
-    "balance": "tsx tools/balance.ts"
+    "balance": "tsx tools/balance.ts",
+    "fit": "tsx tools/fit-sprite.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

@@ -623,22 +623,7 @@ export class FieldScene implements Scene {
       d.ctx.globalAlpha = 1;
     });
 
-    // 階段。塊の中心に1枚置く
-    const stairs = this.images["prop.stairs"];
-    if (stairs) {
-      let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
-      this.forEachTile("V", (x, y) => {
-        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
-        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
-      });
-      if (maxX >= 0) {
-        const cx = ORIGIN_X + ((minX + maxX + 1) * TILE) / 2;
-        const cy = ORIGIN_Y + ((minY + maxY + 1) * TILE) / 2;
-        d.spriteFoot(stairs, cx, cy + d.spriteH(stairs) / 2);
-      }
-    } else {
-      this.forEachTile("V", (x, y) => this.drawTile(d, x, y, "V"));
-    }
+    this.renderStairs(d);
 
     // カウンターは手描きのまま
     this.forEachTile("=", (x, y) => this.drawTile(d, x, y, "="));
@@ -659,6 +644,66 @@ export class FieldScene implements Scene {
         }
       }
     }
+  }
+
+  /**
+   * 地下へ降りる階段。**手描きで組む。**
+   *
+   * 生成に3回投げて、3回とも「上へ昇る階段」か「真っ黒な板」になった。
+   * 段が奥へ沈んでいく絵は、明度の並びがすべてなので、
+   * 生成に任せるより数値で置いたほうが確実で、しかも palette と揃う。
+   *
+   * 手前の段がいちばん明るく、奥へ行くほど暗く、いちばん奥は真っ黒。
+   * 穴の外周にも影を落として、床に開いた穴に見せる。
+   */
+  private renderStairs(d: Display): void {
+    let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
+    this.forEachTile("V", (x, y) => {
+      minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+    });
+    if (maxX < 0) return;
+
+    const x0 = ORIGIN_X + minX * TILE;
+    const y0 = ORIGIN_Y + minY * TILE;
+    const w = (maxX - minX + 1) * TILE;
+    const h = (maxY - minY + 1) * TILE;
+
+    // 穴のまわりに落ちる影。床に開いた穴だと分かるように外へにじませる
+    for (let i = 4; i >= 1; i--) {
+      d.ctx.globalAlpha = 0.12 * (5 - i) / 4;
+      d.rect(x0 - i, y0 - i, w + i * 2, h + i * 2, "#000000");
+    }
+    d.ctx.globalAlpha = 1;
+
+    // 穴の中はまず真っ黒で埋める
+    d.rect(x0, y0, w, h, "#05040a");
+
+    // 段。**手前（下）が明るく、奥（上）へ行くほど暗い。** これが下りに見える条件
+    const steps = 6;
+    const stepH = h / steps;
+    for (let i = 0; i < steps; i++) {
+      // i=0 が最奥。t=1 が最も手前
+      const t = (i + 1) / steps;
+      const sy = Math.round(y0 + (steps - 1 - i) * stepH);
+      const sh = Math.round(stepH);
+      // 奥ほど幅を詰めて、穴が下へすぼまって見えるようにする
+      const inset = Math.round((1 - t) * (w * 0.14));
+      const sx = x0 + inset;
+      const sw = w - inset * 2;
+
+      const shade = (base: number) => Math.round(base * (0.10 + 0.90 * t * t));
+      const face = `rgb(${shade(122)},${shade(112)},${shade(96)})`;
+      const nose = `rgb(${shade(196)},${shade(182)},${shade(156)})`;
+      d.rect(sx, sy, sw, sh, this.col(face));
+      // 段鼻。1本の明るい線が入るだけで、板ではなく段に見える
+      d.rect(sx, sy, sw, 1, this.col(nose));
+    }
+
+    // いちばん奥は光が届かない
+    d.ctx.globalAlpha = 0.85;
+    d.rect(x0, y0, w, Math.round(stepH * 0.8), "#05040a");
+    d.ctx.globalAlpha = 1;
   }
 
   private drawTile(d: Display, x: number, y: number, t: Tile): void {
@@ -754,8 +799,13 @@ export class FieldScene implements Scene {
         // その章に出ない敵は、シンボルごと出さない
         const ref = enemyRefFor(e, this.state.chapter);
         if (!ref) continue;
-        const def = ENEMIES.find((x) => x.id === ref);
         const bob = Math.round(Math.sin(this.time * 4 + e.x) * 1.5);
+        const mob = this.images[`mob.${ref}`];
+        if (mob) {
+          d.spriteFoot(mob, px + TILE / 2, py + TILE + SPRITE_FOOT + bob);
+          continue;
+        }
+        const def = ENEMIES.find((x) => x.id === ref);
         d.rect(px + 2, py + 4 + bob, 12, 10, def?.sprite.color ?? "#7a3a34");
         d.frame(px + 2, py + 4 + bob, 12, 10, "#120f0d");
         continue;

@@ -43,13 +43,19 @@ export const MANIFEST: Record<string, string> = {
   "prop.desk": "/assets/props2/desk.png",
   "prop.candle": "/assets/props2/candle.png",
   "prop.door": "/assets/props2/door.png",
-  "prop.stairs": "/assets/props2/stairs.png",
+  // 階段は絵を持たない。src/scenes/field.ts の renderStairs で組む
   "prop.rubble": "/assets/props2/rubble.png",
 
   // NPC。画面内を歩かないので待機の4方向だけ。キーの頭は .room の !npc の ref と揃える
-  ...facing("mira", "/assets/sprites/mira2"),
+  // ミラ v3。立ち絵と同じ人物から起こしてある（顔と服が食い違わない）
+  ...facing("mira", "/assets/sprites/mira3"),
   ...facing("librarian", "/assets/sprites/librarian"),
   ...facing("halven", "/assets/sprites/halven"),
+  // 会話する相手のうち、以前は色付きの矩形で代用していたもの
+  ...facing("soldier", "/assets/sprites/soldier"),
+  ...facing("erased_one", "/assets/sprites/erased_one"),
+  // 灰の中の声は人ではないので向きを持たない。南だけ置く
+  "ashvoice.south": "/assets/mobs/ashvoice.png",
 
   // 立ち絵。素材は128pxで、64デザイン単位の枠にちょうど収まる。
   // 全て character_to_portrait で**フィールドの姿から起こしている**ので、
@@ -74,7 +80,21 @@ export const MANIFEST: Record<string, string> = {
   ),
   // 「名を失くした頁」は抹消された名前の者の弱い同類。絵は共用する
   "enemy.unnamed": "/assets/enemies/erased.png",
+
+  // フィールドに置く敵シンボル。**戦闘の1枚絵とは別に描き起こす。**
+  // 戦闘絵は大きさがまちまち（煤蝙蝠は128px＝4マス幅）で、
+  // そのままマップに置くと壁を突き抜ける。ここは2マスに収まる小さな姿にする
+  ...mobSprites(
+    "bookworm", "inkslime", "sootbat", "emberfiend", "unnamed", "archdemon",
+  ),
 };
+
+/** フィールドの敵シンボル。キーは data/enemies.json の id */
+function mobSprites(...ids: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const id of ids) out[`mob.${id}`] = `/assets/mobs/${id}.png`;
+  return out;
+}
 
 /** 敵スプライトのエントリを id から作る */
 function enemySprites(...ids: string[]): Record<string, string> {
