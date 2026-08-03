@@ -5,7 +5,7 @@ import type { Player } from "../game/player.ts";
 import { ENEMIES, type EnemyDef } from "../battle/model.ts";
 import { bar, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
-import { LEVELS } from "../game/player.ts";
+import { ITEM_NAME, LEVELS } from "../game/player.ts";
 import { clearProgress } from "../game/save.ts";
 
 /**
@@ -22,6 +22,10 @@ const EXTRAS = [
   "呪文帳を初期化（セーブも消す）",
   "詠唱テストベッドへ",
 ];
+
+/** 一覧の1行目と行間。17行が窓に収まる値 */
+const ROW_Y0 = 27;
+const ROW_H = 11;
 
 export class SelectScene implements Scene {
   private index = 0;
@@ -68,7 +72,7 @@ export class SelectScene implements Scene {
       case 3: this.onVault(); break;
       case 4:
         this.player.restore();
-        this.player.items = { ink: 3, drop: 1 };
+        this.player.items = { ink: 5, drop: 3 };
         break;
       case 5:
         this.viewing = true;
@@ -98,9 +102,11 @@ export class SelectScene implements Scene {
       return;
     }
 
-    windowBox(d, 16, 26, 250, 180);
+    // 敵9種＋その他8項目＝17行。13px間隔だと窓を40pxはみ出していた。
+    // 行間を11に詰め、窓を上下いっぱい（22〜236）に伸ばして収める
+    windowBox(d, 16, 22, 250, 214);
     ENEMIES.forEach((e, i) => {
-      const y = 32 + i * 13;
+      const y = ROW_Y0 + i * ROW_H;
       const on = i === this.index;
       if (on) d.text("▸", 26, y, PAL.accent);
       d.text(e.name, 40, y, on ? PAL.ink : PAL.dim);
@@ -109,41 +115,41 @@ export class SelectScene implements Scene {
 
     EXTRAS.forEach((label, k) => {
       const i = ENEMIES.length + k;
-      const y = 32 + i * 13 + 8;
+      const y = ROW_Y0 + ENEMIES.length * ROW_H + 10 + k * ROW_H;
       const on = i === this.index;
       if (on) d.text("▸", 26, y, PAL.accent);
       d.text(label, 40, y, on ? PAL.ink : PAL.dim);
     });
 
     // 選択中の敵の説明
-    windowBox(d, 274, 26, 190, 180);
+    windowBox(d, 274, 22, 190, 214);
     const sel = ENEMIES[this.index];
     if (sel) {
-      d.text(sel.name, 284, 34, PAL.ink);
-      d.text(`HP ${sel.hp}　攻 ${sel.atk}　防 ${sel.def}`, 284, 52, PAL.dim);
-      if (sel.weak.length) d.text(`弱点 ${sel.weak.join("・")}`, 284, 68, "#c8912f");
-      if (sel.resist.length) d.text(`耐性 ${sel.resist.join("・")}`, 284, 82, PAL.dim);
-      if (sel.immune.length) d.text(`無効 ${sel.immune.join("・")}`, 284, 96, PAL.danger);
-      if (sel.skill) d.text(`技 ${sel.skill.name}`, 284, 112, PAL.dim);
-      this.wrap(sel.desc, 14).forEach((line, i) => d.text(line, 284, 134 + i * 14, PAL.dim));
+      d.text(sel.name, 284, 30, PAL.ink);
+      d.text(`HP ${sel.hp}　攻 ${sel.atk}　防 ${sel.def}`, 284, 48, PAL.dim);
+      if (sel.weak.length) d.text(`弱点 ${sel.weak.join("・")}`, 284, 64, "#c8912f");
+      if (sel.resist.length) d.text(`耐性 ${sel.resist.join("・")}`, 284, 78, PAL.dim);
+      if (sel.immune.length) d.text(`無効 ${sel.immune.join("・")}`, 284, 92, PAL.danger);
+      if (sel.skill) d.text(`技 ${sel.skill.name}`, 284, 108, PAL.dim);
+      this.wrap(sel.desc, 14).forEach((line, i) => d.text(line, 284, 130 + i * 14, PAL.dim));
     }
 
     // プレイヤー状態
     const p = this.player;
-    windowBox(d, 16, 212, 448, 46);
-    d.text(`Lv ${p.level}`, 28, 218, PAL.ink);
-    d.text("HP", 70, 218, PAL.dim);
-    bar(d, 92, 219, 110, 8, p.hp / p.maxHp, "#a8563f");
-    d.text(`${p.hp}/${p.maxHp}`, 208, 218, PAL.dim);
-    d.text("MP", 270, 218, PAL.dim);
-    bar(d, 292, 219, 110, 8, p.mp / p.maxMp, "#3f6fa8");
-    d.text(`${p.mp}/${p.maxMp}`, 408, 218, PAL.dim);
+    windowBox(d, 16, 238, 448, 30);
+    d.text(`Lv ${p.level}`, 28, 242, PAL.ink);
+    d.text("HP", 70, 242, PAL.dim);
+    bar(d, 92, 243, 90, 8, p.hp / p.maxHp, "#a8563f");
+    d.text(`${p.hp}/${p.maxHp}`, 188, 242, PAL.dim);
+    d.text("MP", 262, 242, PAL.dim);
+    bar(d, 284, 243, 90, 8, p.mp / p.maxMp, "#3f6fa8");
+    d.text(`${p.mp}/${p.maxMp}`, 380, 242, PAL.dim);
     d.text(
       `呪文帳 ${p.grimoire.size} 種　未詠唱 ${p.unspoken.size}　` +
-      `インク壺 ${p.items.ink}　魔力の雫 ${p.items.drop}`,
-      28, 238, PAL.dim,
+      `${ITEM_NAME.ink} ${p.items.ink}　${ITEM_NAME.drop} ${p.items.drop}`,
+      28, 254, PAL.dim,
     );
-    d.textRight(`最大 Lv${LEVELS.length - 1}`, 452, 238, PAL.hint);
+    d.textRight(`最大 Lv${LEVELS.length - 1}`, 452, 254, PAL.hint);
   }
 
   /** 日本語の素朴な折り返し */

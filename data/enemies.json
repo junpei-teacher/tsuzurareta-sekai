@@ -79,7 +79,7 @@
     },
     {
       "id": "erased", "name": "抹消された名前の者", "chapter": 3, "boss": true, "family": "言葉が変じたもの",
-      "hp": 250, "atk": 15, "def": 12,
+      "hp": 300, "atk": 15, "def": 12,
       "weak": [], "resist": [], "immune": ["FIRE", "ICE", "BOLT"],
       "tags": ["ERASED"],
       "sprite": { "w": 48, "h": 64, "color": "#2b2b33" },

@@ -92,7 +92,8 @@ for (const file of ["ch1", "ch2", "ch3"]) {
 
 // 家具の一行は幅448の帯に x=28 から描く
 console.log("\n── notices.json ────────────────────────");
-const notices = read("data/dialogue/notices.json") as Record<string, { ch1: string[]; ch2?: string[] }>;
+const notices = read("data/dialogue/notices.json") as
+  Record<string, { ch1: string[]; ch2?: string[]; ch3?: string[] }>;
 const NOTICE_LIMIT = (448 - 12 - 14) / 12;
 for (const [tile, e] of Object.entries(notices)) {
   if (tile.startsWith("_")) continue;
@@ -102,7 +103,11 @@ for (const [tile, e] of Object.entries(notices)) {
       if (w > NOTICE_LIMIT) warn(`notices.${tile}.${ch}[${i}]`, `幅 ${w} > ${NOTICE_LIMIT}\n      ${l}`);
     });
   }
-  console.log(`  ok ${tile}  ch1 ${e.ch1.length}行 / ch2 ${e.ch2?.length ?? 0}行`);
+  // 第3章は禁書庫。ch1 に落ちると地下に MIRA の署名が現れる（src/field/notices.ts）
+  if (!e.ch3?.length) warn(`notices.${tile}.ch3`, "第3章の文が無い。ch1 に落ちて MIRA が地下に出る");
+  console.log(
+    `  ok ${tile}  ch1 ${e.ch1.length}行 / ch2 ${e.ch2?.length ?? 0}行 / ch3 ${e.ch3?.length ?? 0}行`,
+  );
 }
 
 console.log(problems === 0 ? "\n枠に収まっています。" : `\n**${problems} 件、直してください。**`);

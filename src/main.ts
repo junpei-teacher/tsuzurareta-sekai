@@ -70,6 +70,8 @@ function goField(): void {
           if (!field.defeated.has(cellKey)) field.levelUp(player);
           field.defeated.add(cellKey);
         }
+        // 勝ち取るものは勝ったときだけ。逃げても負けても手には入らない
+        if (result !== "WIN") field.pendingReward = null;
         // 負けたらHP0のままフィールドに戻っていた。次の一戦も必ず負けるので詰む
         if (result === "LOSE") field.restartChapter(player);
         saveProgress(player);

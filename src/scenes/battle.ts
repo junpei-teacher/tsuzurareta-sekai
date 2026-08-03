@@ -4,7 +4,7 @@ import { PAL, TIER_COLOR } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
 import { BloomLayer, type Light } from "../fx/bloom.ts";
 import { CastFx } from "../fx/castFx.ts";
-import type { Player } from "../game/player.ts";
+import { ITEM_MP, ITEM_NAME, type Player } from "../game/player.ts";
 import { Battle, spawn, type EnemyDef } from "../battle/model.ts";
 import { TextField } from "../ui/textField.ts";
 import { bar, statusTags, windowBox } from "../ui/hud.ts";
@@ -14,6 +14,16 @@ const COMMANDS = ["詠唱", "呪文帳", "道具", "逃げる"] as const;
 
 /** 敵が立つ床の高さ。全ての敵はここに足元を合わせる */
 const GROUND_Y = 120;
+
+/**
+ * コマンド窓の中身の配置。
+ *
+ * 窓は y=136 から 68px（136〜204）。**この外に文字を置くと枠を突き抜ける。**
+ * 4行を 16px 間隔で 148 から並べると最後の「逃げる」が 208 まで伸びて、
+ * 実際に枠線の上に乗っていた。行間を 15 に詰め、開始を 141 に上げてある。
+ */
+const ROW_Y = 141;
+const ROW_H = 15;
 
 /**
  * 戦闘画面（手順書 Phase 3、Phase 7 で敵をドット絵に差し替え）。
@@ -250,43 +260,45 @@ export class BattleScene implements Scene {
 
       case "COMMAND":
         COMMANDS.forEach((c, i) => {
-          const y = 148 + i * 16;
+          const y = ROW_Y + i * ROW_H;
           if (i === this.cmd) d.text("▸", 30, y, PAL.accent);
           d.text(c, 44, y, i === this.cmd ? PAL.ink : PAL.dim);
         });
-        d.text("↑↓ 選択　ENTER 決定", 200, 148, PAL.hint);
+        d.text("↑↓ 選択　ENTER 決定", 200, ROW_Y, PAL.hint);
         break;
 
       case "CASTING": {
         const cursorOn = Math.floor(this.caret * 2) % 2 === 0;
-        d.text(`> ${this.field.value}${cursorOn ? "_" : ""}`, 30, 146, PAL.ink);
+        d.text(`> ${this.field.value}${cursorOn ? "_" : ""}`, 30, ROW_Y, PAL.ink);
 
         if (b.memorySealed) {
-          d.text("覚えていたはずの綴りが、思い出せない。", 30, 168, PAL.danger);
+          d.text("覚えていたはずの綴りが、思い出せない。", 30, 164, PAL.danger);
         } else if (this.field.suggestions.length > 0) {
+          // 候補は最大4つ。縦に並べると枠からはみ出すので2列2段にする
           this.field.suggestions.forEach((s, i) => {
-            const y = 164 + i * 13;
+            const sx = 32 + (i % 2) * 150;
+            const y = 162 + Math.floor(i / 2) * 15;
             const on = i === this.field.cursor;
-            if (on) d.rect(28, y - 1, 200, 13, "#2c241f");
-            d.text(s, 32, y, on ? PAL.accent : PAL.dim);
+            if (on) d.rect(sx - 4, y - 1, 140, 13, "#2c241f");
+            d.text(s, sx, y, on ? PAL.accent : PAL.dim);
           });
-          d.text("TAB 候補", 380, 164, PAL.hint);
+          d.text("TAB 候補", 340, 190, PAL.hint);
         } else if (this.field.value.length > 0) {
           // 打っている最中の重要な手がかり。ヒントではなく本文の扱いにする
-          d.text("（呪文帳にない言葉）", 30, 168, PAL.dim);
+          d.text("（呪文帳にない言葉）", 30, 164, PAL.dim);
         }
-        d.textRight("ESC もどる", 452, 188, PAL.hint);
+        d.textRight("ESC もどる", 452, 190, PAL.hint);
         break;
       }
 
       case "ITEM": {
         const rows = [
-          `インク壺　　×${this.player.items.ink}　　MP+10`,
-          `魔力の雫　　×${this.player.items.drop}　　MP+30`,
+          `${ITEM_NAME.ink}　　×${this.player.items.ink}　　MP+${ITEM_MP.ink}`,
+          `${ITEM_NAME.drop}　　×${this.player.items.drop}　　MP+${ITEM_MP.drop}`,
           "もどる",
         ];
         rows.forEach((r, i) => {
-          const y = 148 + i * 16;
+          const y = ROW_Y + i * ROW_H;
           if (i === this.item) d.text("▸", 30, y, PAL.accent);
           d.text(r, 44, y, i === this.item ? PAL.ink : PAL.dim);
         });

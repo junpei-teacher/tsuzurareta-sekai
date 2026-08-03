@@ -16,7 +16,7 @@ import type { GameMap, Tile } from "./mapFormat.ts";
  * 同じ棚は何度調べても同じ、隣の棚は別の文になる。
  */
 
-type NoticeTable = Record<string, { ch1: string[]; ch2?: string[] }>;
+type NoticeTable = Record<string, { ch1: string[]; ch2?: string[]; ch3?: string[] }>;
 
 const TABLE = Object.fromEntries(
   Object.entries(rawNotices as unknown as NoticeTable).filter(([k]) => !k.startsWith("_")),
@@ -53,8 +53,13 @@ export function noticeFor(
   const entry = TABLE[tile];
   if (!entry) return undefined;
 
-  // 炎上後は専用の文がある物だけ差し替える。無ければ平時の文で通す
-  const lines = chapter === 2 && entry.ch2?.length ? entry.ch2 : entry.ch1;
+  // 章ごとに専用の文がある物だけ差し替える。無ければ平時の文で通す。
+  //
+  // **第3章は必ず専用の文を持たせること。** 禁書庫は見習いが入れない場所なので、
+  // ch1 に落ちると「前回の担当は MIRA」のような書庫の日常の文が地下に現れ、
+  // 四十年誰も来ていないという設定がその場で崩れる。
+  const lines =
+    (chapter === 3 ? entry.ch3 : chapter === 2 ? entry.ch2 : undefined) ?? entry.ch1;
   if (lines.length === 0) return undefined;
 
   const c = corner(map, x, y, tile);

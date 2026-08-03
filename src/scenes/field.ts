@@ -15,6 +15,7 @@ import { BloomLayer, type Light } from "../fx/bloom.ts";
 import { BurnLayer, scorch } from "../fx/burn.ts";
 import { saveProgress } from "../game/save.ts";
 import { spellById } from "../spell/book.ts";
+import { ChapterTitle } from "../ui/chapterTitle.ts";
 import { DialogueBox, speaker } from "../ui/dialogue.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { bar, windowBox } from "../ui/hud.ts";
@@ -65,6 +66,7 @@ export class FieldScene implements Scene {
   private readonly grimoire = new GrimoireView();
   private readonly burn = new BurnLayer();
   private readonly bloom = new BloomLayer();
+  private readonly title = new ChapterTitle();
   private grimoireOpen = false;
   /** 道具袋を開いているか。開いているあいだは歩けない */
   private itemOpen = false;
@@ -99,12 +101,46 @@ export class FieldScene implements Scene {
     this.fromY = state.y;
     saveProgress(player);
 
-    // 章の入り口で一度だけ出す文章
-    if (state.intro.length > 0) {
-      this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, state.intro);
-      state.intro = [];
+    // 章の扉。幕が上がるまで他は何も動かない
+    if (state.titleCard) {
+      this.title.start(state.titleCard);
+      state.titleCard = null;
     }
-    this.checkOnEnter();
+
+    // 直前の戦いに勝って手に入れたもの。章の頭の文より先に出す
+    if (!this.claimReward()) {
+      // 章の入り口で一度だけ出す文章
+      if (state.intro.length > 0) {
+        this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, state.intro);
+        state.intro = [];
+      }
+      this.checkOnEnter();
+    }
+  }
+
+  /**
+   * 勝って手に入れた呪文を渡す。渡すものがあれば true。
+   *
+   * 巻物を拾うのではなく、**倒した相手から言葉を持ち帰る。**
+   * 状況の一行を必ず添える。呪文名だけ増えても、それは戦利品でしかない。
+   */
+  private claimReward(): boolean {
+    const r = this.state.pendingReward;
+    this.state.pendingReward = null;
+    if (!r) return false;
+
+    // **文は必ず出す。** 倒した相手がどうなったかの描写であって、
+    // 呪文の受け渡し通知ではない。自力で掘り当てていた人だけ場面が飛ぶ、
+    // というのはおかしい。書き加える一行だけを、初めてのときに足す。
+    const lines = [...r.lines];
+    if (!this.player.grimoire.has(r.id)) {
+      this.player.grimoire.set(r.id, r.word);
+      const name = spellById(r.id)?.name ?? r.word;
+      lines.push(`（呪文帳に「${name}」が書き加えられた）`);
+      saveProgress(this.player);
+    }
+    this.dialogue.open({ name: "", color: PAL.ink, talks: [] }, lines);
+    return true;
   }
 
   /**
@@ -124,6 +160,7 @@ export class FieldScene implements Scene {
       if (this.state.defeated.has(cellKey)) continue;
       this.dialogue.open(sp, sp.talks.flat());
       this.pendingBattle = { ref: sp.battleAfter, cellKey };
+      this.state.pendingReward = sp.reward ?? null;
       return;
     }
   }
@@ -136,6 +173,14 @@ export class FieldScene implements Scene {
   // ── 更新 ──────────────────────────────────
 
   update(dt: number, keys: string[]): void {
+    // 章の扉が下りているあいだは、下で何も進めない。
+    // 会話の1文字ずつ表示もここで止めておかないと、幕が上がったときに読み終えている
+    if (this.title.active) {
+      this.title.update(dt);
+      for (const key of keys) if (key === "Enter" || key === " ") this.title.skip();
+      return;
+    }
+
     this.time += dt;
     this.dialogue.update(dt);
     this.bloom.update(dt);
@@ -161,7 +206,10 @@ export class FieldScene implements Scene {
           this.onBattle(b.ref, b.cellKey);
           return;
         }
-        if (this.lastTalkedMira) this.moveMira();
+        if (this.lastTalkedMira) { this.moveMira(); return; }
+        // 戦利品の文などで入室時の会話を出しそびれていたら、ここで拾う。
+        // **部屋に入った瞬間に始まる相手を、素通りさせない**ための保険
+        this.checkOnEnter();
       }
       return;
     }
@@ -363,6 +411,8 @@ export class FieldScene implements Scene {
     this.pendingBattle = last && sp.battleAfter
       ? { ref: sp.battleAfter, cellKey: `${this.map.id}:npc:${target.ref}` }
       : null;
+    // 勝てば渡すもの。負けたら main.ts が捨てる
+    this.state.pendingReward = this.pendingBattle ? sp.reward ?? null : null;
   }
 
   /**
@@ -428,6 +478,9 @@ export class FieldScene implements Scene {
       this.grimoire.render(d, 16, 26, SCREEN_W - 32, 184, this.player);
       d.textRight("↑↓ 選択　ESC とじる", SCREEN_W - 20, 214, PAL.hint);
     }
+
+    // 章の扉はいちばん上。部屋も会話も、この幕の向こうにある
+    this.title.render(d);
   }
 
   private renderTiles(d: Display): void {

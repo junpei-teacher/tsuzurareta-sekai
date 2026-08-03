@@ -1,6 +1,8 @@
 import rawCh2 from "../../data/maps/ch2.json";
 import type { Player } from "../game/player.ts";
 import { enemyRefFor, getMap } from "./mapFormat.ts";
+import type { TitleCard } from "../ui/chapterTitle.ts";
+import type { Reward } from "../ui/dialogue.ts";
 
 type MapDiff = {
   block?: number[][];
@@ -10,6 +12,16 @@ type MapDiff = {
   note?: string;
 };
 const CH2 = rawCh2 as unknown as Record<string, MapDiff>;
+
+/**
+ * 章の扉に出す題（設計書 2.7）。
+ * 副題は場所ではなく、その章でプレイヤーがしていることを指す。
+ */
+const TITLES: Record<number, TitleCard> = {
+  1: { main: "第一章", sub: "静かな書庫" },
+  2: { main: "第二章", sub: "燃える夜" },
+  3: { main: "第三章", sub: "最下層" },
+};
 
 /** 第2章にその部屋へ出る敵シンボルの位置キー。倒したかの判定に使う */
 function enemyCells(mapId: string): string[] {
@@ -61,6 +73,17 @@ export class FieldState {
 
   /** 章の入り口で一度だけ出す文章。表示したら消す */
   intro: string[] = [];
+
+  /** 章の扉。表示したら消す。負けてのやり直しでは出さない */
+  titleCard: TitleCard | null = null;
+
+  /**
+   * 戦闘に勝ったら渡すもの。**負けたら捨てる。**
+   *
+   * フィールドの場面は戦闘のたびに作り直されるので、
+   * 「勝った直後に何かを渡す」という情報はここに預けて跨がせる。
+   */
+  pendingReward: Reward | null = null;
 
   /**
    * 燃えているのは**第2章だけ**。
@@ -162,6 +185,8 @@ export class FieldState {
     player.setLevel(c.level);
     player.restore();
     player.items = { ink: c.ink, drop: c.drop };
+    this.pendingReward = null;
+    this.titleCard = TITLES[n] ?? null;
 
     if (n === 2) {
       // イベントシーンは作らない。気づいたら、いないだけ（設計書 2.3）
@@ -201,6 +226,8 @@ export class FieldState {
     this.startChapter(this.chapter, player);
     this.talkIndex = talks;
     if (mira) this.miraRoom = mira;
+    // やり直しのたびに章の扉を見せられるのは、罰ではなく苦行になる
+    this.titleCard = null;
     this.intro = [
       "目が覚めた。",
       "どれくらい倒れていたのか、分からない。",

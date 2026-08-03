@@ -87,7 +87,9 @@ const PLAN = [
     battles: ["sootbat", "soldier", "emberfiend", "sootbat", "emberfiend", "ashvoice"],
   },
   {
-    spells: [20, 3, 24, 23],
+    // 灰の中の声は階段の関所なので、DIZO(52) は必ず手に入る。
+    // 兵士の JAKROS(43) は素通りできるので数えない
+    spells: [20, 3, 24, 23, 52],
     battles: ["unnamed", "unnamed", "unnamed", "unnamed", "unnamed", "archdemon", "erased"],
   },
 ];

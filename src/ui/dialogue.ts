@@ -41,7 +41,18 @@ export type Speaker = {
    * この旗を立てた相手は、部屋に入った時点でもう始まっている。
    */
   onEnter?: boolean;
+  /** `battleAfter` に勝ったときに渡すもの。負ければ渡さない */
+  reward?: Reward;
 };
+
+/**
+ * 戦って勝ったときに渡すもの。
+ *
+ * 呪文は原則「人から教わる」が、**勝ち取る**経路もここで一本だけ通す。
+ * 話しかけて貰うのと違い、こちらは**倒さないと手に入らない**ので、
+ * レア・神話級のような「終盤の切り札」を置く場所として都合がいい。
+ */
+export type Reward = { id: number; word: string; lines: string[] };
 
 type Table = Record<string, Speaker>;
 const strip = (o: unknown): Table =>
