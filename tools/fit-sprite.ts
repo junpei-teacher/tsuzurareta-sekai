@@ -39,6 +39,17 @@ const num = (flag: string, dflt: number): number => {
 };
 const SIZE = num("--size", 92);
 const PAD = num("--pad", 11);
+/**
+ * `--feet` … 縦だけ**1枚ごとに**足元を揃える。
+ *
+ * 生成された歩行フレームは、コマによって figure 全体が数px 上下に描かれている。
+ * まとめて1つの切り出しをかけると、そのずれがそのまま残り、
+ * **一歩ごとに地面へ沈んで浮き上がる。** 実際 8px（4デザインpx）動いていた。
+ *
+ * 横はまとめたまま切る。1枚ごとに中央へ寄せると、
+ * 腕を振るたびに体が左右に滑る。
+ */
+const FEET = args.includes("--feet");
 
 type Loaded = { path: string; png: PNG };
 const loaded: Loaded[] = [];
@@ -81,9 +92,20 @@ if (inkH + PAD > SIZE) {
 // ── 2. 切り出し位置。横は中心、縦は下端を「下から PAD」に置く ──
 const srcCenterX = Math.round((x0 + x1) / 2);
 const offX = srcCenterX - Math.floor(SIZE / 2); // 出力(0,0)に対応する元画像のx
-const offY = y1 + PAD - (SIZE - 1);
+const globalOffY = y1 + PAD - (SIZE - 1);
+
+/** その1枚だけの不透明範囲の下端 */
+function bottomOf(png: PNG): number {
+  for (let y = png.height - 1; y >= 0; y--) {
+    for (let x = 0; x < png.width; x++) {
+      if (png.data[(y * png.width + x) * 4 + 3]! > 8) return y;
+    }
+  }
+  return png.height - 1;
+}
 
 for (const { path, png } of loaded) {
+  const offY = FEET ? bottomOf(png) + PAD - (SIZE - 1) : globalOffY;
   const out = new PNG({ width: SIZE, height: SIZE });
   out.data.fill(0);
   for (let y = 0; y < SIZE; y++) {
@@ -103,4 +125,7 @@ for (const { path, png } of loaded) {
   writeFileSync(path, PNG.sync.write(out));
 }
 
-console.log(`  → ${SIZE}x${SIZE} に揃えました（足元はキャンバス下から ${PAD}px）`);
+console.log(
+  `  → ${SIZE}x${SIZE} に揃えました（足元はキャンバス下から ${PAD}px` +
+  `${FEET ? "・1枚ごとに足元を揃えた" : ""}）`,
+);

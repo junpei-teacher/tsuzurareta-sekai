@@ -17,7 +17,8 @@
     "lint:script": "tsx tools/lint-script.ts",
     "balance": "tsx tools/balance.ts",
     "fit": "tsx tools/fit-sprite.ts",
-    "lineup": "tsx tools/lineup.ts"
+    "lineup": "tsx tools/lineup.ts",
+    "frames": "tsx tools/check-frames.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
