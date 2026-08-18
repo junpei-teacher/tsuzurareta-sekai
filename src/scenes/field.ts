@@ -2,6 +2,7 @@ import { Display, SCREEN_H, SCREEN_W } from "../core/display.ts";
 import type { Keyboard } from "../core/input.ts";
 import { PAL } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
+import { sfx } from "../core/sfx.ts";
 import { ITEM_MP, ITEM_NAME, type ItemKind, type Player } from "../game/player.ts";
 import {
   enemyRefFor, getMap, walkable,
@@ -280,7 +281,7 @@ export class FieldScene implements Scene {
       // 階段にぶつかったなら、なぜ降りられないのかを言う
       if (this.tileAt(nx, ny) === "V" && this.noticeT <= 0) {
         const why = this.state.stairsReason(this.map.id);
-        if (why) this.showNotice(why);
+        if (why) { sfx.play("denied"); this.showNotice(why); }
       }
       return;
     }
@@ -290,6 +291,8 @@ export class FieldScene implements Scene {
     this.state.x = nx;
     this.state.y = ny;
     this.stepT = 1;
+    // 一歩ごとに鳴る。**全編でいちばん回数の多い音**なので、いちばん小さくしてある
+    sfx.play("step");
   }
 
   private canEnter(x: number, y: number): boolean {
@@ -341,6 +344,7 @@ export class FieldScene implements Scene {
 
     // 崩れた階段。第3章へ降りる
     if (this.state.isOpened(this.map.id, x, y)) {
+      sfx.play("stairs");
       this.state.startChapter(3, this.player);
       this.map = getMap(this.state.mapId);
       this.fromX = this.state.x;
@@ -352,6 +356,7 @@ export class FieldScene implements Scene {
 
     const door = this.entityAt(x, y, "door");
     if (door) {
+      sfx.play("door");
       this.state.mapId = door.ref;
       this.state.x = door.toX ?? 1;
       this.state.y = door.toY ?? 1;
@@ -409,6 +414,9 @@ export class FieldScene implements Scene {
       this.player.grimoire.set(g.id, g.word);
       const name = spellById(g.id)?.name ?? g.word;
       talk.push(`（呪文帳に「${name}」が書き加えられた）`);
+      // このゲームで唯一の、澄んだ音。**言葉が増えることだけが前進**なので、
+      // ここにだけ「良いことが起きた音」を置く
+      sfx.play("learn");
       saveProgress(this.player);
     }
 

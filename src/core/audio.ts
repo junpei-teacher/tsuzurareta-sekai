@@ -1,12 +1,14 @@
 /**
  * BGM（設計書 10）。
  *
- * 曲は7本。**第1章と第2章は同じ曲の変奏**にする。
- * 第1章と第2章は同じマップの炎上版なので、音も同じ曲の炎上版にする。
- * プレイヤーは第2章で「この曲、知っている」と気づく。
- * 同じ夜の続きであることが、説明せずに伝わる。
+ * **曲は3本しかない。** 場面は7つあるが、鳴らし分けるのは3回だけにしてある。
  *
- * 第3章で旋律を取り上げるのも同じ理屈で、地下は言葉が失われた場所だからである。
+ * - 第1章と、その前後（オープニング・エンディング）が1本目
+ * - 第2章と第3章が2本目。**火が点いた瞬間に曲が変わる**
+ * - ラスボスが3本目
+ *
+ * 雑魚戦では曲を変えない。**曲が変わること自体を合図にしたい**ので、
+ * 変える回数を絞ってある。戦闘の緊張は効果音（src/core/sfx.ts）で作る。
  *
  * 【ブラウザの自動再生制限】
  * 音は**利用者が何か操作するまで鳴らせない**。読み込み時に play() を呼んでも
@@ -28,17 +30,25 @@ export type TrackId =
   | "ending";
 
 /**
- * 曲の置き場所。**ファイルは後から入れる。**
- * 尺とループの指定は docs/assets-license.md に書いてある。
+ * 曲の置き場所。**3本の曲で7つの場面をまかなう**（出典は docs/assets-license.md）。
+ *
+ * 同じファイルを指しているところは、**その境目で曲が切り替わらない**という意味である。
+ * 切り替えの判定はIDではなくファイル名で行うので（`play`）、
+ * 第2章から第3章へ降りても曲は鳴り続け、階段の前後が地続きに聞こえる。
+ *
+ * `null` は「**曲を変えない**」。今かかっているものがそのまま続く。
+ * 雑魚戦がこれで、ラスボスで初めて曲が変わる。
+ * **曲が変わること自体を、ただごとではない合図として使う。**
  */
-const TRACKS: Record<TrackId, string> = {
-  opening: "/assets/bgm/opening.ogg",
-  ch1: "/assets/bgm/ch1_quiet.ogg",
-  ch2: "/assets/bgm/ch2_burning.ogg",
-  ch3: "/assets/bgm/ch3_depths.ogg",
-  battle: "/assets/bgm/battle.ogg",
-  boss: "/assets/bgm/boss.ogg",
-  ending: "/assets/bgm/ending.ogg",
+const TRACKS: Record<TrackId, string | null> = {
+  opening: "/assets/bgm/scene1_BGM.mp3",
+  ch1: "/assets/bgm/scene1_BGM.mp3",
+  ch2: "/assets/bgm/scene2and3_BGM.mp3",
+  ch3: "/assets/bgm/scene2and3_BGM.mp3",
+  battle: null,
+  boss: "/assets/bgm/LastBattle.mp3",
+  // 第1章の曲が戻ってくる。**同じ夜が終わったことを、説明せずに伝える**
+  ending: "/assets/bgm/scene1_BGM.mp3",
 };
 
 /** 切り替えにかける秒数。章の扉の暗転（約3秒）に収まる長さ */
@@ -48,7 +58,8 @@ const STEPS = 10;
 
 const KEY = "funsho-no-yoru/audio";
 
-type Voice = { el: HTMLAudioElement; id: TrackId };
+/** `src` は切り替えの判定に使う。同じファイルなら鳴らし直さない */
+type Voice = { el: HTMLAudioElement; src: string };
 
 export class Audio {
   private current: Voice | null = null;
@@ -82,8 +93,8 @@ export class Audio {
     }
   }
 
-  /** 実際に出す音量 */
-  private get level(): number {
+  /** 実際に出す音量。効果音（src/core/sfx.ts）も同じつまみに従う */
+  get level(): number {
     return this.muted ? 0 : this.volume;
   }
 
@@ -103,21 +114,24 @@ export class Audio {
 
   /** 曲を切り替える。同じ曲なら何もしない */
   play(id: TrackId): void {
+    const src = TRACKS[id];
+    // 曲を持たない場面（雑魚戦）。今かかっているものを続ける
+    if (src === null) return;
     if (!this.unlocked) { this.pending = id; return; }
-    if (this.current?.id === id) return;
+    if (this.current?.src === src) return;
 
     if (this.current) {
       this.fading.push(this.current);
       this.current = null;
     }
 
-    const el = new window.Audio(TRACKS[id]);
+    const el = new window.Audio(src);
     el.loop = true;
     el.volume = 0;
     el.play().catch(() => {
       // ファイルがまだ無い／再生を拒まれた。無音で進める
     });
-    this.current = { el, id };
+    this.current = { el, src };
   }
 
   /** 全部止める。終章の無音など */

@@ -1,6 +1,7 @@
 import { Display, SCREEN_H, SCREEN_W } from "../core/display.ts";
 import { PAL } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
+import { sfx } from "../core/sfx.ts";
 
 const SLOTS = 3;
 const MAX_LEN = 12;
@@ -35,29 +36,38 @@ export class VaultScene implements Scene {
         // 直前の画面から Enter を押しっぱなしにしていた場合に、
         // 空欄のまま「本を閉じる」へ飛んでしまうのを防ぐ
         if (this.fade > 0.05) continue;
+        // 本を閉じる音。**ここが最後の音になる**
+        sfx.play("page");
         this.onWrite([...this.slots]);
         return;
       }
       if (key === "Tab" || key === "ArrowRight") {
         this.cursor = (this.cursor + 1) % SLOTS;
+        sfx.play("move");
         continue;
       }
       if (key === "ArrowLeft") {
         this.cursor = (this.cursor + SLOTS - 1) % SLOTS;
+        sfx.play("move");
         continue;
       }
       if (key === "Backspace") {
         const cur = this.slots[this.cursor] ?? "";
         if (cur.length > 0) {
           this.slots[this.cursor] = cur.slice(0, -1);
+          sfx.play("erase");
         } else if (this.cursor > 0) {
           this.cursor--;
+          sfx.play("move");
         }
         continue;
       }
       if (key.length === 1 && /[A-Z0-9]/.test(key)) {
         const cur = this.slots[this.cursor] ?? "";
-        if (cur.length < MAX_LEN) this.slots[this.cursor] = cur + key;
+        if (cur.length < MAX_LEN) {
+          this.slots[this.cursor] = cur + key;
+          sfx.play("type");
+        }
         continue;
       }
     }

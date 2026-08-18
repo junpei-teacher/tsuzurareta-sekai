@@ -1,5 +1,6 @@
 import { Display, SCREEN_H, SCREEN_W } from "../core/display.ts";
 import { TIER_COLOR } from "../core/palette.ts";
+import { sfx } from "../core/sfx.ts";
 import type { Tier } from "../spell/resolver.ts";
 import { clamp01, easeOutCubic, easeOutQuint, makeRng, pulse, seg } from "./easing.ts";
 
@@ -52,6 +53,19 @@ export class CastFx {
     return this.active;
   }
 
+  /**
+   * 炸裂までの残り秒。演出中でなければ 0。
+   *
+   * 命中の音をここまで遅らせるために使う。神話級は**1.3秒ためてから炸裂する**ので、
+   * ダメージが確定した瞬間に当たった音を鳴らすと、
+   * 静かな溜めの途中で「当たった」音だけが先に鳴ってしまう。
+   */
+  get burstIn(): number {
+    if (!this.active || this.locked) return 0;
+    const at = this.tier === "MYTH" ? 0.46 : this.tier === "RARE" ? 0.12 : 0;
+    return Math.max(0, at * this.dur - this.t);
+  }
+
   /** 画面全体に適用する揺れ量 */
   get shake(): { x: number; y: number } {
     return { x: this.shakeX, y: this.shakeY };
@@ -63,6 +77,13 @@ export class CastFx {
    * @param short 撃ち慣れた呪文の短縮版にするか
    */
   play(tier: Tier, word: string, hash: number, short = false): void {
+    this.begin(tier, word, hash, short);
+    // 音は光と同じ長さで鳴らす。炸裂の時刻もこの尺から割り出される
+    sfx.cast(tier, this.dur);
+  }
+
+  /** 光の初期化だけ。音は呼び出し側が鳴らす（不発と「届かない」で音が違うため） */
+  private begin(tier: Tier, word: string, hash: number, short: boolean): void {
     this.tier = tier;
     this.word = word;
     this.short = short;
@@ -86,12 +107,14 @@ export class CastFx {
    * 「知っている。だが、まだ届かない。」
    */
   playLocked(tier: Tier, word: string, hash: number): void {
-    this.play(tier, word, hash, false);
+    this.begin(tier, word, hash, false);
     this.locked = true;
     this.tier = "MYTH";      // 溜めと文字浮かび上がりの演出を借りる
     this.dur = 2.2;
     this.sparksSpawned = true; // 粒子は出さない
     this.sparks = [];
+    // 唸りだけが立ち上がって、鳴りきらずに引く
+    sfx.cast(tier, this.dur, true);
   }
 
   private spawnSparks(): void {

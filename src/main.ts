@@ -2,6 +2,7 @@ import { loadImages } from "./core/assets.ts";
 import { Display } from "./core/display.ts";
 import { Keyboard } from "./core/input.ts";
 import { Audio, type TrackId } from "./core/audio.ts";
+import { sfx } from "./core/sfx.ts";
 import type { Scene } from "./core/scene.ts";
 import { Player } from "./game/player.ts";
 import { FieldState } from "./field/state.ts";
@@ -118,14 +119,20 @@ function frame(now: number): void {
 
   const keys = keyboard.poll();
   // ブラウザは操作があるまで音を鳴らさない。最初の1打で解禁する
-  if (keys.length > 0) audio.unlock();
+  if (keys.length > 0) { audio.unlock(); sfx.unlock(); }
   // 音量は - と = 。**呪文は A-Z と 0-9 だけ**なので、詠唱中に押しても
   // 綴りには入らない（src/core/input.ts）
   for (const k of keys) {
-    if (k === "-") audio.nudge(-1);
-    if (k === "=") audio.nudge(1);
+    if (k !== "-" && k !== "=") continue;
+    audio.nudge(k === "-" ? -1 : 1);
+    // 動かした結果を耳で確かめられるようにする。
+    // **数字だけ変わって何も鳴らないと、下げすぎたのか壊れたのか分からない**
+    sfx.level = audio.level;
+    sfx.play("move");
   }
   audio.update(dt);
+  // 効果音はBGMと同じつまみに従う
+  sfx.level = audio.level;
   if (!paused) {
     scene.update(dt, keys);
     scene.render(display);
@@ -159,6 +166,8 @@ if (import.meta.env.DEV) {
         new KeyboardEvent("keyup", { key: name, bubbles: true, cancelable: true }),
       ),
       player, field, keyboard, audio,
+      // 効果音の作り込み用。__dbg.sfx.play("type") のように単体で鳴らせる
+      sfx,
       sceneName: () => scene.constructor.name,
     },
   });

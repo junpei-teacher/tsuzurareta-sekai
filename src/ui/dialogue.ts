@@ -4,6 +4,7 @@ import rawCh3 from "../../data/dialogue/ch3.json";
 import type { ImageMap } from "../core/assets.ts";
 import { Display, SCREEN_W } from "../core/display.ts";
 import { PAL } from "../core/palette.ts";
+import { sfx } from "../core/sfx.ts";
 import { windowBox } from "./hud.ts";
 
 export type Speaker = {
@@ -126,8 +127,11 @@ export class DialogueBox {
     if (!this.active) return true;
     if (this.revealed < this.pageLength) {
       this.revealed = this.pageLength; // 途中なら全文表示
+      // 送るのではなく「急かした」ので、頁の音ではなく小さい音にする
+      sfx.play("move");
       return false;
     }
+    sfx.play("page");
     this.page++;
     this.revealed = 0;
     if (this.page >= this.pages.length) {

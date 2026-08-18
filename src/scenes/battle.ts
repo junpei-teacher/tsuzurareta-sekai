@@ -2,6 +2,7 @@ import type { ImageMap } from "../core/assets.ts";
 import { Display, SCREEN_W } from "../core/display.ts";
 import { PAL, TIER_COLOR } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
+import { sfx } from "../core/sfx.ts";
 import { BloomLayer, type Light } from "../fx/bloom.ts";
 import { CastFx } from "../fx/castFx.ts";
 import { ITEM_MP, ITEM_NAME, type Player } from "../game/player.ts";
@@ -47,6 +48,8 @@ export class BattleScene implements Scene {
   private caret = 0;
   private hitFlash = 0;
   private prevEnemyHp: number;
+  private prevPlayerHp: number;
+  private prevPhase: Battle["phase"];
 
   constructor(
     player: Player,
@@ -59,6 +62,8 @@ export class BattleScene implements Scene {
     this.images = images;
     this.onExit = onExit;
     this.prevEnemyHp = this.battle.enemy.hp;
+    this.prevPlayerHp = player.hp;
+    this.prevPhase = this.battle.phase;
     this.syncDictionary();
   }
 
@@ -75,8 +80,21 @@ export class BattleScene implements Scene {
     this.bloom.update(dt);
     if (this.hitFlash > 0) this.hitFlash = Math.max(0, this.hitFlash - dt * 4);
 
-    if (this.battle.enemy.hp < this.prevEnemyHp) this.hitFlash = 1;
+    if (this.battle.enemy.hp < this.prevEnemyHp) {
+      this.hitFlash = 1;
+      // 詠唱中なら炸裂の瞬間まで待つ。光と音がズレると演出が安っぽくなる
+      const wait = this.fx.burstIn;
+      sfx.play("hit", wait);
+      if (this.battle.enemy.hp <= 0) sfx.play("defeat", wait + 0.22);
+    }
     this.prevEnemyHp = this.battle.enemy.hp;
+
+    if (this.player.hp < this.prevPlayerHp) sfx.play("hurt");
+    this.prevPlayerHp = this.player.hp;
+
+    // 逃げ切った瞬間だけ鳴らす。「回り込まれた」ときは鳴らない
+    if (this.battle.phase === "FLED" && this.prevPhase !== "FLED") sfx.play("flee");
+    this.prevPhase = this.battle.phase;
 
     for (const key of keys) this.handleKey(key);
   }
@@ -87,29 +105,40 @@ export class BattleScene implements Scene {
     switch (b.phase) {
       case "MESSAGE":
         if (key === "Enter" || key === " ") {
+          sfx.play("page");
           b.advance();
           this.syncDictionary();
         }
         return;
 
       case "COMMAND":
-        if (key === "ArrowUp") this.cmd = (this.cmd + COMMANDS.length - 1) % COMMANDS.length;
-        if (key === "ArrowDown") this.cmd = (this.cmd + 1) % COMMANDS.length;
+        if (key === "ArrowUp") {
+          this.cmd = (this.cmd + COMMANDS.length - 1) % COMMANDS.length;
+          sfx.play("move");
+        }
+        if (key === "ArrowDown") {
+          this.cmd = (this.cmd + 1) % COMMANDS.length;
+          sfx.play("move");
+        }
         if (key === "Enter" || key === " ") {
           if (this.cmd === 0) {
+            sfx.play("confirm");
             b.phase = "CASTING";
             this.field.clear();
             this.syncDictionary();
           } else if (this.cmd === 1) {
             // 記憶を封じられていると呪文帳が開けない
             if (b.memorySealed) {
+              sfx.play("denied");
               b.messages.push("呪文帳を開いた。", "……頁の文字が、読めない。");
               b.phase = "MESSAGE";
             } else {
+              sfx.play("page");
               b.phase = "GRIMOIRE";
               this.grimoire.reset();
             }
           } else if (this.cmd === 2) {
+            sfx.play("confirm");
             b.phase = "ITEM";
             this.item = 0;
           } else {
@@ -124,6 +153,7 @@ export class BattleScene implements Scene {
 
       case "CASTING": {
         if (key === "Escape" && this.field.value.length === 0) {
+          sfx.play("cancel");
           b.phase = "COMMAND";
           return;
         }
@@ -144,10 +174,11 @@ export class BattleScene implements Scene {
 
       case "ITEM": {
         const max = 3;
-        if (key === "ArrowUp") this.item = (this.item + max - 1) % max;
-        if (key === "ArrowDown") this.item = (this.item + 1) % max;
-        if (key === "Escape") b.phase = "COMMAND";
+        if (key === "ArrowUp") { this.item = (this.item + max - 1) % max; sfx.play("move"); }
+        if (key === "ArrowDown") { this.item = (this.item + 1) % max; sfx.play("move"); }
+        if (key === "Escape") { sfx.play("cancel"); b.phase = "COMMAND"; }
         if (key === "Enter" || key === " ") {
+          sfx.play("confirm");
           if (this.item === 0) b.useItem("ink");
           else if (this.item === 1) b.useItem("drop");
           else b.phase = "COMMAND";
@@ -158,7 +189,7 @@ export class BattleScene implements Scene {
       case "WIN":
       case "LOSE":
       case "FLED":
-        if (key === "Enter" || key === " ") this.onExit(b.phase);
+        if (key === "Enter" || key === " ") { sfx.play("confirm"); this.onExit(b.phase); }
         return;
     }
   }

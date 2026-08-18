@@ -1,3 +1,5 @@
+import { sfx } from "../core/sfx.ts";
+
 /**
  * 詠唱入力欄の中身。
  * 受け付けるのは半角英数字のみ（設計書 3.1）。
@@ -45,30 +47,38 @@ export class TextField {
       return out;
     }
     if (key === "Backspace") {
+      // 空欄で押しても音は鳴らさない。**消えていないのに消えた音がするのは嘘になる**
+      if (this.value.length > 0) sfx.play("erase");
       this.value = this.value.slice(0, -1);
       this.refresh();
       return null;
     }
     if (key === "Escape") {
+      if (this.value.length > 0) sfx.play("cancel");
       this.clear();
       return null;
     }
     if (key === "Tab" || key === "ArrowDown") {
       if (this.suggestions.length > 0) {
         this.cursor = (this.cursor + 1) % this.suggestions.length;
+        sfx.play("move");
       }
       return null;
     }
     if (key === "ArrowUp") {
       if (this.suggestions.length > 0) {
         this.cursor = this.cursor <= 0 ? this.suggestions.length - 1 : this.cursor - 1;
+        sfx.play("move");
       }
       return null;
     }
     if (key.length === 1 && /[A-Z0-9]/.test(key)) {
+      // 上限に達したら鳴らさない。打鍵音は「文字が入った」ことの合図なので、
+      // 入っていないのに鳴ると、入ったと思って打ち続けてしまう
       if (this.value.length < this.maxLength) {
         this.value += key;
         this.refresh();
+        sfx.play("type");
       }
       return null;
     }
