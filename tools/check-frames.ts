@@ -7,13 +7,19 @@
  * **フレームごとの不透明範囲を並べて数字で出す。**
  *
  * 見るところ:
- *   高さ  … 歩行中に伸び縮みしていないか。上下 2px を超えたら破綻
+ *   高さ  … 歩行中に伸び縮みしていないか
  *   上端  … 頭のてっぺんが上下していないか（跳ねて見える主因）
  *   下端  … 足元が揃っているか。ここがずれると地面に沈む／浮く
+ *
+ * **許容は 4px（＝2デザインpx）まで。**
+ * 歩行には本来わずかな頭の上下があるので、0 を目指すと動きが死ぬ。
+ * 実際に破綻していたときは 16px（8デザインpx）だった。桁が違う。
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PNG } from "pngjs";
+
+const TOLERANCE = 4;
 
 const dirs = process.argv.slice(2);
 if (dirs.length === 0) {
@@ -59,7 +65,8 @@ for (const dir of dirs) {
     const topSpread = Math.max(...tops) - Math.min(...tops);
     const botSpread = Math.max(...bottoms) - Math.min(...bottoms);
     worst = Math.max(worst, spread, topSpread, botSpread);
-    const flag = spread > 2 || topSpread > 2 || botSpread > 2 ? " ← **揺れている**" : "";
+    const bad = spread > TOLERANCE || topSpread > TOLERANCE || botSpread > TOLERANCE;
+    const flag = bad ? " ← **揺れている**" : "";
     console.log(
       `  ${key.padEnd(8)} 高さ ${hs.join("/")}（幅 ${spread}）　` +
       `上端 ${tops.join("/")}（幅 ${topSpread}）　` +
@@ -67,8 +74,8 @@ for (const dir of dirs) {
     );
   }
   console.log(
-    worst <= 2
-      ? "  → 揺れは 2px 以内。歩いても背丈は変わらない"
+    worst <= TOLERANCE
+      ? `  → 揺れは ${TOLERANCE}px 以内。歩行の自然な上下の範囲`
       : `  → **最大 ${worst}px 揺れている。** 実寸では ${(worst / 2).toFixed(1)} デザインpx 動く`,
   );
 }
