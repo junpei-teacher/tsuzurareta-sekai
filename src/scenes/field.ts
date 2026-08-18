@@ -687,20 +687,28 @@ export class FieldScene implements Scene {
     // 穴の中はまず真っ黒で埋める
     d.rect(x0, y0, w, h, "#05040a");
 
-    // 段。**手前（下）が明るく、奥（上）へ行くほど暗い。** これが下りに見える条件
+    // 段。
+    //
+    // **プレイヤーは下から乗り込む。** だから画面の下端が階段の入り口で、
+    // 上へ行くほど地下へ潜っていく。手前（下）がいちばん明るく広く、
+    // 奥（上）へ行くほど暗く狭い。
+    //
+    // ここを逆に描いていた。しかも「手前が明るい」とコメントしながら
+    // いちばん明るい段を上に置き、その上から黒を被せていたので、
+    // 絵として何を言いたいのか分からなくなっていた。
     const steps = 6;
     const stepH = h / steps;
     for (let i = 0; i < steps; i++) {
-      // i=0 が最奥。t=1 が最も手前
-      const t = (i + 1) / steps;
-      const sy = Math.round(y0 + (steps - 1 - i) * stepH);
+      // i=0 が最上段＝いちばん深い。near=1 がプレイヤーの側
+      const near = (i + 1) / steps;
+      const sy = Math.round(y0 + i * stepH);
       const sh = Math.round(stepH);
-      // 奥ほど幅を詰めて、穴が下へすぼまって見えるようにする
-      const inset = Math.round((1 - t) * (w * 0.14));
+      // 奥ほど幅を詰めて、穴が上へすぼまって見えるようにする
+      const inset = Math.round((1 - near) * (w * 0.14));
       const sx = x0 + inset;
       const sw = w - inset * 2;
 
-      const shade = (base: number) => Math.round(base * (0.10 + 0.90 * t * t));
+      const shade = (base: number) => Math.round(base * (0.10 + 0.90 * near * near));
       const face = `rgb(${shade(122)},${shade(112)},${shade(96)})`;
       const nose = `rgb(${shade(196)},${shade(182)},${shade(156)})`;
       d.rect(sx, sy, sw, sh, this.col(face));
@@ -708,7 +716,7 @@ export class FieldScene implements Scene {
       d.rect(sx, sy, sw, 1, this.col(nose));
     }
 
-    // いちばん奥は光が届かない
+    // いちばん奥（上端）は光が届かない
     d.ctx.globalAlpha = 0.85;
     d.rect(x0, y0, w, Math.round(stepH * 0.8), "#05040a");
     d.ctx.globalAlpha = 1;

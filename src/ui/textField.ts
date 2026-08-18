@@ -85,14 +85,25 @@ export class TextField {
     return null;
   }
 
+  /** 打ち終わった文字列が、そのまま既知の呪文か */
+  get exact(): boolean {
+    return this.value.length > 0 && this.dictionary.includes(this.value);
+  }
+
   private refresh(): void {
     this.cursor = -1;
     if (this.value.length === 0) {
       this.suggestions = [];
       return;
     }
+    // **打ち切った語も候補に残す。**
+    //
+    // 以前は `w !== this.value` で完全一致を外していた。
+    // すると ROZH まではミラの ROZHA が出るのに、最後の A を打った瞬間に
+    // 候補が消える。**打ち上がった瞬間に手応えが無くなる**ので、
+    // 綴りを間違えたのかと思わせてしまう。
     this.suggestions = this.dictionary
-      .filter((w) => w.startsWith(this.value) && w !== this.value)
+      .filter((w) => w.startsWith(this.value))
       .slice(0, 4);
   }
 }

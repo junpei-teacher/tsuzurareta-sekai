@@ -320,10 +320,14 @@ export class BattleScene implements Scene {
             const sx = 32 + (i % 2) * 150;
             const y = 162 + Math.floor(i / 2) * 15;
             const on = i === this.field.cursor;
+            // 打ち切った語は明るく出す。**綴りが合っていることの手応え**になる
+            const done = s === this.field.value;
             if (on) d.rect(sx - 4, y - 1, 140, 13, "#2c241f");
-            d.text(s, sx, y, on ? PAL.accent : PAL.dim);
+            d.text(s, sx, y, on ? PAL.accent : done ? PAL.ink : PAL.dim);
+            if (done && !on) d.text("＝", sx - 12, y, PAL.accent);
           });
-          d.text("TAB 候補", 340, 190, PAL.hint);
+          // 右下の「ESC もどる」は 392 から始まる。ここを 340 に置くと重なる
+          d.text(this.field.exact ? "ENTER 唱える" : "TAB 候補", 292, 190, PAL.hint);
         } else if (this.field.value.length > 0) {
           // 打っている最中の重要な手がかり。ヒントではなく本文の扱いにする
           d.text("（呪文帳にない言葉）", 30, 164, PAL.dim);
