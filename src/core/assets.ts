@@ -48,7 +48,7 @@ export const MANIFEST: Record<string, string> = {
   "prop.rubble": "/assets/props2/rubble.png",
 
   // NPC。画面内を歩かないので待機の4方向だけ。キーの頭は .room の !npc の ref と揃える
-  // ミラ v8。**立ち絵から逆向きに起こしてある。**
+  // ミラ v9。
   //
   // 他のNPCは「フィールドの姿 → 立ち絵」の順で作ったが、ミラだけ逆にした。
   // 文章で顔を指定しても可愛さが安定しなかったので、先に立ち絵を仕上げて、
@@ -56,10 +56,14 @@ export const MANIFEST: Record<string, string> = {
   // `create_character` v3 の reference で4方向へ回している。
   // **顔が立ち絵と完全に一致し、描き込みも主人公・司書長と同じ密度になる。**
   //
-  // 経緯として避けるべきものが2つ分かっている。
+  // 経緯として避けるべきものが3つ分かっている。
   //   裾が床まである服 … 足が描かれず、足首から下を切断されたように見える
   //   写実寄りの細面   … 「初期版のほうが可愛げがあった」と言われた
-  ...facing("mira", "/assets/sprites/mira8"),
+  //   立ち絵からの変換 … 顔は完璧に揃うが**頭が大きくなる**。
+  //     胸像から起こすので当然で、v8 は 61px しかなく頭でっかちに見えた。
+  //     結局これは捨て、文章で「5.5頭身・小さい頭・長い脚」と
+  //     強く指定し直した v9（76px）に落ち着いた
+  ...facing("mira", "/assets/sprites/mira9"),
   ...facing("librarian", "/assets/sprites/librarian"),
   ...facing("halven", "/assets/sprites/halven"),
   // 会話する相手のうち、以前は色付きの矩形で代用していたもの
@@ -87,9 +91,11 @@ export const MANIFEST: Record<string, string> = {
   ...enemySprites(
     "bookworm", "inkslime", "sootbat", "emberfiend",
     "soldier", "erased", "ashvoice", "archdemon",
+    // 「名を失くした頁」。**抹消された名前の者と絵を共用しない。**
+    // 同類ではあるが、ボスは「消された人」でローブを着ており、
+    // こちらは「人になりきれなかった紙」。布を着せないことで描き分ける
+    "unnamed",
   ),
-  // 「名を失くした頁」は抹消された名前の者の弱い同類。絵は共用する
-  "enemy.unnamed": "/assets/enemies/erased.png",
 
   // フィールドに置く敵シンボル。**戦闘の1枚絵とは別に描き起こす。**
   // 戦闘絵は大きさがまちまち（煤蝙蝠は128px＝4マス幅）で、
