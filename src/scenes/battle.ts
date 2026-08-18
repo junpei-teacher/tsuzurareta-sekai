@@ -11,8 +11,12 @@ import { TextField } from "../ui/textField.ts";
 import { bar, statusTags, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { saveProgress } from "../game/save.ts";
+import { allSpells } from "../spell/book.ts";
 
 const COMMANDS = ["詠唱", "呪文帳", "道具", "逃げる"] as const;
+
+/** この世界に在る呪文の総数。呪文帳の枚数に分母を出すため */
+const TOTAL_SPELLS = allSpells().length;
 
 /** 敵が立つ床の高さ。全ての敵はここに足元を合わせる */
 const GROUND_Y = 120;
@@ -382,7 +386,9 @@ export class BattleScene implements Scene {
     windowBox(d, 16, 210, 448, 52);
 
     d.text(p.name, 28, 216, PAL.ink);
-    d.textRight(`呪文帳 ${p.grimoire.size} 種`, 452, 216, PAL.dim);
+    // 総数を出す。タイトルと収集画面が `/ 57` を出すのに、
+    // **いちばん長く見ている戦闘画面だけ**分母が無かった
+    d.textRight(`呪文帳 ${p.grimoire.size} / ${TOTAL_SPELLS} 種`, 452, 216, PAL.dim);
 
     d.text("HP", 28, 230, PAL.dim);
     bar(d, 50, 231, 130, 8, p.hp / p.maxHp, "#a8563f");

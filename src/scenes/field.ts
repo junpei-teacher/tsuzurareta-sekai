@@ -465,11 +465,30 @@ export class FieldScene implements Scene {
     saveProgress(this.player);
   }
 
-  /** 会話のたびにミラは別の部屋へ移る */
+  /**
+   * 会話のたびにミラは別の部屋へ移る。
+   *
+   * **一巡するまで、同じ部屋へは戻らない。**
+   * 「直前以外」から毎回引くだけだと、閲覧室と大書架を往復するだけで
+   * 章が終わることがあった。第1章の役目は間取りを覚えさせることなので
+   * （設計書 2.3）、4部屋に均等に行き渡らないと第2章で効かない。
+   *
+   * 順番そのものは巡回当番なので、一巡の中では成り行きでよい。
+   */
   private moveMira(): void {
-    const rooms = ["ch1_reading", "ch1_desks", "ch1_stacks", "ch1_stairs"]
-      .filter((id) => id !== this.state.miraRoom);
-    this.state.miraRoom = rooms[Math.floor(Math.random() * rooms.length)] ?? this.state.miraRoom;
+    const st = this.state;
+    const all = ["ch1_reading", "ch1_desks", "ch1_stacks", "ch1_stairs"];
+
+    let rooms = all.filter((id) => id !== st.miraRoom && !st.miraSeen.includes(id));
+    if (rooms.length === 0) {
+      // 一巡した。今いる部屋だけを持ち越して、また4部屋を回りはじめる
+      st.miraSeen = [st.miraRoom];
+      rooms = all.filter((id) => id !== st.miraRoom);
+    }
+
+    const next = rooms[Math.floor(Math.random() * rooms.length)] ?? st.miraRoom;
+    st.miraRoom = next;
+    st.miraSeen.push(next);
     this.lastTalkedMira = false;
   }
 

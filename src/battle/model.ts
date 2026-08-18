@@ -21,7 +21,15 @@ export type EnemyDef = {
   /** 自ら光る敵だけが持つ。dy は足元から光源までの高さ（デザイン単位）*/
   glow?: { color: string; radius: number; strength: number; dy: number };
   desc: string;
-  skill?: { name: string; kind: StatusKind; chance: number };
+  /**
+   * その敵の技。`turns` を省くと3ターン。
+   *
+   * **長さを敵ごとに変えられるようにしてある。**
+   * 忘却（呪文帳を封じる）を地下の雑魚にも持たせたが、
+   * 1戦2ターンで終わる相手が3ターン封じてくると、封じられたまま次の戦いに入る。
+   * 前振りとして置くものなので、あちらは短くする。
+   */
+  skill?: { name: string; kind: StatusKind; chance: number; turns?: number };
 };
 
 export const ENEMIES = (rawEnemies as unknown as { enemies: EnemyDef[] }).enemies;
@@ -402,7 +410,7 @@ export class Battle {
 
     if (canSkill && skill) {
       this.say(`${e.def.name} の ${skill.name}。`);
-      addStatus(this.player, skill.kind, 3, skill.kind === "DEF_DOWN" ? 30 : undefined);
+      addStatus(this.player, skill.kind, skill.turns ?? 3, skill.kind === "DEF_DOWN" ? 30 : undefined);
       this.say(
         skill.kind === "SILENCE"
           ? "覚えていたはずの綴りが、思い出せない。"

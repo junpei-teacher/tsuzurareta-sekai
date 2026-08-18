@@ -68,6 +68,19 @@ export class FieldState {
    */
   miraRoom = "ch1_reading";
 
+  /**
+   * 今の一巡で、彼女がすでに居た部屋。
+   *
+   * **行き先を毎回ランダムに選ぶと、同じ部屋が続けて当たる。**
+   * 4部屋から「直前以外」で引くだけだと、運が悪いと閲覧室・大書架・閲覧室・大書架
+   * と往復するだけになり、あとの2部屋には一度も用が無いまま章が終わる。
+   * プレイヤーに間取りを覚えさせるのが第1章の役目（設計書 2.3）なので、
+   * それでは第2章で効かない。
+   *
+   * 一巡するまで同じ部屋へは戻らない。4部屋を回りきったら、また空にする。
+   */
+  miraSeen: string[] = [];
+
   /** 倒した敵シンボル。`mapId:x,y` で記録する */
   defeated = new Set<string>();
 
@@ -188,6 +201,7 @@ export class FieldState {
       ];
     } else if (n === 1) {
       this.miraRoom = "ch1_reading";
+      this.miraSeen = ["ch1_reading"];
       this.intro = [];
     } else {
       this.miraRoom = "";
@@ -213,9 +227,12 @@ export class FieldState {
   restartChapter(player: Player): void {
     const talks = new Map(this.talkIndex);
     const mira = this.miraRoom;
+    // 巡回の途中経過も残す。**負けたら彼女が最初の部屋へ戻る**のでは、
+    // 会話の進み具合を残した意味が半分になる
+    const seen = [...this.miraSeen];
     this.startChapter(this.chapter, player);
     this.talkIndex = talks;
-    if (mira) this.miraRoom = mira;
+    if (mira) { this.miraRoom = mira; this.miraSeen = seen; }
     // やり直しのたびに章の扉を見せられるのは、罰ではなく苦行になる
     this.titleCard = null;
     this.intro = [
