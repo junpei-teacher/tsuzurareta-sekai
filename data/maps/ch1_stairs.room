@@ -5,6 +5,7 @@
 !npc t soldier_stairs
 !npc g ashvoice
 !sign o burn_order
+!sign p stair_notice
 !enemy 1 - emberfiend
 !enemy 2 bookworm -
 !door w ch1_stacks 26 6
@@ -17,7 +18,7 @@
 #.....C..............C.....#
 w..........................#
 #....t...............o.....#
-#.........VVVVV............#
+#....p....VVVVV............#
 #........aVVVVV............#
 #.........VVVVV............#
 #...........g..............#

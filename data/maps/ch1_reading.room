@@ -5,6 +5,8 @@
 !npc b librarian
 !sign p duty_board
 !sign r burnt_scroll
+!sign x wax_scrap
+!sign y burnt_page
 !npc t soldier_hall
 !enemy 1 - sootbat
 !door e ch1_desks 1 6
@@ -13,9 +15,9 @@
 ############################
 #....p.....................#
 #..BBBB.......C......BBBB..#
-#..BBBB..............BBBB..#
+#..BBBB.....x........BBBB..#
 #.........r.......1........#
-#.......TTTT.............a.#
+#.......TTTTy............a.#
 #.......TTTT...............e
 #.......t..................#
 #..BBBB..............BBBB..#

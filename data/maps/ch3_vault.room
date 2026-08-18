@@ -2,7 +2,7 @@
 !name 禁書庫
 !spawn 13 12
 !vault k
-!sign q vault_graffiti
+!sign q vault_graffiti carve
 !npc e erased_one
 !map
 ############################

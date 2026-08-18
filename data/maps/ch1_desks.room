@@ -2,8 +2,9 @@
 !name 写字机の間
 !spawn 2 6
 !npc a mira
-!sign c desk_carving
+!sign c desk_carving carve
 !sign m catalogue
+!sign f practice_paper
 !enemy 2 inkslime
 !enemy 3 bookworm -
 !door w ch1_reading 26 6
@@ -12,7 +13,7 @@
 #..........................#
 #...TTm...TT....TT....TT...#
 #...TT....TT....TT....TT...#
-#.................3........#
+#....f............3........#
 #.....2....................#
 w..........................#
 #..........................#

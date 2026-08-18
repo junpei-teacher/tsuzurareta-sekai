@@ -107,6 +107,14 @@ export class Display {
     for (const m of full.matchAll(/[A-Z][A-Z0-9]{2,}/g)) {
       ranges.push([m.index, m.index + m[0].length]);
     }
+    // 欠けた綴り（`H A _ A L`）も呪文と同じ色で拾う。
+    // 一字ずつ空けて書いてあるので上の規則には掛からないが、
+    // **プレイヤーが覚えて帰るのはこの一行**なので、地の文に沈めてはいけない。
+    // 3組以上を条件にして、「MIRA WAS HERE」のような普通の英文を巻き込まないようにする
+    for (const m of full.matchAll(/(?<![A-Z0-9])[A-Z_](?: [A-Z_]){2,}(?![A-Z0-9])/g)) {
+      ranges.push([m.index, m.index + m[0].length]);
+    }
+    ranges.sort((a, b) => a[0] - b[0]);
     if (ranges.length === 0) { this.text(shown, x, y, base, size); return; }
 
     let cx = x;

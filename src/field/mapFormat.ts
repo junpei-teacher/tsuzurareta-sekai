@@ -16,7 +16,8 @@
  *                                    片方だけの章にしたいときは `-` を置く
  *                                    （例: `!enemy 3 - emberfiend` は第2章のみ）
  *   !door  d ch1_stacks 14 1      … 文字 d の位置に別マップへの出入口
- *   !sign  s notice_board         … 文字 s の位置に調べられる張り紙
+ *   !sign  s notice_board         … 文字 s の位置に調べられる点。
+ *                                    3つ目に見た目（paper / carve / ash）。省略で紙
  *   !vault k                      … 文字 k の位置に禁書（調べると書き込みへ）
  *   !map                          … これ以降がマップ本体
  *
@@ -39,6 +40,17 @@ export function walkable(t: Tile): boolean {
 
 export type EntityKind = "npc" | "enemy" | "door" | "sign" | "vault";
 
+/**
+ * 調べられる点の見た目（`!sign` の3つ目）。
+ *
+ * 以前は全部おなじ「紙」の四角で描いていた。すると**床石に煤で書いた字**も
+ * **石壁の彫り跡**も紙に見える。調べる物が一種類しか無いように見えるので、
+ * 部屋を見回す気にならない。**絵が3種あるだけで、見回す動機になる。**
+ */
+export type SignLook = "paper" | "carve" | "ash";
+
+const SIGN_LOOKS = new Set<string>(["paper", "carve", "ash"]);
+
 export type MapEntity = {
   kind: EntityKind;
   /** npc なら会話ID、enemy なら敵ID、door なら遷移先マップID */
@@ -50,6 +62,8 @@ export type MapEntity = {
   toY?: number;
   /** enemy のみ。第2章で入れ替わる敵ID。`-` はその章に出ないことを表す */
   ref2?: string;
+  /** sign のみ。省略したら紙 */
+  look?: SignLook;
 };
 
 /** 章に応じた敵ID。その章に出ないなら undefined */
@@ -69,7 +83,10 @@ export type GameMap = {
   spawn: { x: number; y: number };
 };
 
-type Decl = { kind: EntityKind; ref: string; toX?: number; toY?: number; ref2?: string };
+type Decl = {
+  kind: EntityKind; ref: string;
+  toX?: number; toY?: number; ref2?: string; look?: SignLook;
+};
 
 export function parseMap(text: string): GameMap {
   const lines = text.replace(/\r\n/g, "\n").split("\n");
@@ -93,7 +110,15 @@ export function parseMap(text: string): GameMap {
       case "enemy":
         decls.set(args[0]!, { kind: "enemy", ref: args[1] ?? "", ref2: args[2] });
         break;
-      case "sign":  decls.set(args[0]!, { kind: "sign", ref: args[1] ?? "" }); break;
+      case "sign": {
+        const look = args[2];
+        // 綴りを間違えたまま静かに紙で描かれると気づけない。ここで落とす
+        if (look !== undefined && !SIGN_LOOKS.has(look)) {
+          throw new Error(`マップ ${id || "?"}: !sign の見た目 "${look}" は未定義`);
+        }
+        decls.set(args[0]!, { kind: "sign", ref: args[1] ?? "", look: look as SignLook });
+        break;
+      }
       case "vault": decls.set(args[0]!, { kind: "vault", ref: "vault_altar" }); break;
       case "door":
         decls.set(args[0]!, {
@@ -133,7 +158,7 @@ export function parseMap(text: string): GameMap {
       if (decl) {
         entities.push({
           kind: decl.kind, ref: decl.ref, x, y,
-          toX: decl.toX, toY: decl.toY, ref2: decl.ref2,
+          toX: decl.toX, toY: decl.toY, ref2: decl.ref2, look: decl.look,
         });
         row.push("."); // エンティティの足元は床
         continue;

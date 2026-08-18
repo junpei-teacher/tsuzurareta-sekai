@@ -6,7 +6,7 @@ import { sfx } from "../core/sfx.ts";
 import { ITEM_MP, ITEM_NAME, type ItemKind, type Player } from "../game/player.ts";
 import {
   enemyRefFor, getMap, walkable,
-  type GameMap, type MapEntity, type Tile,
+  type GameMap, type MapEntity, type SignLook, type Tile,
 } from "../field/mapFormat.ts";
 import { noticeFor } from "../field/notices.ts";
 import type { FieldState } from "../field/state.ts";
@@ -420,6 +420,21 @@ export class FieldScene implements Scene {
       saveProgress(this.player);
     }
 
+    // 欠けた綴りは**渡さない。控えるだけ。**
+    //
+    // ここで呪文帳に入れてしまうと `grants` と同じものになり、
+    // 「自分で打った」という一点が丸ごと消える。埋める場所は戦闘の入力欄しかない。
+    // 一行出すのは、控えたことが分かるようにするため（設計書 3.6.1.5 と同じ理屈で、
+    // **何かが増えたのに黙っているのがいちばんまずい**）。
+    if (sp.riddle && !this.player.grimoire.has(sp.riddle.id)
+        && !this.player.riddles.has(sp.riddle.id)) {
+      // 部屋の名も一緒に控える。戦闘中に開いたとき、何を見て書いたか分かるように
+      this.player.riddles.set(sp.riddle.id, { mask: sp.riddle.mask, place: this.map.name });
+      talk.push("（読めたところだけ、呪文帳の端に控えた）");
+      sfx.play("learn");
+      saveProgress(this.player);
+    }
+
     this.dialogue.open(sp, talk);
     this.lastTalkedMira = target.ref === "mira";
 
@@ -791,10 +806,7 @@ export class FieldScene implements Scene {
         continue;
       }
       if (e.kind === "sign") {
-        d.rect(px + 3, py + 3, 10, 10, "#8a8070");
-        d.frame(px + 3, py + 3, 10, 10, "#241a11");
-        d.rect(px + 5, py + 6, 6, 1, "#4a4038");
-        d.rect(px + 5, py + 9, 6, 1, "#4a4038");
+        this.renderSign(d, px, py, e.look ?? "paper");
         continue;
       }
 
@@ -848,6 +860,43 @@ export class FieldScene implements Scene {
       d.rect(px + 3, py + 2, 10, 13, sp?.color ?? "#8a8a9a");
       d.rect(px + 3, py + 2, 10, 4, "#241a11");
     }
+  }
+
+  /**
+   * 調べられる点。**紙・彫り・煤の3種を描き分ける**（設計書 3.8）。
+   *
+   * 全部おなじ紙の四角で描いていたころ、第3章の「床石に煤で書いた字」が
+   * 床に落ちた紙に見えていた。石壁の彫り跡も、机の落書きも同じ絵だった。
+   * 調べる物が一種類しか無いように見えると、部屋を見回す気にならない。
+   *
+   * 16px の中で見分けがつくよう、**輪郭の有無**で分けてある。
+   * 紙は枠がある（置いてある物）、彫りと煤は枠が無い（面そのもの）。
+   */
+  private renderSign(d: Display, px: number, py: number, look: SignLook): void {
+    if (look === "carve") {
+      // 彫り跡。刻んだ線の下に明るい面が出るので、二段で立体に見える
+      d.rect(px + 3, py + 6, 10, 1, "#241a11");
+      d.rect(px + 3, py + 7, 10, 1, "#8a7b5e");
+      d.rect(px + 5, py + 10, 6, 1, "#241a11");
+      d.rect(px + 5, py + 11, 6, 1, "#8a7b5e");
+      return;
+    }
+    if (look === "ash") {
+      // 煤。輪郭を作らない。**擦れて薄いほど、それらしい**
+      d.ctx.globalAlpha = 0.85;
+      d.rect(px + 3, py + 7, 9, 2, "#17120f");
+      d.rect(px + 6, py + 10, 6, 1, "#17120f");
+      d.rect(px + 5, py + 5, 4, 1, "#17120f");
+      d.ctx.globalAlpha = 0.5;
+      d.rect(px + 2, py + 9, 3, 1, "#17120f");
+      d.ctx.globalAlpha = 1;
+      return;
+    }
+    // 紙。張り紙・巻物・反故紙。**枠があるのはこれだけ**
+    d.rect(px + 3, py + 3, 10, 10, "#8a8070");
+    d.frame(px + 3, py + 3, 10, 10, "#241a11");
+    d.rect(px + 5, py + 6, 6, 1, "#4a4038");
+    d.rect(px + 5, py + 9, 6, 1, "#4a4038");
   }
 
   private renderPlayer(d: Display): void {

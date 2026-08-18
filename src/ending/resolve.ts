@@ -77,3 +77,13 @@ export function fragmentAt(i: number): string[] {
 export function endingTitle(key: string): string {
   return ENDINGS[key]?.title ?? "";
 }
+
+/**
+ * 専用エンディングの一覧。**書いた順のまま返す。**
+ *
+ * 収集画面はこの並びで番号を振るので、`data/endings.json` の行を入れ替えると
+ * 番号がずれる。追加は末尾に足すこと。
+ */
+export function authoredEntries(): Array<{ key: string; ending: Ending }> {
+  return Object.entries(ENDINGS).map(([key, ending]) => ({ key, ending }));
+}

@@ -3,6 +3,35 @@ import type { StatusKind } from "../spell/book.ts";
 export type StatusInst = { kind: StatusKind; turns: number; magnitude?: number };
 
 /**
+ * 欠けた綴りの控え（設計書 3.8）。
+ *
+ * `mask` は見せる形（`H A _ A L`）、`place` は見つけた部屋の名。
+ * **場所を一緒に控えるのは、戦闘中に開いたときのためである。**
+ * 綴りだけ並んでいても、何を見て書いたものか思い出せない。
+ */
+export type Riddle = { mask: string; place: string };
+
+/** 控えの見せ形から、照合用の型（`HA_AL`）を作る。`_` が読めなかった一字 */
+export function riddlePattern(mask: string): string {
+  return mask.replace(/\s+/g, "");
+}
+
+/**
+ * 打ちかけの文字列が、まだこの控えに収まる可能性があるか。
+ *
+ * 前方一致だが、`_` はどの字とも合う。**合致しなくなった控えは引っ込める**ので、
+ * 打つほど手元の候補が絞れていく。
+ */
+export function riddleMatches(mask: string, typed: string): boolean {
+  const pat = riddlePattern(mask);
+  if (typed.length > pat.length) return false;
+  for (let i = 0; i < typed.length; i++) {
+    if (pat[i] !== "_" && pat[i] !== typed[i]) return false;
+  }
+  return true;
+}
+
+/**
  * **レベルは廃止した。**
  *
  * かつては章の進行に合わせてレベルが上がり、威力が `1 + Lv × 0.09` 倍された。
@@ -43,6 +72,19 @@ export class Player {
 
   /** 引き当てたがMPが足りず唱えられなかった呪文（設計書 3.6） */
   unspoken = new Set<number>();
+
+  /**
+   * 見つけた欠けた綴り。spellId → 控え。
+   *
+   * **控えを持たせないと、この仕掛けは成立しない。**
+   * 紙片を見つけるのは書庫のどこかで、打つのは戦闘の入力欄である。
+   * あいだに部屋の移動と戦闘の開始が挟まるので、
+   * 手元に控えが無ければプレイヤーは紙とペンを要求されることになる。
+   * 主人公の仕事は書き写すことなので、控えは呪文帳の末尾に載る。
+   *
+   * 埋まったものは呪文帳の本体へ移る。ここからは消さない（表示側で除く）。
+   */
+  riddles = new Map<number, Riddle>();
 
   /** 到達した専用エンディングのキー。周回を跨いで残る */
   seenEndings = new Set<string>();
@@ -88,5 +130,15 @@ export class Player {
   /** サジェストの辞書。呪文帳に載っている文字列 */
   knownWords(): string[] {
     return [...this.grimoire.values()];
+  }
+
+  /**
+   * まだ埋まっていない控え（設計書 3.8）。
+   * 埋まったものは呪文帳の本体に移っているので、ここから落とす。
+   */
+  openRiddles(): Riddle[] {
+    return [...this.riddles.entries()]
+      .filter(([id]) => !this.grimoire.has(id))
+      .map(([, r]) => r);
   }
 }

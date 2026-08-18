@@ -13,11 +13,15 @@ import { verifyCanonicals } from "./spell/book.ts";
 import { BattleScene } from "./scenes/battle.ts";
 import { CasterTestScene } from "./scenes/casterTest.ts";
 import { FieldScene } from "./scenes/field.ts";
+import { NameInputScene, loadName } from "./scenes/nameInput.ts";
 import { OpeningScene } from "./scenes/opening.ts";
+import { CollectionScene } from "./scenes/collection.ts";
 import { SelectScene } from "./scenes/select.ts";
+import { TitleScene } from "./scenes/title.ts";
 import { VaultScene } from "./scenes/vault.ts";
 import { EndingScene } from "./scenes/ending.ts";
 import { resolveEnding } from "./ending/resolve.ts";
+import { setDialogueName } from "./ui/dialogue.ts";
 
 const canvas = document.getElementById("screen") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("#screen が見つかりません");
@@ -44,11 +48,51 @@ const images = await loadImages();
 
 const player = new Player();
 loadProgress(player); // 呪文帳は周回を跨いで残る（設計書 5.4）
+// 前回名乗った名。第2章・第3章へ直接飛ぶデバッグ経路でも空欄にならないようにする
+player.name = loadName() || player.name;
+setDialogueName(player.name);
 player.grimoire.set(20, "ROZHA"); // 熾火。ミラが最初に教えてくれた言葉
 
 const field = new FieldState();
 
 let scene: Scene;
+
+/**
+ * タイトル。**起動して最初に出るのはここ**（設計書 7.5）。
+ *
+ * 以前は Phase 3 のデバッグメニューが入口だった。章の飛び込み口は
+ * 開発中も要るので、タイトルの「ためす（開発）」から降りられるようにしてある。
+ */
+function goTitle(): void {
+  audio.play("opening");
+  scene = new TitleScene(player, () => startChapter(1), goCollection, goSelect);
+}
+
+function goCollection(): void {
+  scene = new CollectionScene(player, goTitle);
+}
+
+/**
+ * 章を始める。第1章だけ、世界の前提と名乗りを先に置く（設計書 2.1 / 2.2）。
+ *
+ * **順番は オープニング → 署名 → 書庫。**
+ * 逆にすると、まだ何も知らないうちに当番表へ署名させることになる。
+ * オープニングの最後の一行は「今日も、いつもと同じ夜になるはずだった」で、
+ * その直後に**明日ぶんの署名を書かせる**のがいちばん効く。
+ * 第2章・第3章はデバッグ用の飛び込み口なので、どちらも挟まない。
+ */
+function startChapter(chapter: number): void {
+  field.startChapter(chapter, player);
+  audio.play(chapter === 1 ? "opening" : CHAPTER_BGM[chapter]!);
+  if (chapter !== 1) { goField(); return; }
+  scene = new OpeningScene(() => {
+    scene = new NameInputScene((name) => {
+      player.name = name;
+      setDialogueName(name);
+      goField();
+    });
+  });
+}
 
 function goSelect(): void {
   scene = new SelectScene(
@@ -57,14 +101,7 @@ function goSelect(): void {
       scene = new BattleScene(player, enemy, images, () => { saveProgress(player); goSelect(); });
     },
     () => { scene = new CasterTestScene(goSelect); },
-    (chapter) => {
-      field.startChapter(chapter, player);
-      audio.play(chapter === 1 ? "opening" : CHAPTER_BGM[chapter]!);
-      // 第1章だけ、世界の前提を先に置く（設計書 2.1）。
-      // 第2章・第3章はデバッグ用の飛び込み口なので挟まない
-      if (chapter === 1) scene = new OpeningScene(goField);
-      else goField();
-    },
+    startChapter,
     goVault,
   );
 }
@@ -93,7 +130,8 @@ function goField(): void {
       });
     },
     goVault,
-    goSelect,
+    // フィールドで ESC。デバッグメニューではなくタイトルへ戻す
+    goTitle,
   );
 }
 
@@ -103,11 +141,12 @@ function goVault(): void {
   scene = new VaultScene((words) => {
     const result = resolveEnding(words, player.name);
     audio.play("ending");
-    scene = new EndingScene(result, player, goSelect);
+    // 結末を見終えたらタイトルへ戻る。**集めた数が増えているのが見える**
+    scene = new EndingScene(result, player, goTitle);
   });
 }
 
-goSelect();
+goTitle();
 
 let last = performance.now();
 let paused = false;
@@ -169,6 +208,8 @@ if (import.meta.env.DEV) {
       // 効果音の作り込み用。__dbg.sfx.play("type") のように単体で鳴らせる
       sfx,
       sceneName: () => scene.constructor.name,
+      /** 今の場面そのもの。詰まったときに内部の旗を覗くため */
+      current: () => scene,
     },
   });
 }

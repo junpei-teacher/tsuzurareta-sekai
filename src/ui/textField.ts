@@ -1,3 +1,4 @@
+import { riddleMatches, type Riddle } from "../game/player.ts";
 import { sfx } from "../core/sfx.ts";
 
 /**
@@ -14,9 +15,18 @@ export class TextField {
   suggestions: string[] = [];
   /** 選択中の候補。-1 なら未選択 */
   cursor = -1;
+  /**
+   * まだ埋まる見込みのある欠けた綴り（設計書 3.8）。
+   *
+   * **候補（`suggestions`）とは別に持つ。TAB では確定できない。**
+   * 穴は自分で埋めるものなので、確定できてしまうと巻物を拾ったのと同じになる。
+   * 出すのは控えの見た目だけで、あとはプレイヤーが打つ。
+   */
+  riddleHints: Riddle[] = [];
 
   private readonly maxLength: number;
   private dictionary: string[] = [];
+  private riddles: Riddle[] = [];
 
   constructor(maxLength = 16) {
     this.maxLength = maxLength;
@@ -25,6 +35,12 @@ export class TextField {
   /** サジェストの元になる既知呪文の文字列を差し替える */
   setDictionary(words: string[]): void {
     this.dictionary = [...words].sort();
+    this.refresh();
+  }
+
+  /** まだ埋まっていない控えを差し替える。記憶を封じられているあいだは空にする */
+  setRiddles(list: Riddle[]): void {
+    this.riddles = [...list];
     this.refresh();
   }
 
@@ -92,6 +108,13 @@ export class TextField {
 
   private refresh(): void {
     this.cursor = -1;
+    // 控えは**何も打っていないうちから出す。**
+    // 「手元に埋めかけの語がある」ことは、コマンドを選んだ時点で見えていてよい。
+    // 打つほど合わない控えが落ちていき、最後に一つ残る
+    this.riddleHints = this.riddles
+      .filter((r) => riddleMatches(r.mask, this.value))
+      .slice(0, 2);
+
     if (this.value.length === 0) {
       this.suggestions = [];
       return;

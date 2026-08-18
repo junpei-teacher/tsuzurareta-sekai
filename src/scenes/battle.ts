@@ -68,11 +68,15 @@ export class BattleScene implements Scene {
     this.syncDictionary();
   }
 
-  /** サジェスト辞書を呪文帳と同期する。記憶を封じられているあいだは空にする */
+  /**
+   * サジェスト辞書と控えを呪文帳と同期する。
+   * **記憶を封じられているあいだは両方とも空にする。**
+   * 控えは呪文帳の端に書いたものなので、頁が読めなければこれも読めない。
+   */
   private syncDictionary(): void {
-    this.field.setDictionary(
-      this.battle.memorySealed ? [] : this.player.knownWords(),
-    );
+    const sealed = this.battle.memorySealed;
+    this.field.setDictionary(sealed ? [] : this.player.knownWords());
+    this.field.setRiddles(sealed ? [] : this.player.openRiddles());
   }
 
   update(dt: number, keys: string[]): void {
@@ -213,8 +217,10 @@ export class BattleScene implements Scene {
     d.ctx.translate(sh.x, sh.y);
     this.renderEnemy(d);
     if (this.battle.phase === "GRIMOIRE") {
-      this.grimoire.render(d, 16, 20, 448, 184, this.player);
-      d.textRight("↑↓ 選択　ESC とじる", 452, 208, PAL.hint);
+      // 高さ 184 だと窓の下端が 204 まで来て、操作ヒント（208）が
+      // その下の HP/MP 窓（210〜）に潜り込んでいた。窓を縮めてヒントを上げる
+      this.grimoire.render(d, 16, 20, 448, 170, this.player);
+      d.textRight("↑↓ 選択　ESC とじる", 452, 194, PAL.hint);
     } else {
       this.renderWindow(d);
     }
@@ -328,6 +334,22 @@ export class BattleScene implements Scene {
           });
           // 右下の「ESC もどる」は 392 から始まる。ここを 340 に置くと重なる
           d.text(this.field.exact ? "ENTER 唱える" : "TAB 候補", 292, 190, PAL.hint);
+        } else if (this.field.riddleHints.length > 0) {
+          // **欠けた綴りの控え（設計書 3.8）。**
+          //
+          // 世界の側で「打っていい」と教えておいて、実際に打つと
+          // 「（呪文帳にない言葉）」と否定形で返すのはちぐはぐだった。
+          // 埋めかけの控えを持っているなら、それをここに出す。
+          //
+          // **候補と違い TAB では確定できない。** 穴は自分で埋めるものなので、
+          // 確定できてしまうと巻物を拾ったのと同じになる。
+          this.field.riddleHints.forEach((r, i) => {
+            const y = 162 + i * 15;
+            d.text("未解読", 32, y, PAL.dim);
+            d.text(r.mask, 76, y, PAL.accent);
+            if (r.place) d.textRight(r.place, 288, y, PAL.dim);
+          });
+          d.text("自分で埋める", 292, 190, PAL.hint);
         } else if (this.field.value.length > 0) {
           // 打っている最中の重要な手がかり。ヒントではなく本文の扱いにする
           d.text("（呪文帳にない言葉）", 30, 164, PAL.dim);

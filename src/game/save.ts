@@ -1,4 +1,4 @@
-import type { Player } from "./player.ts";
+import type { Player, Riddle } from "./player.ts";
 
 /**
  * セーブ（設計書 5.4 / 手順書 5-4）。
@@ -22,6 +22,11 @@ type SaveData = {
   unspoken: number[];
   fragments?: number[];
   endings?: string[];
+  /**
+   * 見つけた欠けた綴り。埋めないまま閉じたぶんを持ち越す。
+   * 綴りだけを持っていた頃の形（`[id, "H A _ A L"]`）も読めるようにしてある
+   */
+  riddles?: Array<[number, Riddle | string]>;
 };
 
 export function saveProgress(player: Player): void {
@@ -31,6 +36,7 @@ export function saveProgress(player: Player): void {
     unspoken: [...player.unspoken],
     fragments: [...player.seenFragments],
     endings: [...player.seenEndings],
+    riddles: [...player.riddles.entries()],
   };
   try {
     localStorage.setItem(KEY, JSON.stringify(data));
@@ -56,6 +62,10 @@ export function loadProgress(player: Player): boolean {
     player.unspoken = new Set(data.unspoken ?? []);
     player.seenFragments = new Set(data.fragments ?? []);
     player.seenEndings = new Set(data.endings ?? []);
+    player.riddles = new Map(
+      (data.riddles ?? []).map(([id, r]) =>
+        [id, typeof r === "string" ? { mask: r, place: "" } : r] as const),
+    );
     return true;
   } catch (e) {
     // 壊れたセーブでクラッシュさせない（手順書 9-3）

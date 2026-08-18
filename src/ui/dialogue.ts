@@ -23,6 +23,20 @@ export type Speaker = {
    * 巻物を拾わせるのではなく、**人から教わる**形にするために使う。
    */
   grants?: { talk: number; id: number; word: string }[];
+  /**
+   * 欠けた綴り。**この場で呪文帳には入らない。**
+   *
+   * 焼けた紙、虫喰いの反故、擦り切れた煤の字——読めるのは途中までで、
+   * 残りはプレイヤーが埋める。埋める場所は戦闘の入力欄しかない。
+   *
+   * 巻物を拾って「手に入れました」になる経路（`grants`）との違いがすべてで、
+   * こちらは**自分で打たないと何も起きない**。このゲームの中心にある行為を、
+   * 世界の側から一度だけ指さす仕掛けである。
+   *
+   * `mask` は見せる形（`H A _ A L`）、`id` は埋まったときの呪文。
+   * 控えは呪文帳の末尾に「未解読」として残る（src/ui/grimoire.ts）。
+   */
+  riddle?: { id: number; mask: string };
   /** 立ち絵のアセットキーの末尾。`portrait.<これ>` を引く。無ければ地の文扱い */
   portrait?: string;
   /** この人物が現れる章。省略したら全章 */
@@ -79,6 +93,24 @@ export function speaker(id: string, chapter = 1): Speaker | undefined {
   return s && Array.isArray(s.talks) ? s : undefined;
 }
 
+/**
+ * 会話文の中に置くプレイヤー名の差し込み口。
+ *
+ * **主人公の名は、世界の中に書かれていなければ意味がない。**
+ * 目録の署名欄も当番表も、ミラの「あなたの名前も、もう百回は書いた」も、
+ * 全部その名が実際に紙に載っていることを前提にした文である。
+ * 会話データ側には `{NAME}` と書いておき、開くときに差し替える。
+ */
+let playerName = "";
+
+export function setDialogueName(name: string): void {
+  playerName = name;
+}
+
+export function fillName(line: string): string {
+  return playerName ? line.split("{NAME}").join(playerName) : line;
+}
+
 const LINES_PER_PAGE = 3;
 /** 立ち絵の一辺（デザイン単位）。素材は倍の128pxで作る */
 const PORTRAIT = 64;
@@ -100,9 +132,10 @@ export class DialogueBox {
   private portrait: string | undefined;
 
   open(sp: Speaker, talk: string[]): void {
+    const lines = talk.map(fillName);
     this.pages = [];
-    for (let i = 0; i < talk.length; i += LINES_PER_PAGE) {
-      this.pages.push(talk.slice(i, i + LINES_PER_PAGE));
+    for (let i = 0; i < lines.length; i += LINES_PER_PAGE) {
+      this.pages.push(lines.slice(i, i + LINES_PER_PAGE));
     }
     this.page = 0;
     this.revealed = 0;
