@@ -215,6 +215,19 @@ export class Battle {
 
     this.applySpell(spell);
 
+    // **掘り当てたことを、必ず言う。**
+    //
+    // 人から教わったときも、MP不足で届かなかったときも記録の一行が出るのに、
+    // 自分で打ち当てたときだけ黙っていた。**このゲームで唯一積み上がるのが
+    // 呪文帳**なので、そこに何か増えたことを黙っているのはいちばんまずい。
+    if (firstTime) {
+      this.say(
+        known
+          ? `（「${spell.name}」の未詠唱が外れた）`
+          : `（呪文帳に「${spell.name}」を書き加えた）`,
+      );
+    }
+
     if (this.enemy.hp <= 0) {
       this.say(`${this.enemy.def.name} は 消えた。`);
       this.after = "END";

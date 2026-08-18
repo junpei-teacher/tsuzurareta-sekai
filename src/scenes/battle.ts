@@ -10,6 +10,7 @@ import { Battle, spawn, type EnemyDef } from "../battle/model.ts";
 import { TextField } from "../ui/textField.ts";
 import { bar, statusTags, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
+import { saveProgress } from "../game/save.ts";
 
 const COMMANDS = ["詠唱", "呪文帳", "道具", "逃げる"] as const;
 
@@ -162,11 +163,20 @@ export class BattleScene implements Scene {
         if (submitted.trim().length === 0) return; // 空Enterは無視
         const report = b.cast(submitted);
         if (report.kind === "CAST") {
-          this.fx.play(report.resolution.tier, report.word, report.resolution.hash, !report.firstTime);
+          // 回復呪文は光は同じで音だけ変わる。**傷が塞がる音に破裂は要らない**
+          const heal = report.spell?.element === "HEAL";
+          this.fx.play(report.resolution.tier, report.word, report.resolution.hash, !report.firstTime, heal);
         } else if (report.kind === "LOCKED") {
           this.fx.playLocked(report.resolution.tier, report.word, report.resolution.hash);
         } else if (report.kind === "DUD") {
           this.fx.play("DUD", report.word, report.resolution.hash);
+        }
+        // **掘り当てた瞬間に書き出す。**
+        // 保存が戦闘終了時だけだと、レアを引き当てた直後に閉じたぶんが消える。
+        // 周回を跨いで積み上がるのは呪文帳だけなので（設計書 5.4）、
+        // ここを取りこぼすと、そのプレイで得たものが何も残らない
+        if (report.kind === "CAST" ? report.firstTime : report.kind === "LOCKED") {
+          saveProgress(this.player);
         }
         this.syncDictionary();
         return;

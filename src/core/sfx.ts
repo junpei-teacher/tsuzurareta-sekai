@@ -314,15 +314,22 @@ class Sfx {
    * あちらを触ったら、ここも触ること。
    *
    * @param dur 演出の総尺（秒）。短縮版なら短い値が来る
-   * @param locked 掘り当てたがMPが足りなかったとき。**炸裂しない**（設計書 3.6）
+   * @param opt locked=掘り当てたがMPが足りなかった（**炸裂しない**・設計書 3.6）／
+   *            heal=回復呪文（`element: "HEAL"`）。**破裂ではなく和音にする**
    */
-  cast(tier: Tier, dur: number, locked = false): void {
+  cast(tier: Tier, dur: number, opt: { locked?: boolean; heal?: boolean } = {}): void {
     if (!this.ctx) return;
 
     // 届かなかった言葉。低い唸りが立ち上がり、**炸裂せずに引く**
-    if (locked) {
+    if (opt.locked) {
       this.noise({ dur: dur * 0.55, freq: 180, to: 90, q: 0.6, filter: "lowpass", gain: 0.22, attack: dur * 0.3 });
       this.tone({ freq: 70, to: 42, dur: dur * 0.6, type: "triangle", gain: 0.18, attack: dur * 0.3 });
+      return;
+    }
+
+    // 傷が塞がる音。攻撃呪文とは**音の作りかたから変える**
+    if (opt.heal) {
+      this.heal(tier, dur);
       return;
     }
 
@@ -351,21 +358,124 @@ class Sfx {
         break;
       }
 
-      // 神話級。castFx は 0.46 まで暗転を保って炸裂させる。
-      // **溜めのあいだは、ほとんど無音にする。** 低い唸りだけを置いて耳を空ける
-      case "MYTH": {
-        const burst = dur * 0.46;
-        this.tone({ freq: 55, to: 110, dur: burst, type: "triangle", gain: 0.18, attack: burst * 0.85 });
-        this.noise({ dur: burst, freq: 300, to: 900, q: 0.5, filter: "lowpass", gain: 0.10, attack: burst * 0.9 });
-
-        this.noise({ at: burst, dur: 1.10, freq: 4000, to: 260, q: 0.5, gain: 0.40 });
-        this.tone({ at: burst, freq: 520, to: 60, dur: 1.20, type: "triangle", gain: 0.30 });
-        // 腹に来る一発。これが無いと「ただ大きい音」で終わる
-        this.tone({ at: burst, freq: 90, to: 34, dur: 0.90, type: "sine", gain: 0.34 });
-        // 残響がわりの尾
-        this.noise({ at: burst + 0.10, dur: 1.30, freq: 700, to: 180, q: 1.4, gain: 0.12, attack: 0.15 });
+      // 神話級。**1周に一度あるかないかの音**なので、他とは作りを変える。
+      // castFx は 0.46 まで暗転を保って炸裂させる（castFx.ts）。
+      case "MYTH":
+        this.myth(dur);
         break;
-      }
+    }
+  }
+
+  /**
+   * 神話級の炸裂。凄みは音量では出ない。**出るのは4つの要素からである。**
+   *
+   * 1. **うなり**。溜めの低音を2本、わずかにずらして鳴らす。
+   *    ぴたりと合った低音は「重い音」だが、ずれた低音は**不穏**になる
+   * 2. **吸い込み**。炸裂の直前に音を上へ吸い上げ、そこで断ち切る。
+   *    人は「大きい音」ではなく「音が無くなった直後」に身構える
+   * 3. **鐘**。倍音が整数比から外れた高音を薄く重ねる。
+   *    金属が鳴っているように聞こえ、火薬の音と区別がつく
+   * 4. **二段で来る**。炸裂を一発で終わらせず、少し遅れてもう一度低音を置く
+   *
+   * どれも**大きくしない。** 大きくすると、ただうるさいものに戻る。
+   */
+  private myth(dur: number): void {
+    const burst = dur * 0.46;
+
+    // ── 溜め。ほとんど無音のまま、床が鳴りはじめる ──
+    // 2本のわずかな差（1.5%）が「うなり」になる。合わせてはいけない
+    this.tone({ freq: 55, to: 110, dur: burst, type: "triangle", gain: 0.16, attack: burst * 0.85 });
+    this.tone({ freq: 55 * 1.015, to: 110, dur: burst, type: "triangle", gain: 0.16, attack: burst * 0.9 });
+    this.noise({ dur: burst, freq: 300, to: 900, q: 0.5, filter: "lowpass", gain: 0.08, attack: burst * 0.9 });
+
+    // ── 吸い込み。炸裂のちょうど手前で断ち切る ──
+    const suck = Math.min(0.35, burst * 0.3);
+    this.noise({ at: burst - suck, dur: suck, freq: 260, to: 4200, q: 1.2, gain: 0.20, attack: suck * 0.85 });
+
+    // ── 炸裂 ──
+    this.noise({ at: burst, dur: 1.10, freq: 5000, to: 240, q: 0.5, gain: 0.42 });
+    this.tone({ at: burst, freq: 620, to: 60, dur: 1.20, type: "triangle", gain: 0.28 });
+    // 腹に来る一発。これが無いと「ただ大きい音」で終わる
+    this.tone({ at: burst, freq: 90, to: 30, dur: 1.00, type: "sine", gain: 0.36 });
+
+    // 鐘。整数比から外した3本を薄く重ねる。**金属の軋みに聞こえる**
+    for (const [mul, g] of [[1, 0.075], [2.76, 0.055], [5.4, 0.035]] as const) {
+      this.tone({ at: burst + 0.01, freq: 262 * mul, dur: 1.6 - mul * 0.12, type: "sine", gain: g, attack: 0.006 });
+    }
+
+    // ── 二段目。少し遅れて、もう一度沈む ──
+    this.tone({ at: burst + 0.16, freq: 62, to: 26, dur: 1.30, type: "triangle", gain: 0.24, attack: 0.02 });
+
+    // ── 残響。長く引いて、静けさに戻す ──
+    this.noise({ at: burst + 0.10, dur: 1.60, freq: 700, to: 170, q: 1.6, gain: 0.12, attack: 0.18 });
+  }
+
+  /**
+   * 回復。**雑音を一切使わない。**
+   *
+   * このゲームの音はほとんど雑音でできている（＝物がぶつかる音）。
+   * 傷が塞がるところにだけ雑音が無いので、**鳴った瞬間に何が起きたか分かる。**
+   *
+   * 上へ積む長三和音。攻撃呪文がどれも「下へ落ちる」音であるのに対して、
+   * 回復だけが上へ昇り、**消えずにしばらく残る。**
+   */
+  private heal(tier: Tier, dur: number): void {
+    // 完本（HP全回復＋全解除。神話級の回復）だけは別格に扱う
+    const big = tier === "MYTH";
+    const burst = big ? dur * 0.46 : tier === "RARE" ? dur * 0.12 : 0;
+
+    /**
+     * 帯ごとの深さ。**回復量が大きいほど、根音を下げて長く伸ばす。**
+     * 高い音を足すのではなく低い音を足すほうが「深く効いた」感じになる。
+     * 回復呪文は7本あり、うち3本がアンコモンなので、
+     * ここを一段でも分けないと**ほとんどの回復が同じ音**になる。
+     */
+    const { root, hold, notes } =
+      big                    ? { root: 261.63, hold: 1.9,  notes: 4 } : // C4
+      tier === "RARE"        ? { root: 293.66, hold: 1.35, notes: 4 } : // D4
+      tier === "UNCOMMON"    ? { root: 329.63, hold: 1.0,  notes: 4 } : // E4
+                               { root: 392.00, hold: 0.7,  notes: 3 };  // G4
+
+    // 溜めのあいだ、下から温かく満ちてくる（神話級は暗転が長いので、無音にしない）
+    if (big) {
+      this.tone({ freq: root / 4, to: root / 2, dur: burst, type: "sine", gain: 0.16, attack: burst * 0.8 });
+    }
+
+    // 支え。和音の下に敷く。これが無いと和音が宙に浮く
+    this.tone({ at: burst, freq: root / 2, dur: hold * 1.15, type: "sine", gain: 0.22, attack: 0.18 });
+
+    // 長三和音を下から順に積む。**同時に鳴らさない。** ずらすと「満ちていく」
+    const chord = [1, 1.25, 1.5, 2].slice(0, notes);
+    const step = big ? 0.10 : 0.075;
+    chord.forEach((mul, i) => {
+      this.tone({
+        at: burst + i * step,
+        freq: root * mul,
+        dur: hold - i * 0.06,
+        type: "sine",
+        gain: 0.18 - i * 0.022,
+        attack: 0.05,
+      });
+    });
+
+    // 上の光。レア以上にだけ乗せる。**か細く、長く残る**
+    if (big || tier === "RARE") {
+      this.tone({ at: burst + 0.22, freq: root * 3, dur: hold, type: "sine", gain: 0.050, attack: 0.12 });
+      this.tone({ at: burst + 0.30, freq: root * 4, dur: hold * 0.8, type: "sine", gain: 0.034, attack: 0.12 });
+    }
+
+    // 完本だけ、もう一度オクターブ上で咲かせる。**「すべて元に戻った」**
+    if (big) {
+      chord.forEach((mul, i) => {
+        this.tone({
+          at: burst + 0.55 + i * 0.09,
+          freq: root * 2 * mul,
+          dur: 1.5 - i * 0.1,
+          type: "sine",
+          gain: 0.085 - i * 0.013,
+          attack: 0.06,
+        });
+      });
     }
   }
 }

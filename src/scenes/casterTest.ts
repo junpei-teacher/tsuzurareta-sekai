@@ -46,7 +46,10 @@ export class CasterTestScene implements Scene {
       this.lastWasShort = known;
       if (res.spellId >= 0) this.seen.add(res.spellId);
 
-      this.fx.play(res.tier, res.word, res.hash, known);
+      // 掘り当てた呪文が回復なら、ここでも回復の音で鳴る。
+      // **音の作り込みはこの画面でやる**ので、戦闘と同じ判定にしておく
+      const heal = res.spellId >= 0 && spellById(res.spellId)?.element === "HEAL";
+      this.fx.play(res.tier, res.word, res.hash, known, heal);
 
       this.history.unshift(res);
       if (this.history.length > 4) this.history.pop();

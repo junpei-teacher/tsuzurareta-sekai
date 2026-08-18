@@ -75,11 +75,12 @@ export class CastFx {
    * 演出を開始する。
    * @param hash 呪文のハッシュ。粒子の飛び方の種に使う（同じ言葉は同じ光になる）
    * @param short 撃ち慣れた呪文の短縮版にするか
+   * @param heal 回復呪文か。**光は同じだが音が変わる**（雑音を使わない和音になる）
    */
-  play(tier: Tier, word: string, hash: number, short = false): void {
+  play(tier: Tier, word: string, hash: number, short = false, heal = false): void {
     this.begin(tier, word, hash, short);
     // 音は光と同じ長さで鳴らす。炸裂の時刻もこの尺から割り出される
-    sfx.cast(tier, this.dur);
+    sfx.cast(tier, this.dur, { heal });
   }
 
   /** 光の初期化だけ。音は呼び出し側が鳴らす（不発と「届かない」で音が違うため） */
@@ -114,7 +115,7 @@ export class CastFx {
     this.sparksSpawned = true; // 粒子は出さない
     this.sparks = [];
     // 唸りだけが立ち上がって、鳴りきらずに引く
-    sfx.cast(tier, this.dur, true);
+    sfx.cast(tier, this.dur, { locked: true });
   }
 
   private spawnSparks(): void {
