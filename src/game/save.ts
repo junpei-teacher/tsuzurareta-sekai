@@ -1,4 +1,5 @@
 import type { Player, Riddle } from "./player.ts";
+import { MIN_WORD_LENGTH } from "../spell/resolver.ts";
 
 /**
  * セーブ（設計書 5.4 / 手順書 5-4）。
@@ -58,7 +59,12 @@ export function loadProgress(player: Player): boolean {
   try {
     const data = JSON.parse(raw) as SaveData;
     if (data.version !== 1 || !Array.isArray(data.grimoire)) return false;
-    player.grimoire = new Map(data.grimoire);
+    // 三文字未満は呪文にならなくなった（設計書 3.4.3）。
+    // それ以前のセーブには `A` や `X` が載っていて、
+    // **候補には出るのに唱えると「言葉になっていない」**という食い違いが起きる
+    player.grimoire = new Map(
+      data.grimoire.filter(([, word]) => word.length >= MIN_WORD_LENGTH),
+    );
     player.unspoken = new Set(data.unspoken ?? []);
     player.seenFragments = new Set(data.fragments ?? []);
     player.seenEndings = new Set(data.endings ?? []);

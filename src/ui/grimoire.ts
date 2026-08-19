@@ -1,7 +1,7 @@
 import type { Display } from "../core/display.ts";
 import { PAL, TIER_COLOR } from "../core/palette.ts";
 import type { Player } from "../game/player.ts";
-import { allSpells, spellById } from "../spell/book.ts";
+import { allSpells, ELEMENT_JP, spellById, spellSummary } from "../spell/book.ts";
 import { windowBox } from "./hud.ts";
 
 const ROWS = 8;
@@ -29,6 +29,18 @@ type Row =
 export class GrimoireView {
   private index = 0;
   private scroll = 0;
+
+  /**
+   * 下段に何を出すか。
+   *
+   * `use`  … 使うための情報（帯・属性・威力・効果）。戦闘とフィールド。
+   * `read` … それに加えてフレーバーの一文。集めたもの（読むための画面）。
+   *
+   * 戦闘中に呪文帳を開く人が知りたいのは**何属性でどれくらい強いか**であって、
+   * 「ミラが最初に教えてくれた言葉。」ではない。
+   * かといって57本の一文を捨てるのも惜しいので、読む場所を分けた。
+   */
+  constructor(private readonly mode: "use" | "read" = "use") {}
 
   reset(): void {
     this.index = 0;
@@ -97,7 +109,9 @@ export class GrimoireView {
       const word = player.grimoire.get(row.id) ?? "";
       d.text(word, x + 24, ry, unspoken ? PAL.dim : PAL.ink);
       d.text(sp.name, x + 108, ry, TIER_COLOR[sp.tier]);
-      d.text(sp.element, x + 196, ry, PAL.dim);
+      // 属性は日本語一字。FIRE/ICE はともかく NAME/NONE は英語では通じない
+      d.text(ELEMENT_JP[sp.element], x + 196, ry, PAL.dim);
+      if (sp.power > 0) d.text(`威${sp.power}`, x + 218, ry, PAL.dim);
       d.textRight(unspoken ? "未詠唱" : `MP${sp.mp}`, x + w - 14, ry, unspoken ? PAL.danger : PAL.dim);
     });
 
@@ -106,14 +120,18 @@ export class GrimoireView {
       d.textRight(`${this.index + 1} / ${rows.length}`, x + w - 14, y + h - 30, PAL.hint);
     }
 
-    // 選択中の行の一文
+    // 選択中の行の説明
     const sel = rows[this.index];
-    d.rect(x + 8, y + h - 24, w - 16, 1, PAL.line);
+    const twoLines = this.mode === "read";
+    const top = y + h - (twoLines ? 40 : 24);
+    d.rect(x + 8, top, w - 16, 1, PAL.line);
     if (sel?.kind === "riddle") {
-      d.text("読めなかった字がある。埋めるなら、詠唱の欄で。", x + 12, y + h - 18, PAL.dim);
-    } else {
-      const sp = spellById(sel?.id ?? -1);
-      if (sp) d.text(sp.flavor, x + 12, y + h - 18, PAL.dim);
+      d.text("読めなかった字がある。埋めるなら、詠唱の欄で。", x + 12, top + 6, PAL.dim);
+      return;
     }
+    const sp = spellById(sel?.id ?? -1);
+    if (!sp) return;
+    d.text(spellSummary(sp), x + 12, top + 6, PAL.ink);
+    if (twoLines) d.text(sp.flavor, x + 12, top + 22, PAL.dim);
   }
 }

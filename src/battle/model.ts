@@ -22,6 +22,15 @@ export type EnemyDef = {
   glow?: { color: string; radius: number; strength: number; dy: number };
   desc: string;
   /**
+   * 稽古台。**MPを消費せず、倒れず、攻撃してこない。**
+   *
+   * この作品で強くなる手段は言葉を知ることだけだが（設計書 1）、
+   * 知らない言葉を試すにはMPが要る。周回はせいぜい2回なので、
+   * **57種のうち大半に一度も出会わないまま終わる。**
+   * 出会う場所を1つ、第1章に置いた。ここで撃ったものも呪文帳に載る。
+   */
+  dummy?: boolean;
+  /**
    * その敵の技。`turns` を省くと3ターン。
    *
    * **長さを敵ごとに変えられるようにしてある。**
@@ -117,8 +126,11 @@ export type Phase =
   | "WIN" | "LOSE" | "FLED";
 
 export type CastReport = {
-  /** DUD=不発 / CAST=発動 / LOCKED=MP不足で唱えられなかった / REFUSED=既知だがMP不足 */
-  kind: "DUD" | "CAST" | "LOCKED" | "REFUSED";
+  /**
+   * DUD=不発 / CAST=発動 / LOCKED=MP不足で唱えられなかった /
+   * REFUSED=既知だがMP不足 / SHORT=短すぎて言葉になっていない
+   */
+  kind: "DUD" | "CAST" | "LOCKED" | "REFUSED" | "SHORT";
   word: string;
   resolution: Resolution;
   spell?: Spell;
@@ -138,7 +150,7 @@ export class Battle {
 
   /** 直前の詠唱。演出の再生に使う */
   lastCast: CastReport | null = null;
-  /** 木霊（id 37）が継承する属性 */
+  /** やまびこ（id 37）が継承する属性 */
   private lastElement: Element = "NONE";
 
   constructor(player: Player, enemy: EnemyInst) {
@@ -173,6 +185,18 @@ export class Battle {
     const res = resolveSpell(input);
     const spell = spellFor(input);
 
+    // ── 短すぎる。言葉になっていない ──
+    //
+    // **MPも手番も取らない。** これは失敗ではなく、詠唱が始まってすらいない。
+    // 一字で強い呪文に当たってしまう穴を塞ぐための線引きなので（resolver.ts）、
+    // 打ち間違えた人を罰する場所ではない。
+    if (res.tooShort) {
+      this.lastCast = { kind: "SHORT", word: res.word, resolution: res, firstTime: false };
+      this.say("それは、まだ言葉になっていない。");
+      this.after = "COMMAND";
+      return this.lastCast;
+    }
+
     // ── 不発 ──
     if (!spell) {
       const cost = Math.min(3, this.player.mp);
@@ -185,7 +209,8 @@ export class Battle {
 
     const known = this.player.grimoire.has(spell.id);
     const halved = has(this.player, "MP_HALF");
-    const cost = halved ? Math.ceil(spell.mp / 2) : spell.mp;
+    // 稽古台には墨を使わない。**試すことに値段を付けない**
+    const cost = this.enemy.def.dummy ? 0 : halved ? Math.ceil(spell.mp / 2) : spell.mp;
 
     // ── MPが足りない ──
     if (cost > this.player.mp) {
@@ -264,7 +289,7 @@ export class Battle {
 
   private applySelfSpell(sp: Spell): void {
     if (sp.element === "HEAL") {
-      // 完本：全回復＋全解除
+      // 完全な一冊：全回復＋全解除
       if (sp.id === 55) {
         this.player.hp = this.player.maxHp;
         this.player.statuses = [];
@@ -297,19 +322,19 @@ export class Battle {
 
     let power = sp.power;
 
-    // 木霊：直前に唱えた属性を継承する
+    // やまびこ：直前に唱えた属性を継承する
     const element = sp.id === 37 ? this.lastElement : sp.element;
     const useMul = sp.id === 37 ? elementMultiplier(element, this.enemy) : mul;
 
-    // 裂帛：敵の残HPが少ないほど鋭い
+    // 裂け目：敵の残HPが少ないほど鋭い
     if (sp.id === 39) power = Math.floor(power * (1 + (1 - this.enemy.hp / this.enemy.maxHp) * 0.8));
-    // 逆巻：失ったHPに比例
+    // 仕返し：失ったHPに比例
     if (sp.id === 48) power = Math.floor(power * (1 + (1 - this.player.hp / this.player.maxHp) * 1.0));
-    // 断蟲：虫に特効
+    // 虫封じ：虫に特効
     let special = 1;
     if (sp.id === 6 && this.enemy.def.tags.includes("INSECT")) special = 2.5;
 
-    // 先読・加筆による強化
+    // 先読み・加筆による強化
     const boost = findStatus(this.player, "POWER_UP");
     const boostMul = boost ? 1 + (boost.magnitude ?? 0) / 100 : 1;
     if (boost && boost.turns <= 1) consume(this.player, "POWER_UP");
@@ -320,7 +345,9 @@ export class Battle {
     const base = power * useMul * special * boostMul;
     const dmg = Math.max(1, Math.floor(base) - effDef);
 
-    this.enemy.hp = Math.max(0, this.enemy.hp - dmg);
+    // 稽古台は倒れない。数字だけ出す
+    const floor = this.enemy.def.dummy ? 1 : 0;
+    this.enemy.hp = Math.max(floor, this.enemy.hp - dmg);
 
     if (useMul >= 2) this.say(`弱点を突いた！　${dmg} のダメージ。`);
     else if (useMul <= 0.5) this.say(`効果はいまひとつだ。　${dmg} のダメージ。`);
@@ -366,6 +393,14 @@ export class Battle {
   }
 
   flee(): void {
+    // 稽古台からはいつでも離れられる。ここで足止めする理由が無い
+    if (this.enemy.def.dummy) {
+      this.say("人形から、離れた。");
+      this.after = "END";
+      this.phase = "MESSAGE";
+      this.fled = true;
+      return;
+    }
     // ボスからは逃げられない。
     // 禁書庫は一本道で、戻る扉が無い。逃げられてしまうと、
     // **倒していないラスボスと同じ部屋に取り残される。**
@@ -393,6 +428,13 @@ export class Battle {
 
   private enemyTurn(): void {
     const e = this.enemy;
+
+    // 稽古台は撃ち返してこない。**ここは戦いではなく、練習である**
+    if (e.def.dummy) {
+      this.say("人形は、黙って立っている。");
+      this.endRound();
+      return;
+    }
 
     if (has(e, "FREEZE")) {
       this.say(`${e.def.name} は 動けない。`);

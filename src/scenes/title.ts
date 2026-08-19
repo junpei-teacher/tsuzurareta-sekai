@@ -23,7 +23,7 @@ import { authoredEntries, fragmentCount } from "../ending/resolve.ts";
 
 const TITLE = "焚書の夜";
 
-type Item = { label: string; act: "start" | "collection" | "debug" };
+type Item = { label: string; act: "start" | "vault" | "collection" | "debug" };
 
 /**
  * 画面外の下から差す火。**画面の中に炎は描かない。**
@@ -45,13 +45,29 @@ export class TitleScene implements Scene {
   constructor(
     private readonly player: Player,
     private readonly onStart: () => void,
+    private readonly onVault: () => void,
     private readonly onCollection: () => void,
     private readonly onDebug: () => void,
   ) {
     this.items = [
       { label: "はじめる", act: "start" },
-      { label: "集めたもの", act: "collection" },
     ];
+    /**
+     * **一度でも白紙に向き合った人にだけ出す。**
+     *
+     * 禁書は第3章の最奥にあって、書けるのは1周に1回だけだった。
+     * 断章40本と結末24本を集めるには、実際に数えて **104周** かかる。
+     * 「集めたもの」に、原理的に埋まらない欄が64個並んでいた。
+     *
+     * 初回は必ずタイトルへ戻す。書き換えないことを選ぶ重さ（設計書 6.5）は
+     * 一度目にしか無いので、そこは触らない。**二度目からは、何度でも立てる。**
+     *
+     * 旗は増やさない。断章か結末を1つでも見ていれば、書いた証拠になる。
+     */
+    if (player.seenEndings.size + player.seenFragments.size > 0) {
+      this.items.push({ label: "禁書を開く", act: "vault" });
+    }
+    this.items.push({ label: "集めたもの", act: "collection" });
     // 通しで遊ぶ人には見せない。開発中だけ、章の飛び込み口を残しておく
     if (import.meta.env.DEV) this.items.push({ label: "ためす（開発）", act: "debug" });
   }
@@ -72,6 +88,7 @@ export class TitleScene implements Scene {
       sfx.play("confirm");
       const act = this.items[this.index]!.act;
       if (act === "start") this.onStart();
+      else if (act === "vault") this.onVault();
       else if (act === "collection") this.onCollection();
       else this.onDebug();
       return;

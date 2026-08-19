@@ -51,7 +51,7 @@ loadProgress(player); // 呪文帳は周回を跨いで残る（設計書 5.4）
 // 前回名乗った名。第2章・第3章へ直接飛ぶデバッグ経路でも空欄にならないようにする
 player.name = loadName() || player.name;
 setDialogueName(player.name);
-player.grimoire.set(20, "ROZHA"); // 熾火。ミラが最初に教えてくれた言葉
+player.grimoire.set(20, "ROZHA"); // 残り火。ミラが最初に教えてくれた言葉
 
 const field = new FieldState();
 
@@ -65,7 +65,7 @@ let scene: Scene;
  */
 function goTitle(): void {
   audio.play("opening");
-  scene = new TitleScene(player, () => startChapter(1), goCollection, goSelect);
+  scene = new TitleScene(player, () => startChapter(1), goVault, goCollection, goSelect);
 }
 
 function goCollection(): void {

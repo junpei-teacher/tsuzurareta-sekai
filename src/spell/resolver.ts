@@ -41,6 +41,21 @@ const TIER_OFFSET: Record<Tier, number> = (() => {
 /** 呪文総数（不発を除く）。設計書では 57 種 */
 export const SPELL_COUNT = TIERS.reduce((n, t) => n + t.size, 0);
 
+/**
+ * 呪文として成立する最小の長さ。
+ *
+ * **一字や二字は「言葉」ではない**、というのが表向きの理由だが、
+ * 実際に困っていたのはこちらである：
+ * ハッシュの都合で `A` の一字が『真名』（レア・威力70）に、
+ * `X` が『白紙』（55）に、`I` が『灯明』（回復50）に着地していた。
+ * 36通り打てば当たるので、**序盤が一字の連打で終わる。**
+ * 帯の境界もハッシュも凍結されているため、着地先は動かせない。
+ *
+ * 長さで切れば、既存の呪文名（最短は DIZO の4字）に一切触れずに塞げる。
+ * 短すぎる入力は不発ですらなく、**MPも手番も失わない**（打ち間違いを罰しない）。
+ */
+export const MIN_WORD_LENGTH = 3;
+
 export type Resolution = {
   /** 正規化後の入力 */
   word: string;
@@ -53,6 +68,8 @@ export type Resolution = {
   index: number;
   /** 全呪文を通した一意ID。不発なら -1 */
   spellId: number;
+  /** 短すぎて言葉になっていない。不発とは別に扱う */
+  tooShort: boolean;
 };
 
 /**
@@ -65,15 +82,21 @@ export function resolveSpell(input: string): Resolution {
   const r = hash % 10000;
   const q = Math.floor(hash / 10000);
 
-  // 空入力は無条件で不発（ハッシュ値に関わらず）
-  if (word.length === 0) {
-    return { word, hash, r, tier: "DUD", label: "不発", index: -1, spellId: -1 };
+  // 短すぎる入力は、ハッシュ値に関わらず何にも着地しない
+  if (word.length < MIN_WORD_LENGTH) {
+    return {
+      word, hash, r, tier: "DUD", label: "不発",
+      index: -1, spellId: -1, tooShort: true,
+    };
   }
 
   for (const t of TIERS) {
     if (r < t.limit) {
       if (t.size === 0) {
-        return { word, hash, r, tier: t.tier, label: t.label, index: -1, spellId: -1 };
+        return {
+          word, hash, r, tier: t.tier, label: t.label,
+          index: -1, spellId: -1, tooShort: false,
+        };
       }
       const index = q % t.size;
       return {
@@ -82,10 +105,11 @@ export function resolveSpell(input: string): Resolution {
         label: t.label,
         index,
         spellId: TIER_OFFSET[t.tier] + index,
+        tooShort: false,
       };
     }
   }
 
   // r は必ず 0-9999 なので到達しないが、型のために残す
-  return { word, hash, r, tier: "DUD", label: "不発", index: -1, spellId: -1 };
+  return { word, hash, r, tier: "DUD", label: "不発", index: -1, spellId: -1, tooShort: false };
 }

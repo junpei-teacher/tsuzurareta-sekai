@@ -34,6 +34,66 @@ const SPELLS = (rawBook as unknown as { spells: Spell[] }).spells;
 const BY_ID = new Map<number, Spell>();
 for (const s of SPELLS) BY_ID.set(s.id, s);
 
+/**
+ * 属性の日本語表記。
+ *
+ * 対象は中高生なので、`NAME` `NONE` のままでは何のことか分からない。
+ * 一字に畳んであるのは戦闘画面の相性欄が狭いためで、
+ * 呪文帳では `属性名 + "属性"` の形で出す。
+ */
+export const ELEMENT_JP: Record<Element, string> = {
+  FIRE: "火", ICE: "氷", BOLT: "雷",
+  NAME: "名", HEAL: "癒", NONE: "無",
+};
+
+/** 帯の日本語表記。「コモン」より「初級」のほうが強さの順が分かる */
+export const TIER_JP: Record<Tier, string> = {
+  DUD: "不発", COMMON: "初級", UNCOMMON: "中級", RARE: "上級", MYTH: "神話級",
+};
+
+const TARGET_JP: Record<SpellTarget, string> = {
+  SINGLE: "単体", ALL: "全体", SELF: "自分",
+};
+
+/**
+ * 呪文帳に出す一行の説明。**フレーバーではなく、使うための情報を出す。**
+ *
+ * 以前ここには「ミラが最初に教えてくれた言葉。」のような一文が出ていた。
+ * 読み物としては良いが、戦闘中に呪文帳を開く人が知りたいのは
+ * **何属性で、どれくらい強くて、何に効くか**である。
+ */
+export function spellSummary(s: Spell): string {
+  const tier = TIER_JP[s.tier];
+  if (s.element === "HEAL") {
+    return s.power >= 999
+      ? `${tier}　自分を全快させる　MP${s.mp}`
+      : `${tier}　自分のHPを ${s.power} 回復　MP${s.mp}`;
+  }
+  if (s.power === 0) {
+    return `${tier}　${STATUS_JP[s.status?.kind ?? "CLEANSE"]}　MP${s.mp}`;
+  }
+  const el = `${ELEMENT_JP[s.element]}属性`;
+  const note = s.element === "NONE" ? "属性の相性を受けにくい" : "弱点の相手に2倍";
+  return `${tier}　${el}　威力${s.power}　${TARGET_JP[s.target]}　${note}`;
+}
+
+/** 状態変化のやさしい言い換え。効果の説明にそのまま使う */
+export const STATUS_JP: Record<StatusKind, string> = {
+  DEF_DOWN: "相手の守りを下げる",
+  SLOW:     "相手の動きを鈍らせる",
+  SILENCE:  "相手の呪文を封じる",
+  BURN:     "相手を燃やし続ける",
+  FREEZE:   "相手を凍らせて動けなくする",
+  POWER_UP: "次の呪文の威力を上げる",
+  MP_HALF:  "次の呪文のMPを半分にする",
+  REVEAL:   "相手の弱点を見抜く",
+  FLEE_UP:  "確実に逃げられるようにする",
+  SHIELD:   "攻撃を一度だけ肩代わりする",
+  ACC_DOWN: "相手の攻撃を当たりにくくする",
+  CLEANSE:  "自分の状態異常を治す",
+  GUARD:    "受けるダメージを半分にする",
+};
+
 export function allSpells(): readonly Spell[] {
   return SPELLS;
 }

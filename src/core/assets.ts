@@ -91,6 +91,8 @@ export const MANIFEST: Record<string, string> = {
   ...enemySprites(
     "bookworm", "inkslime", "sootbat", "emberfiend",
     "soldier", "erased", "ashvoice", "archdemon",
+    // 稽古台。第1章の写字机の間で、MPを使わずに呪文を試すための相手
+    "dummy",
     // 「名を失くした頁」。**抹消された名前の者と絵を共用しない。**
     // 同類ではあるが、ボスは「消された人」でローブを着ており、
     // こちらは「人になりきれなかった紙」。布を着せないことで描き分ける
@@ -102,6 +104,7 @@ export const MANIFEST: Record<string, string> = {
   // そのままマップに置くと壁を突き抜ける。ここは2マスに収まる小さな姿にする
   ...mobSprites(
     "bookworm", "inkslime", "sootbat", "emberfiend", "unnamed", "archdemon",
+    "dummy",
   ),
 };
 

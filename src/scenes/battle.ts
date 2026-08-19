@@ -11,7 +11,7 @@ import { TextField } from "../ui/textField.ts";
 import { bar, statusTags, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { saveProgress } from "../game/save.ts";
-import { allSpells } from "../spell/book.ts";
+import { allSpells, ELEMENT_JP, type Element } from "../spell/book.ts";
 
 const COMMANDS = ["詠唱", "呪文帳", "道具", "逃げる"] as const;
 
@@ -277,16 +277,29 @@ export class BattleScene implements Scene {
     const nameW = d.measure(name);
     d.text(name, Math.round((SCREEN_W - nameW) / 2), 10, PAL.ink);
 
-    bar(d, 150, 26, 180, 6, e.hp / e.maxHp, e.hp / e.maxHp > 0.3 ? "#a8563f" : "#d0402f");
-    d.textRight(`${e.hp} / ${e.maxHp}`, 330, 36, PAL.dim);
-
-    if (this.battle.revealed) {
-      const parts: string[] = [];
-      if (e.def.weak.length) parts.push(`弱点 ${e.def.weak.join("・")}`);
-      if (e.def.resist.length) parts.push(`耐性 ${e.def.resist.join("・")}`);
-      if (e.def.immune.length) parts.push(`無効 ${e.def.immune.join("・")}`);
-      if (parts.length) d.text(parts.join("　"), 150, 36, PAL.accent);
+    // 稽古台に体力の目盛りは要らない。**9975 / 9999 と出ると、
+    // 倒せる相手に見えて、倒しに行った人が延々と殴ることになる**
+    if (e.def.dummy) {
+      d.textRight("何度でも", 330, 26, PAL.dim);
+    } else {
+      bar(d, 150, 26, 180, 6, e.hp / e.maxHp, e.hp / e.maxHp > 0.3 ? "#a8563f" : "#d0402f");
+      d.textRight(`${e.hp} / ${e.maxHp}`, 330, 36, PAL.dim);
     }
+
+    // **相性は最初から出す。**
+    //
+    // 以前は「見抜く」を唱えているあいだしか見えなかった。
+    // 属性は敵ごとに設定してあるのに、それが見えないので
+    // プレイヤーは同じ呪文を並べるしかなかった。弱点を探す遊び（設計書 4.4）は、
+    // **弱点が見えて初めて遊びになる。**
+    // 属性は日本語一字で出す。FIRE/ICE はともかく NAME/NONE は英語では通じない。
+    const jp = (list: Element[]) => list.map((el) => ELEMENT_JP[el]).join("・");
+    const parts: string[] = [];
+    if (e.def.weak.length) parts.push(`弱点 ${jp(e.def.weak)}`);
+    if (e.def.resist.length) parts.push(`半減 ${jp(e.def.resist)}`);
+    if (e.def.immune.length) parts.push(`無効 ${jp(e.def.immune)}`);
+    // HPの数字（y=36 に右寄せ）と同じ行に置くと重なる。1段下げる
+    if (parts.length) d.text(parts.join("　"), 150, 50, PAL.accent);
 
     statusTags(d, 150, 124, e.statuses);
   }

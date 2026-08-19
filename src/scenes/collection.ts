@@ -30,7 +30,8 @@ export class CollectionScene implements Scene {
   private tab = 0;
   private index = [0, 0, 0];
   private scroll = [0, 0, 0];
-  private readonly grimoire = new GrimoireView();
+  // 読むための画面なので、説明のあとにフレーバーの一文も出す
+  private readonly grimoire = new GrimoireView("read");
 
   constructor(
     private readonly player: Player,
