@@ -18,7 +18,9 @@
     "balance": "tsx tools/balance.ts",
     "fit": "tsx tools/fit-sprite.ts",
     "lineup": "tsx tools/lineup.ts",
-    "frames": "tsx tools/check-frames.ts"
+    "frames": "tsx tools/check-frames.ts",
+    "tiles": "tsx tools/fetch-tiles-pro.ts",
+    "matchfloor": "tsx tools/match-floor.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

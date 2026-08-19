@@ -64,12 +64,21 @@ export class TitleScene implements Scene {
      *
      * 旗は増やさない。断章か結末を1つでも見ていれば、書いた証拠になる。
      */
-    if (player.seenEndings.size + player.seenFragments.size > 0) {
-      this.items.push({ label: "禁書を開く", act: "vault" });
-    }
+    const wrote = player.seenEndings.size + player.seenFragments.size > 0;
+    if (wrote) this.items.push({ label: "禁書を開く", act: "vault" });
     this.items.push({ label: "集めたもの", act: "collection" });
-    // 通しで遊ぶ人には見せない。開発中だけ、章の飛び込み口を残しておく
-    if (import.meta.env.DEV) this.items.push({ label: "ためす（開発）", act: "debug" });
+    /**
+     * 「ためす」も、書き終えた人には開ける。
+     *
+     * もとは開発用の飛び込み口だったが、書庫のどこへでも行けて
+     * どの相手とも戦えるので、**通した人へのおまけとしてそのまま通じる。**
+     * セーブを消す項目だけは向こうで隠してある（`src/scenes/select.ts`）。
+     */
+    if (import.meta.env.DEV) {
+      this.items.push({ label: "ためす（開発）", act: "debug" });
+    } else if (wrote) {
+      this.items.push({ label: "ためす", act: "debug" });
+    }
   }
 
   update(dt: number, keys: string[]): void {

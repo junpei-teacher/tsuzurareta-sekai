@@ -1,4 +1,4 @@
-import rawStone from "../../data/tiles/stone32.json";
+import rawStone from "../../data/tiles/stone_pro.json";
 import rawShelf from "../../data/tiles/shelf32.json";
 
 /**

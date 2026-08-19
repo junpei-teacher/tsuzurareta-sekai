@@ -9,19 +9,21 @@ import { ITEM_NAME } from "../game/player.ts";
 import { clearProgress } from "../game/save.ts";
 
 /**
- * Phase 3 の動作確認用メニュー。
- * 製品には残さない。Phase 4 でフィールドに置き換わる。
+ * ためす。
+ *
+ * もとは Phase 3 の動作確認用メニューで、製品には残さないつもりだった。
+ * **一度でも禁書に書いた人には開放する**ことにした（`src/scenes/title.ts`）。
+ * 書庫のどこへでも行けて、どの相手とも戦える。通した人へのおまけである。
+ *
+ * ただし**セーブを消す項目だけは開発時にしか出さない。** 積み上がるのは
+ * 呪文帳・断章・結末だけ（設計書 5.4）で、それを消す入口を、
+ * 遊ぶ人が入る画面に置く理由がない。
  */
-const EXTRAS = [
-  "第1章を歩く　静かな書庫",
-  "第2章を歩く　炎上",
-  "第3章を歩く　地下",
-  "禁書を開く　終章",
-  "HP/MP/道具を全回復",
-  "呪文帳を見る",
-  "呪文帳を初期化（セーブも消す）",
-  "詠唱テストベッドへ",
-];
+
+type Extra = {
+  label: string;
+  act: "ch1" | "ch2" | "ch3" | "vault" | "heal" | "grimoire" | "wipe" | "testbed";
+};
 
 /** 一覧の1行目と行間。17行が窓に収まる値 */
 const ROW_Y0 = 27;
@@ -32,6 +34,7 @@ export class SelectScene implements Scene {
   private caret = 0;
   private viewing = false;
   private readonly grimoire = new GrimoireView();
+  private readonly extras: Extra[];
 
   constructor(
     private readonly player: Player,
@@ -39,10 +42,24 @@ export class SelectScene implements Scene {
     private readonly onTestbed: () => void,
     private readonly onField: (chapter: number) => void,
     private readonly onVault: () => void,
-  ) {}
+  ) {
+    this.extras = [
+      { label: "第1章を歩く　静かな書庫", act: "ch1" },
+      { label: "第2章を歩く　炎上", act: "ch2" },
+      { label: "第3章を歩く　地下", act: "ch3" },
+      { label: "禁書を開く　終章", act: "vault" },
+      { label: "HP/MP/道具を全回復", act: "heal" },
+      { label: "呪文帳を見る", act: "grimoire" },
+      { label: "詠唱をためす", act: "testbed" },
+    ];
+    // **消す入口は開発時だけ。** 遊ぶ人の画面に置くものではない
+    if (import.meta.env.DEV) {
+      this.extras.push({ label: "呪文帳を初期化（セーブも消す）", act: "wipe" });
+    }
+  }
 
   private get rows(): number {
-    return ENEMIES.length + EXTRAS.length;
+    return ENEMIES.length + this.extras.length;
   }
 
   update(dt: number, keys: string[]): void {
@@ -63,25 +80,26 @@ export class SelectScene implements Scene {
       this.onFight(ENEMIES[this.index]!);
       return;
     }
-    switch (this.index - ENEMIES.length) {
-      case 0: this.onField(1); break;
-      case 1: this.onField(2); break;
-      case 2: this.onField(3); break;
-      case 3: this.onVault(); break;
-      case 4:
+    switch (this.extras[this.index - ENEMIES.length]?.act) {
+      case "ch1": this.onField(1); break;
+      case "ch2": this.onField(2); break;
+      case "ch3": this.onField(3); break;
+      case "vault": this.onVault(); break;
+      case "heal":
         this.player.restore();
         this.player.items = { ink: 5, drop: 3 };
         break;
-      case 5:
+      case "grimoire":
         this.viewing = true;
         this.grimoire.reset();
         break;
-      case 6:
+      case "wipe":
         this.player.grimoire.clear();
         this.player.unspoken.clear();
+        this.player.riddles.clear();
         this.player.seenEndings.clear();
         this.player.seenFragments.clear();
-        this.player.grimoire.set(20, "ROZHA"); // 熾火だけは最初から
+        this.player.grimoire.set(20, "ROZHA"); // 残り火だけは最初から
         clearProgress();
         break;
       default:
@@ -91,7 +109,10 @@ export class SelectScene implements Scene {
 
   render(d: Display): void {
     d.clear();
-    d.text("PHASE 3 ／ 戦闘テスト", 16, 8, PAL.accent);
+    d.text(
+      import.meta.env.DEV ? "ためす（開発）" : "ためす　——　書庫のどこへでも",
+      16, 8, PAL.accent,
+    );
     d.textRight("ENTER 決定　ESC もどる", SCREEN_W - 16, 8, PAL.dim);
 
     if (this.viewing) {
@@ -100,7 +121,7 @@ export class SelectScene implements Scene {
       return;
     }
 
-    // 敵9種＋その他8項目＝17行。13px間隔だと窓を40pxはみ出していた。
+    // 敵10種＋その他7〜8項目。13px間隔だと窓を40pxはみ出していた。
     // 行間を11に詰め、窓を上下いっぱい（22〜236）に伸ばして収める
     windowBox(d, 16, 22, 250, 214);
     ENEMIES.forEach((e, i) => {
@@ -111,12 +132,12 @@ export class SelectScene implements Scene {
       d.textRight(`ch${e.chapter}`, 256, y, PAL.hint);
     });
 
-    EXTRAS.forEach((label, k) => {
+    this.extras.forEach((extra, k) => {
       const i = ENEMIES.length + k;
       const y = ROW_Y0 + ENEMIES.length * ROW_H + 10 + k * ROW_H;
       const on = i === this.index;
       if (on) d.text("▸", 26, y, PAL.accent);
-      d.text(label, 40, y, on ? PAL.ink : PAL.dim);
+      d.text(extra.label, 40, y, on ? PAL.ink : PAL.dim);
     });
 
     // 選択中の敵の説明

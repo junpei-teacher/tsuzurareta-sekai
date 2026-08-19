@@ -37,11 +37,14 @@ export const MANIFEST: Record<string, string> = {
 
   // Wang タイルセット（各16タイル・4x4シート・32px）
   // 減色はかけない。生成そのままの色をそのまま使う
-  "tiles.stone": "/assets/tiles2/stone.png",
+  "tiles.stone": "/assets/tiles2/stone_pro.png",
   "tiles.shelf": "/assets/tiles2/shelf.png",
 
   // 家具。マスに乗せるスプライト（32pxタイル用に2倍サイズ）
+  // 写字机は2種。**同じ寸法で、置いてあるものが違う。**
+  // 同じ絵が16卓ならぶと、部屋が壁紙のように見える
   "prop.desk": "/assets/props2/desk.png",
+  "prop.desk2": "/assets/props2/desk2.png",
   "prop.candle": "/assets/props2/candle.png",
   "prop.door": "/assets/props2/door.png",
   // 階段は絵を持たない。src/scenes/field.ts の renderStairs で組む

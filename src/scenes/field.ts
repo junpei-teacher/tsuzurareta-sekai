@@ -630,8 +630,10 @@ export class FieldScene implements Scene {
   }
 
   private renderProps(d: Display): void {
-    // 写字机は2マス幅。横に連なるマスの先頭から2マスおきに置く
-    const desk = this.images["prop.desk"];
+    // 写字机は2マス幅。横に連なるマスの先頭から2マスおきに置く。
+    // **絵は2種を交互ではなく、位置で散らす。**
+    // 交互だと縞に見えるので、座標から作った擬似乱数で選ぶ（毎フレーム同じ絵になる）
+    const desks = [this.images["prop.desk"], this.images["prop.desk2"]];
     for (let y = 0; y < this.map.h; y++) {
       let runStart = -1;
       for (let x = 0; x <= this.map.w; x++) {
@@ -642,7 +644,8 @@ export class FieldScene implements Scene {
           if (this.tileAt(runStart, y - 1) !== "T") {
             for (let i = runStart; i < x; i += 2) {
               // 64pxの机は2マス分。デザイン単位では TILE*2 に収まる
-              if (desk) d.sprite(desk, ORIGIN_X + i * TILE, ORIGIN_Y + y * TILE - 2);
+              const pick = desks[(i * 7 + y * 13) % 2] ?? desks[0];
+              if (pick) d.sprite(pick, ORIGIN_X + i * TILE, ORIGIN_Y + y * TILE - 2);
               else d.rect(ORIGIN_X + i * TILE, ORIGIN_Y + y * TILE, TILE * 2, TILE * 2, this.col("#4a3826"));
             }
           }
