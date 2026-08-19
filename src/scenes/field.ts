@@ -17,7 +17,7 @@ import { BurnLayer, scorch } from "../fx/burn.ts";
 import { saveProgress } from "../game/save.ts";
 import { spellById } from "../spell/book.ts";
 import { ChapterTitle } from "../ui/chapterTitle.ts";
-import { DialogueBox, speaker } from "../ui/dialogue.ts";
+import { DialogueBox, speaker, type Speaker } from "../ui/dialogue.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { bar, windowBox } from "../ui/hud.ts";
 import { ENEMIES } from "../battle/model.ts";
@@ -86,7 +86,7 @@ export class FieldScene implements Scene {
   /** 会話を閉じたら始まる戦い（ボス）*/
   private pendingBattle: { ref: string; cellKey: string } | null = null;
   /** 会話を閉じたら潜る先（書架の裏の隙間など。扉の絵を出さずに繋ぐ） */
-  private pendingWarp: { map: string; x: number; y: number } | null = null;
+  private pendingWarp: NonNullable<Speaker["leadsTo"]> | null = null;
   /** 歩行サイクルの位相。歩いているあいだだけ進む */
   private walkPhase = 0;
   private time = 0;
@@ -223,7 +223,7 @@ export class FieldScene implements Scene {
         if (this.pendingWarp) {
           const w = this.pendingWarp;
           this.pendingWarp = null;
-          this.warpTo(w.map, w.x, w.y);
+          this.warpTo(w);
           return;
         }
         if (this.lastTalkedMira) { this.moveMira(); return; }
@@ -480,14 +480,17 @@ export class FieldScene implements Scene {
    * 別の部屋へ移る。扉を踏んだときと同じ手順を、会話からも使えるようにしたもの。
    * `onArrive` は通らない（隙間を抜けた先で、いきなり戦いが始まっては困る）。
    */
-  private warpTo(mapId: string, x: number, y: number): void {
+  private warpTo(to: NonNullable<Speaker["leadsTo"]>): void {
     sfx.play("door");
-    this.state.mapId = mapId;
-    this.state.x = x;
-    this.state.y = y;
-    this.map = getMap(mapId);
-    this.fromX = x;
-    this.fromY = y;
+    this.state.mapId = to.map;
+    this.state.x = to.x;
+    this.state.y = to.y;
+    // **向きを指定しないと、くぐった穴を向いたまま出る。**
+    // そこで Enter を押すと、そのまま来た道を戻ってしまう
+    if (to.facing) this.state.facing = to.facing;
+    this.map = getMap(to.map);
+    this.fromX = to.x;
+    this.fromY = to.y;
     this.stepT = 0;
     this.checkOnEnter();
   }

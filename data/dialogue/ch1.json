@@ -196,7 +196,7 @@
     "name": "",
     "color": "#6b5f4d",
     "chapters": [1],
-    "leadsTo": { "map": "ch1_inkroom", "x": 13, "y": 8 },
+    "leadsTo": { "map": "ch1_inkroom", "x": 10, "y": 9, "facing": "right" },
     "talks": [
       [
         "書架の列が途切れた、左の隅。",
@@ -215,7 +215,7 @@
     "name": "",
     "color": "#6b5f4d",
     "chapters": [1],
-    "leadsTo": { "map": "ch1_stacks", "x": 1, "y": 11 },
+    "leadsTo": { "map": "ch1_stacks", "x": 1, "y": 11, "facing": "up" },
     "talks": [
       [
         "来たときの穴。",
@@ -261,7 +261,7 @@
       [
         "反故紙を丸めて縛った人形が、立てかけてある。",
         "誰かが的にしていたのだろう。焦げた跡がいくつも残っている。",
-        "足元に、新しい札が一枚。",
+        "人形のわきに、新しい札が一枚。",
         "《すきに ためして いいよ　　MIRA》"
       ],
       [

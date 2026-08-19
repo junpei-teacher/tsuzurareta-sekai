@@ -55,7 +55,17 @@ export type Speaker = {
    * 「見た目は通り道に見えない場所」は、`!door` にすると扉が生えてしまう。
    * 調べる点（`!sign`）として置き、読み終えたところで潜らせる。
    */
-  leadsTo?: { map: string; x: number; y: number };
+  leadsTo?: {
+    map: string; x: number; y: number;
+    /**
+     * 着いたときの向き。
+     *
+     * **省略すると、くぐった穴を向いたまま出る。**
+     * そこで Enter を押すと、そのまま来た道を戻ってしまう。
+     * 出た先で部屋のほうを向かせること。
+     */
+    facing?: "up" | "down" | "left" | "right";
+  };
   /**
    * 部屋に入った瞬間、**全ての台詞を続けて出してから** `battleAfter` に入る。
    *

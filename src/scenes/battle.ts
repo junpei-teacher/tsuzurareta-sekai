@@ -287,33 +287,39 @@ export class BattleScene implements Scene {
       d.textRight(`${e.hp} / ${e.maxHp}`, 330, 36, PAL.dim);
     }
 
-    // **相性は最初から出す。**
+    // **相性は、既定では出さない。**
     //
-    // 以前は「見抜く」を唱えているあいだしか見えなかった。
-    // 属性は敵ごとに設定してあるのに、それが見えないので
-    // プレイヤーは同じ呪文を並べるしかなかった。弱点を探す遊び（設計書 4.4）は、
-    // **弱点が見えて初めて遊びになる。**
-    // **字ではなく絵記号で出す。**
-    // 「弱点 名」と書かれても、戦闘中に一瞥して分かる形ではない。
-    // 火・氷・雷はまだしも `名` と `無` は、字を読んで意味を考える手が要る。
-    // 記号の意味は呪文帳の説明文（「火属性」）で分かるようにしてある
-    const groups: Array<{ label: string; list: Element[] }> = [
-      { label: "弱点", list: e.def.weak },
-      { label: "半減", list: e.def.resist },
-      { label: "無効", list: e.def.immune },
-    ].filter((g) => g.list.length > 0);
+    // 一度は常に出していたが、書いてあると**試し打ちをしなくなる。**
+    // このゲームの中心にある行為は知らない言葉を打ってみることで（設計書 3）、
+    // 答えが先に見えていると、その手前で止まる。
+    //
+    // かわりに、当てた結果で分かるようにしてある。
+    //   弱点  「弱点を突いた！　47 のダメージ。」
+    //   耐性  「効果はいまひとつだ。　8 のダメージ。」
+    //   無効  「紙喰い虫 には 通じない。」
+    //
+    // 見えるのは「見抜く」（REVEAL）を唱えているあいだだけ。
+    // これで、ほとんど使い道の無かったあの呪文に役目が戻る。
+    // 記号の意味は呪文帳の説明文（「火属性」）で分かる
+    if (this.battle.revealed) {
+      const groups: Array<{ label: string; list: Element[] }> = [
+        { label: "弱点", list: e.def.weak },
+        { label: "半減", list: e.def.resist },
+        { label: "無効", list: e.def.immune },
+      ].filter((g) => g.list.length > 0);
 
-    // HPの数字（y=36 に右寄せ）と同じ行に置くと重なる。1段下げる
-    let ix = 150;
-    for (const g of groups) {
-      d.text(g.label, ix, 50, g.label === "弱点" ? PAL.accent : PAL.dim);
-      ix += d.measure(g.label) + 3;
-      for (const el of g.list) {
-        // 効かない属性は薄く。並んでいても、突くべきものと区別がつく
-        elementIcon(d, ix, 51, el, g.label === "弱点" ? 1 : 0.55);
-        ix += ICON_SIZE + 2;
+      // HPの数字（y=36 に右寄せ）と同じ行に置くと重なる。1段下げる
+      let ix = 150;
+      for (const g of groups) {
+        d.text(g.label, ix, 50, g.label === "弱点" ? PAL.accent : PAL.dim);
+        ix += d.measure(g.label) + 3;
+        for (const el of g.list) {
+          // 効かない属性は薄く。並んでいても、突くべきものと区別がつく
+          elementIcon(d, ix, 51, el, g.label === "弱点" ? 1 : 0.55);
+          ix += ICON_SIZE + 2;
+        }
+        ix += 8;
       }
-      ix += 8;
     }
 
     statusTags(d, 150, 124, e.statuses);

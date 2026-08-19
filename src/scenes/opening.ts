@@ -19,6 +19,14 @@ const FADE_OUT = 0.7;
 /** 1文字あたりの追加の間。長い頁ほど長く出す */
 const HOLD_PER_CHAR = 0.075;
 const HOLD_MIN = 1.4;
+/**
+ * 全ての頁に足す間。
+ *
+ * 読み終わる速さで送っていたので、**文と文のあいだに何も無かった。**
+ * ここは世界の前提を一度だけ置く場所で、急いで通す意味がない。
+ * 読み終えてから、もう一拍おいてから消える。
+ */
+const HOLD_EXTRA = 2.0;
 
 const PAGES: string[][] = [
   [
@@ -44,7 +52,7 @@ const PAGES: string[][] = [
 
 function holdOf(page: string[]): number {
   const chars = page.reduce((n, l) => n + l.length, 0);
-  return Math.max(HOLD_MIN, chars * HOLD_PER_CHAR);
+  return HOLD_EXTRA + Math.max(HOLD_MIN, chars * HOLD_PER_CHAR);
 }
 
 export class OpeningScene implements Scene {
