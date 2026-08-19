@@ -85,6 +85,8 @@ export class FieldScene implements Scene {
   private miraFarewell = false;
   /** 会話を閉じたら始まる戦い（ボス）*/
   private pendingBattle: { ref: string; cellKey: string } | null = null;
+  /** 会話を閉じたら潜る先（書架の裏の隙間など。扉の絵を出さずに繋ぐ） */
+  private pendingWarp: { map: string; x: number; y: number } | null = null;
   /** 歩行サイクルの位相。歩いているあいだだけ進む */
   private walkPhase = 0;
   private time = 0;
@@ -216,6 +218,12 @@ export class FieldScene implements Scene {
           const b = this.pendingBattle;
           this.pendingBattle = null;
           this.onBattle(b.ref, b.cellKey);
+          return;
+        }
+        if (this.pendingWarp) {
+          const w = this.pendingWarp;
+          this.pendingWarp = null;
+          this.warpTo(w.map, w.x, w.y);
           return;
         }
         if (this.lastTalkedMira) { this.moveMira(); return; }
@@ -435,6 +443,9 @@ export class FieldScene implements Scene {
       saveProgress(this.player);
     }
 
+    // 読み終えたら潜る場所。扉ではないので、絵は出さない
+    this.pendingWarp = sp.leadsTo ? { ...sp.leadsTo } : null;
+
     this.dialogue.open(sp, talk);
     this.lastTalkedMira = target.ref === "mira";
 
@@ -463,6 +474,22 @@ export class FieldScene implements Scene {
     this.lastTalkedMira = false;
     this.openChapter();
     saveProgress(this.player);
+  }
+
+  /**
+   * 別の部屋へ移る。扉を踏んだときと同じ手順を、会話からも使えるようにしたもの。
+   * `onArrive` は通らない（隙間を抜けた先で、いきなり戦いが始まっては困る）。
+   */
+  private warpTo(mapId: string, x: number, y: number): void {
+    sfx.play("door");
+    this.state.mapId = mapId;
+    this.state.x = x;
+    this.state.y = y;
+    this.map = getMap(mapId);
+    this.fromX = x;
+    this.fromY = y;
+    this.stepT = 0;
+    this.checkOnEnter();
   }
 
   /**
@@ -901,6 +928,13 @@ export class FieldScene implements Scene {
       d.rect(px + 3, py + 7, 10, 1, "#8a7b5e");
       d.rect(px + 5, py + 10, 6, 1, "#241a11");
       d.rect(px + 5, py + 11, 6, 1, "#8a7b5e");
+      return;
+    }
+    if (look === "hole") {
+      // 書架の裏の隙間。**暗いだけ。** 扉に見せない
+      d.rect(px + 2, py + 5, 12, 10, "#0d0a09");
+      d.rect(px + 2, py + 4, 12, 1, "#2a211a");
+      d.rect(px + 3, py + 15, 10, 1, "#3a2f26");
       return;
     }
     if (look === "ash") {

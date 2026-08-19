@@ -8,6 +8,7 @@
 !sign q stone_carving carve
 !sign g shelf_tag
 !sign s shelf_37
+!sign j stack_gap hole
 !door n ch1_reading 13 12
 !door e ch1_stairs 1 6
 !map
@@ -15,7 +16,7 @@
 #........................q.#
 #.BB.BB.BB.BB.BB.BB.BB.BB..#
 #.BB.BB.BB.BB.BB.BB.BB.BB..#
-#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BB.BB.BB.BB.BBj.#
 #..g.......................#
 #...................2......e
 #....................s.....#

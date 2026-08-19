@@ -17,7 +17,7 @@
  *                                    （例: `!enemy 3 - emberfiend` は第2章のみ）
  *   !door  d ch1_stacks 14 1      … 文字 d の位置に別マップへの出入口
  *   !sign  s notice_board         … 文字 s の位置に調べられる点。
- *                                    3つ目に見た目（paper / carve / ash）。省略で紙
+ *                                    3つ目に見た目（paper / carve / ash / hole）。省略で紙
  *   !vault k                      … 文字 k の位置に禁書（調べると書き込みへ）
  *   !map                          … これ以降がマップ本体
  *
@@ -47,9 +47,9 @@ export type EntityKind = "npc" | "enemy" | "door" | "sign" | "vault";
  * **石壁の彫り跡**も紙に見える。調べる物が一種類しか無いように見えるので、
  * 部屋を見回す気にならない。**絵が3種あるだけで、見回す動機になる。**
  */
-export type SignLook = "paper" | "carve" | "ash";
+export type SignLook = "paper" | "carve" | "ash" | "hole";
 
-const SIGN_LOOKS = new Set<string>(["paper", "carve", "ash"]);
+const SIGN_LOOKS = new Set<string>(["paper", "carve", "ash", "hole"]);
 
 export type MapEntity = {
   kind: EntityKind;
