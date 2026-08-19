@@ -4,7 +4,7 @@
 !enemy 4 dummy -
 !sign d dummy_note
 !sign h ink_floor ash
-!door o ch1_stacks 25 5
+!sign o ink_exit hole
 !map
 ############################
 ############################

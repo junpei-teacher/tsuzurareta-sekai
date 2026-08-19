@@ -10,8 +10,9 @@ import { Battle, spawn, type EnemyDef } from "../battle/model.ts";
 import { TextField } from "../ui/textField.ts";
 import { bar, statusTags, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
+import { elementIcon, ICON_SIZE } from "../ui/icons.ts";
 import { saveProgress } from "../game/save.ts";
-import { allSpells, ELEMENT_JP, type Element } from "../spell/book.ts";
+import { allSpells, type Element } from "../spell/book.ts";
 
 const COMMANDS = ["詠唱", "呪文帳", "道具", "逃げる"] as const;
 
@@ -292,14 +293,28 @@ export class BattleScene implements Scene {
     // 属性は敵ごとに設定してあるのに、それが見えないので
     // プレイヤーは同じ呪文を並べるしかなかった。弱点を探す遊び（設計書 4.4）は、
     // **弱点が見えて初めて遊びになる。**
-    // 属性は日本語一字で出す。FIRE/ICE はともかく NAME/NONE は英語では通じない。
-    const jp = (list: Element[]) => list.map((el) => ELEMENT_JP[el]).join("・");
-    const parts: string[] = [];
-    if (e.def.weak.length) parts.push(`弱点 ${jp(e.def.weak)}`);
-    if (e.def.resist.length) parts.push(`半減 ${jp(e.def.resist)}`);
-    if (e.def.immune.length) parts.push(`無効 ${jp(e.def.immune)}`);
+    // **字ではなく絵記号で出す。**
+    // 「弱点 名」と書かれても、戦闘中に一瞥して分かる形ではない。
+    // 火・氷・雷はまだしも `名` と `無` は、字を読んで意味を考える手が要る。
+    // 記号の意味は呪文帳の説明文（「火属性」）で分かるようにしてある
+    const groups: Array<{ label: string; list: Element[] }> = [
+      { label: "弱点", list: e.def.weak },
+      { label: "半減", list: e.def.resist },
+      { label: "無効", list: e.def.immune },
+    ].filter((g) => g.list.length > 0);
+
     // HPの数字（y=36 に右寄せ）と同じ行に置くと重なる。1段下げる
-    if (parts.length) d.text(parts.join("　"), 150, 50, PAL.accent);
+    let ix = 150;
+    for (const g of groups) {
+      d.text(g.label, ix, 50, g.label === "弱点" ? PAL.accent : PAL.dim);
+      ix += d.measure(g.label) + 3;
+      for (const el of g.list) {
+        // 効かない属性は薄く。並んでいても、突くべきものと区別がつく
+        elementIcon(d, ix, 51, el, g.label === "弱点" ? 1 : 0.55);
+        ix += ICON_SIZE + 2;
+      }
+      ix += 8;
+    }
 
     statusTags(d, 150, 124, e.statuses);
   }

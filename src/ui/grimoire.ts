@@ -1,7 +1,8 @@
 import type { Display } from "../core/display.ts";
 import { PAL, TIER_COLOR } from "../core/palette.ts";
 import type { Player } from "../game/player.ts";
-import { allSpells, ELEMENT_JP, spellById, spellSummary } from "../spell/book.ts";
+import { allSpells, spellById, spellSummary } from "../spell/book.ts";
+import { elementIcon } from "./icons.ts";
 import { windowBox } from "./hud.ts";
 
 const ROWS = 8;
@@ -109,9 +110,10 @@ export class GrimoireView {
       const word = player.grimoire.get(row.id) ?? "";
       d.text(word, x + 24, ry, unspoken ? PAL.dim : PAL.ink);
       d.text(sp.name, x + 108, ry, TIER_COLOR[sp.tier]);
-      // 属性は日本語一字。FIRE/ICE はともかく NAME/NONE は英語では通じない
-      d.text(ELEMENT_JP[sp.element], x + 196, ry, PAL.dim);
-      if (sp.power > 0) d.text(`威${sp.power}`, x + 218, ry, PAL.dim);
+      // 属性は絵記号。**戦闘画面の相性欄と同じ記号**にしてある。
+      // 何の記号かは、下の説明文（「火属性」）を読めば分かる
+      elementIcon(d, x + 196, ry + 3, sp.element);
+      if (sp.power > 0) d.text(`威${sp.power}`, x + 210, ry, PAL.dim);
       d.textRight(unspoken ? "未詠唱" : `MP${sp.mp}`, x + w - 14, ry, unspoken ? PAL.danger : PAL.dim);
     });
 
