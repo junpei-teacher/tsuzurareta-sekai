@@ -309,15 +309,35 @@ export class FieldScene implements Scene {
     if (this.state.isBlocked(this.map.id, x, y)) return false;
     if (this.state.isOpened(this.map.id, x, y)) return true;
     if (!walkable(this.tileAt(x, y))) return false;
-    // NPCは押しのけられない
-    const npc = this.entityAt(x, y, "npc");
-    if (npc && this.entityActive(npc)) return false;
-    // 張り紙・落書き・禁書の台は通り抜けられない。
+
+    // **置いてあるものには、すべて重なれない。**
+    // 乗れるものと乗れないものが混ざっていると、何が物で何が床か分からなくなる。
+    // 通り抜けられるのは扉だけで、あれは物ではなく開口部である。
+
+    // 人は押しのけられない。**縦2マス分**塞ぐ。
+    // 立ち姿は 48px（＝1.5マス）あるので、足元のマスだけ塞いでも
+    // 頭のあたりをすり抜けられて、重なって見える
+    if (this.npcBlocks(x, y)) return false;
+
+    // 張り紙・落書き・彫り跡・穴。
     // ただし**その章に存在しないもの**は、床として扱う（焼却命令書は第2章にしか無い）
     const sign = this.entityAt(x, y, "sign");
     if (sign && this.entityActive(sign)) return false;
+
+    // 敵のシンボル。倒した相手はもういない
+    if (this.enemyAt(x, y)) return false;
+
     if (this.entityAt(x, y, "vault")) return false;
     return true;
+  }
+
+  /** そのマスが人に塞がれているか。足元と、その1つ上を見る */
+  private npcBlocks(x: number, y: number): boolean {
+    for (const dy of [0, 1]) {
+      const npc = this.entityAt(x, y + dy, "npc");
+      if (npc && this.entityActive(npc)) return true;
+    }
+    return false;
   }
 
   private tileAt(x: number, y: number): Tile {
@@ -375,13 +395,19 @@ export class FieldScene implements Scene {
       return;
     }
 
-    const enemy = this.entityAt(x, y, "enemy");
-    if (enemy) {
-      // 同じマスでも、第1章と第2章では出るものが違う（設計書 2.8）
-      const ref = enemyRefFor(enemy, this.state.chapter);
-      const cellKey = `${this.map.id}:${x},${y}`;
-      if (ref && !this.state.defeated.has(cellKey)) this.onBattle(ref, cellKey);
-    }
+    // **敵のマスは踏めない。** 開戦は「しらべる」で起こす（interact）
+  }
+
+  /** そのマスに、今この章で立っている敵がいるか */
+  private enemyAt(x: number, y: number): { ref: string; cellKey: string } | undefined {
+    const e = this.entityAt(x, y, "enemy");
+    if (!e) return undefined;
+    // 同じマスでも、第1章と第2章では出るものが違う（設計書 2.8）
+    const ref = enemyRefFor(e, this.state.chapter);
+    if (!ref) return undefined;
+    const cellKey = `${this.map.id}:${x},${y}`;
+    if (this.state.defeated.has(cellKey)) return undefined;
+    return { ref, cellKey };
   }
 
   private interact(): void {
@@ -395,8 +421,22 @@ export class FieldScene implements Scene {
       return;
     }
 
+    // **敵は「しらべる」で始める。**
+    // 踏んだ瞬間に始まると、避けたい相手の脇を通るだけで巻き込まれる。
+    // 調べる物と同じ操作にしておけば、始める側が決められる
+    const foe = this.enemyAt(tx, ty);
+    if (foe) {
+      this.onBattle(foe.ref, foe.cellKey);
+      return;
+    }
+
+    // 人は縦2マス塞ぐので、**上から話しかけると目の前は「頭」のマス**になる。
+    // そこには実体が無いので、下向きのときだけもう1マス先を見る
+    const head = this.state.facing === "down"
+      ? this.entityAt(tx, ty + 1, "npc")
+      : undefined;
     const target =
-      this.entityAt(tx, ty, "npc") ?? this.entityAt(tx, ty, "sign");
+      this.entityAt(tx, ty, "npc") ?? head ?? this.entityAt(tx, ty, "sign");
     if (!target) {
       // 目の前の家具について一行返す。同じ棚なら、いつ調べても同じ文
       const line = noticeFor(this.map, tx, ty, this.state.chapter);

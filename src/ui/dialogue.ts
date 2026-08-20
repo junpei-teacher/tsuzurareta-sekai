@@ -106,6 +106,23 @@ const BY_CHAPTER: Record<number, Table> = {
 };
 const BASE = BY_CHAPTER[1]!;
 
+/**
+ * いま世界のどこかに置いてある、欠けた綴りの呪文ID。
+ *
+ * **控えは周回を跨いで残る**（設計書 3.8）ので、置く紙を差し替えると、
+ * 古いセーブに「どこにも無い紙の写し」が未解読のまま居座る。
+ * 読み込みのときに、ここに無いものを落とす（`src/game/save.ts`）。
+ */
+export function activeRiddleIds(): Set<number> {
+  const out = new Set<number>();
+  for (const table of Object.values(BY_CHAPTER)) {
+    for (const sp of Object.values(table)) {
+      if (sp.riddle) out.add(sp.riddle.id);
+    }
+  }
+  return out;
+}
+
 export function speaker(id: string, chapter = 1): Speaker | undefined {
   const s = BY_CHAPTER[chapter]?.[id] ?? BASE[id];
   return s && Array.isArray(s.talks) ? s : undefined;

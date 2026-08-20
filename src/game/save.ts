@@ -1,5 +1,6 @@
 import type { Player, Riddle } from "./player.ts";
 import { MIN_WORD_LENGTH } from "../spell/resolver.ts";
+import { activeRiddleIds } from "../ui/dialogue.ts";
 
 /**
  * セーブ（設計書 5.4 / 手順書 5-4）。
@@ -68,9 +69,14 @@ export function loadProgress(player: Player): boolean {
     player.unspoken = new Set(data.unspoken ?? []);
     player.seenFragments = new Set(data.fragments ?? []);
     player.seenEndings = new Set(data.endings ?? []);
+    // 置く紙を差し替えると、古いセーブに**どこにも無い紙の写し**が残る。
+    // 今このゲームに置いてある欠字だけを持ち越す
+    const placed = activeRiddleIds();
     player.riddles = new Map(
-      (data.riddles ?? []).map(([id, r]) =>
-        [id, typeof r === "string" ? { mask: r, place: "" } : r] as const),
+      (data.riddles ?? [])
+        .filter(([id]) => placed.has(id))
+        .map(([id, r]) =>
+          [id, typeof r === "string" ? { mask: r, place: "" } : r] as const),
     );
     return true;
   } catch (e) {

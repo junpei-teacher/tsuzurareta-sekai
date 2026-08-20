@@ -20,7 +20,8 @@
     "lineup": "tsx tools/lineup.ts",
     "frames": "tsx tools/check-frames.ts",
     "tiles": "tsx tools/fetch-tiles-pro.ts",
-    "matchfloor": "tsx tools/match-floor.ts"
+    "matchfloor": "tsx tools/match-floor.ts",
+    "reach": "tsx tools/reach.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
