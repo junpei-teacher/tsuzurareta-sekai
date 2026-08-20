@@ -55,6 +55,22 @@ const TARGET_JP: Record<SpellTarget, string> = {
   SINGLE: "単体", ALL: "全体", SELF: "自分",
 };
 
+/** 説明文に出す属性名。呪文帳では「火」ではなく「火属性」と書く */
+const ELEMENT_LABEL: Record<Element, string> = {
+  FIRE: "火属性", ICE: "氷属性", BOLT: "雷属性",
+  NAME: "名属性", HEAL: "回復", NONE: "無属性",
+};
+
+/**
+ * 説明文の前半と後半。**あいだに属性の絵記号を挟むため**に割ってある。
+ *
+ * 「火属性〔炎〕　威力24」の形にすると、字と記号が同じ場所に並ぶので、
+ * どの記号が何かを、呪文帳を開くたびに覚え直せる。
+ * 相性の一覧は戦闘中は出さない（設計書 4.4）ので、
+ * **記号を覚える経路はここと、詠唱の候補欄だけである。**
+ */
+export type SpellSummary = { head: string; tail: string };
+
 /**
  * 呪文帳に出す一行の説明。**フレーバーではなく、使うための情報を出す。**
  *
@@ -62,19 +78,18 @@ const TARGET_JP: Record<SpellTarget, string> = {
  * 読み物としては良いが、戦闘中に呪文帳を開く人が知りたいのは
  * **何属性で、どれくらい強くて、何に効くか**である。
  */
-export function spellSummary(s: Spell): string {
+export function spellSummary(s: Spell): SpellSummary {
   const tier = TIER_JP[s.tier];
+  const head = `${tier}　${ELEMENT_LABEL[s.element]}`;
+
   if (s.element === "HEAL") {
-    return s.power >= 999
-      ? `${tier}　自分を全快させる　MP${s.mp}`
-      : `${tier}　自分のHPを ${s.power} 回復　MP${s.mp}`;
+    return { head, tail: s.power >= 999 ? "すべて元に戻す" : `HPを ${s.power} 回復` };
   }
   if (s.power === 0) {
-    return `${tier}　${STATUS_JP[s.status?.kind ?? "CLEANSE"]}　MP${s.mp}`;
+    return { head, tail: STATUS_JP[s.status?.kind ?? "CLEANSE"] };
   }
-  const el = `${ELEMENT_JP[s.element]}属性`;
-  const note = s.element === "NONE" ? "属性の相性を受けにくい" : "弱点の相手に2倍";
-  return `${tier}　${el}　威力${s.power}　${TARGET_JP[s.target]}　${note}`;
+  const note = s.element === "NONE" ? "相性を受けにくい" : "弱点の相手に2倍";
+  return { head, tail: `威力${s.power}　${TARGET_JP[s.target]}　${note}` };
 }
 
 /** 状態変化のやさしい言い換え。効果の説明にそのまま使う */

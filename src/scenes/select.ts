@@ -42,6 +42,7 @@ export class SelectScene implements Scene {
     private readonly onTestbed: () => void,
     private readonly onField: (chapter: number) => void,
     private readonly onVault: () => void,
+    private readonly onBack: () => void,
   ) {
     this.extras = [
       { label: "第1章を歩く　静かな書庫", act: "ch1" },
@@ -69,6 +70,9 @@ export class SelectScene implements Scene {
         if (this.grimoire.handle(key, this.player)) this.viewing = false;
         continue;
       }
+      // **「ESC もどる」と見出しに書いてあるのに、戻れなかった。**
+      // ここが起動時の入口だった頃の名残で、出口が要らなかった
+      if (key === "Escape") { this.onBack(); return; }
       if (key === "ArrowUp") this.index = (this.index + this.rows - 1) % this.rows;
       if (key === "ArrowDown") this.index = (this.index + 1) % this.rows;
       if (key === "Enter" || key === " ") this.choose();

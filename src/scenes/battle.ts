@@ -12,7 +12,7 @@ import { bar, statusTags, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { elementIcon, ICON_SIZE } from "../ui/icons.ts";
 import { saveProgress } from "../game/save.ts";
-import { allSpells, type Element } from "../spell/book.ts";
+import { allSpells, spellFor, type Element } from "../spell/book.ts";
 
 const COMMANDS = ["詠唱", "呪文帳", "道具", "逃げる"] as const;
 
@@ -369,6 +369,12 @@ export class BattleScene implements Scene {
             if (on) d.rect(sx - 4, y - 1, 140, 13, "#2c241f");
             d.text(s, sx, y, on ? PAL.accent : done ? PAL.ink : PAL.dim);
             if (done && !on) d.text("＝", sx - 12, y, PAL.accent);
+            // **候補の隣に属性の記号を出す。**
+            // 相性の一覧は敵の側に出さない（設計書 4.4）ので、
+            // 選ぶ手元で「これは何の属性か」が分かるようにしておく。
+            // ここが記号を覚える二つ目の経路になる（もう一つは呪文帳の説明文）
+            const sp = spellFor(s);
+            if (sp) elementIcon(d, sx + d.measure(s) + 4, y + 2, sp.element);
           });
           // 右下の「ESC もどる」は 392 から始まる。ここを 340 に置くと重なる
           d.text(this.field.exact ? "ENTER 唱える" : "TAB 候補", 292, 190, PAL.hint);

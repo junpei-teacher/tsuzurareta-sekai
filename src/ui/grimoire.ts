@@ -2,10 +2,15 @@ import type { Display } from "../core/display.ts";
 import { PAL, TIER_COLOR } from "../core/palette.ts";
 import type { Player } from "../game/player.ts";
 import { allSpells, spellById, spellSummary } from "../spell/book.ts";
-import { elementIcon } from "./icons.ts";
+import { elementIcon, ICON_SIZE } from "./icons.ts";
 import { windowBox } from "./hud.ts";
 
+/** 行数の既定値。実際は窓の高さから毎回計算する（render を参照） */
 const ROWS = 8;
+/** 1行の高さ */
+const ROW_H = 15;
+/** 見出しの占める高さ */
+const HEAD_H = 24;
 
 /** この世界に在る呪文の総数。呪文帳の見出しに出す */
 const TOTAL = allSpells().length;
@@ -30,6 +35,13 @@ type Row =
 export class GrimoireView {
   private index = 0;
   private scroll = 0;
+  /**
+   * いま何行ぶん見えているか。**窓の高さで変わる。**
+   *
+   * 8行に固定していたので、下段の説明が2行になる「集めたもの」（高さ180）では
+   * **8行目が説明の罫線に重なっていた。** 高さから毎回求める。
+   */
+  private visible = ROWS;
 
   /**
    * 下段に何を出すか。
@@ -66,12 +78,19 @@ export class GrimoireView {
     if (key === "ArrowUp") this.index = (this.index + n - 1) % n;
     if (key === "ArrowDown") this.index = (this.index + 1) % n;
     if (this.index < this.scroll) this.scroll = this.index;
-    if (this.index >= this.scroll + ROWS) this.scroll = this.index - ROWS + 1;
+    if (this.index >= this.scroll + this.visible) {
+      this.scroll = this.index - this.visible + 1;
+    }
     return key === "Escape" || key === "Enter" || key === " ";
   }
 
   render(d: Display, x: number, y: number, w: number, h: number, player: Player): void {
     windowBox(d, x, y, w, h);
+
+    // 説明の帯を先に確保してから、残りを行数に割る
+    const detailH = this.mode === "read" ? 40 : 24;
+    const listH = h - HEAD_H - detailH;
+    this.visible = Math.max(1, Math.floor(listH / ROW_H));
 
     const rows = this.rows(player);
     // **総数を出す。** 何種あるのか分からないと、増えたことに手応えが出ない。
@@ -87,7 +106,7 @@ export class GrimoireView {
     }
     if (this.index >= rows.length) this.index = rows.length - 1;
 
-    const view = rows.slice(this.scroll, this.scroll + ROWS);
+    const view = rows.slice(this.scroll, this.scroll + this.visible);
     view.forEach((row, i) => {
       const ry = y + 26 + i * 15;
       const on = this.scroll + i === this.index;
@@ -117,9 +136,17 @@ export class GrimoireView {
       d.textRight(unspoken ? "未詠唱" : `MP${sp.mp}`, x + w - 14, ry, unspoken ? PAL.danger : PAL.dim);
     });
 
-    // スクロール位置
-    if (rows.length > ROWS) {
-      d.textRight(`${this.index + 1} / ${rows.length}`, x + w - 14, y + h - 30, PAL.hint);
+    // スクロール位置。**数字ではなく目盛りで出す。**
+    // 「4 / 14」と書いていたころは、最終行と説明の罫線の両方に重なっていた。
+    // 行の右端には MP が出るので、さらに外側の余白に細く引く
+    if (rows.length > this.visible) {
+      const trackY = y + HEAD_H;
+      const trackH = this.visible * ROW_H;
+      d.rect(x + w - 6, trackY, 1, trackH, PAL.line);
+      const thumbH = Math.max(6, Math.round((trackH * this.visible) / rows.length));
+      const span = rows.length - this.visible;
+      const t = span > 0 ? this.scroll / span : 0;
+      d.rect(x + w - 7, trackY + Math.round((trackH - thumbH) * t), 3, thumbH, PAL.dim);
     }
 
     // 選択中の行の説明
@@ -133,7 +160,16 @@ export class GrimoireView {
     }
     const sp = spellById(sel?.id ?? -1);
     if (!sp) return;
-    d.text(spellSummary(sp), x + 12, top + 6, PAL.ink);
+    // 「火属性〔炎〕　威力24」。**属性名のすぐ隣に記号を置く。**
+    // 相性の一覧は戦闘中に出さない（設計書 4.4）ので、
+    // 記号と字が並ぶのは、ここと詠唱の候補欄だけになる
+    const { head, tail } = spellSummary(sp);
+    const sy = top + 6;
+    d.text(head, x + 12, sy, PAL.ink);
+    let sx = x + 12 + d.measure(head) + 3;
+    elementIcon(d, sx, sy + 2, sp.element);
+    sx += ICON_SIZE + 8;
+    d.text(tail, sx, sy, PAL.ink);
     if (twoLines) d.text(sp.flavor, x + 12, top + 22, PAL.dim);
   }
 }

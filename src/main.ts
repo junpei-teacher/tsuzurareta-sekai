@@ -103,6 +103,7 @@ function goSelect(): void {
     () => { scene = new CasterTestScene(goSelect); },
     startChapter,
     goVault,
+    goTitle,
   );
 }
 
