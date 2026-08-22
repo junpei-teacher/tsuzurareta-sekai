@@ -4,7 +4,7 @@ import { PAL, TIER_COLOR } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
 import { sfx } from "../core/sfx.ts";
 import { BloomLayer, type Light } from "../fx/bloom.ts";
-import { CastFx } from "../fx/castFx.ts";
+import { CastFx, type FxElement } from "../fx/castFx.ts";
 import { ITEM_MP, ITEM_NAME, type Player } from "../game/player.ts";
 import { Battle, spawn, type EnemyDef } from "../battle/model.ts";
 import { TextField } from "../ui/textField.ts";
@@ -172,9 +172,10 @@ export class BattleScene implements Scene {
         if (submitted.trim().length === 0) return; // 空Enterは無視
         const report = b.cast(submitted);
         if (report.kind === "CAST") {
-          // 回復呪文は光は同じで音だけ変わる。**傷が塞がる音に破裂は要らない**
-          const heal = report.spell?.element === "HEAL";
-          this.fx.play(report.resolution.tier, report.word, report.resolution.hash, !report.firstTime, heal);
+          // 属性で色と粒の動きが変わる（castFx.ts の ELEMENT）。
+          // 音も回復だけ変わる。**傷が塞がる音に破裂は要らない**
+          const element = (report.spell?.element ?? "NONE") as FxElement;
+          this.fx.play(report.resolution.tier, report.word, report.resolution.hash, !report.firstTime, element);
         } else if (report.kind === "LOCKED") {
           this.fx.playLocked(report.resolution.tier, report.word, report.resolution.hash);
         } else if (report.kind === "DUD") {

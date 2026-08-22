@@ -1,7 +1,7 @@
 import { Display, SCREEN_W } from "../core/display.ts";
 import { PAL, TIER_COLOR } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
-import { CastFx } from "../fx/castFx.ts";
+import { CastFx, type FxElement } from "../fx/castFx.ts";
 import { spellById } from "../spell/book.ts";
 import { resolveSpell, TIERS, type Resolution, type Tier } from "../spell/resolver.ts";
 import { TextField } from "../ui/textField.ts";
@@ -46,10 +46,9 @@ export class CasterTestScene implements Scene {
       this.lastWasShort = known;
       if (res.spellId >= 0) this.seen.add(res.spellId);
 
-      // 掘り当てた呪文が回復なら、ここでも回復の音で鳴る。
-      // **音の作り込みはこの画面でやる**ので、戦闘と同じ判定にしておく
-      const heal = res.spellId >= 0 && spellById(res.spellId)?.element === "HEAL";
-      this.fx.play(res.tier, res.word, res.hash, known, heal);
+      // **光と音の作り込みはこの画面でやる**ので、属性の渡し方も戦闘と揃えておく
+      const element = (res.spellId >= 0 ? spellById(res.spellId)?.element : undefined) ?? "NONE";
+      this.fx.play(res.tier, res.word, res.hash, known, element as FxElement);
 
       this.history.unshift(res);
       if (this.history.length > 4) this.history.pop();
