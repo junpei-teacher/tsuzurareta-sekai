@@ -114,8 +114,14 @@ type ElementFx = {
   life: [number, number];
   /** 粒の数の倍率。帯が決めた数にこれを掛ける */
   count: number;
-  /** 締めに白い輪をひとつ置く（癒しの「塞がる」感） */
-  closingRing?: boolean;
+  /**
+   * 演出の起点。既定は敵（画面中央上）。
+   *
+   * `self` は**自分に起きたこと**を表す。敵の位置では出さない。
+   * 一度そうしていて、遊んだ人に「敵が回復したのかと思った」と言われている。
+   * 画面の両端と全体で見せると、こちら側の出来事に見える
+   */
+  origin?: "self";
 };
 
 const ELEMENT: Record<FxElement, ElementFx> = {
@@ -127,8 +133,8 @@ const ELEMENT: Record<FxElement, ElementFx> = {
   BOLT:  { color: "#f2e07a", kind: "strike",    motion: "streak",   gravity: 90,  drag: 1.2, speed: [120, 260], life: [0.14, 0.42], count: 0.7 },
   // 輪が縮み、印が押されて沈む
   NAME:  { color: "#e0c060", kind: "seal",      motion: "converge", gravity: 0,   drag: 1.0, speed: [70, 150],  life: [0.35, 0.75], count: 0.9 },
-  // 下からゆっくり昇る。締めに白がひとつ
-  HEAL:  { color: "#7fd48a", kind: "particles", motion: "rise",     gravity: -34, drag: 0.9, speed: [14, 40],  life: [0.80, 1.60], count: 1.2, closingRing: true },
+  // 画面の両端から、ゆっくり昇る
+  HEAL:  { color: "#7fd48a", kind: "particles", motion: "rise",     gravity: -34, drag: 0.9, speed: [22, 60],  life: [0.80, 1.60], count: 1.8, origin: "self" },
   // 色を持たない。白く抜ける
   NONE:  { color: "#d8d2c4", kind: "particles", motion: "burst",    gravity: 12,  drag: 1.6, speed: [30, 110], life: [0.30, 0.80], count: 0.8 },
 };
@@ -294,11 +300,21 @@ export class CastFx {
 
       switch (e.motion) {
         case "rise": {
-          // 足元の帯から立ちのぼる。横には広がらない
-          s.x = cx + (this.rng() - 0.5) * 84 * big;
-          s.y = cy + 26 + this.rng() * 16;
-          s.vx = (this.rng() - 0.5) * 14;
-          s.vy = -speed;
+          if (e.origin === "self") {
+            // **画面の両端から立ちのぼる。** 敵のいる中央には出さない。
+            // 会話窓（y=136 から）に文字が隠れないよう、上端 132 までで止める
+            const right = this.rng() < 0.5;
+            s.x = right ? SCREEN_W - 4 - this.rng() * 52 : 4 + this.rng() * 52;
+            s.y = 118 + this.rng() * 16;
+            s.vx = (this.rng() - 0.5) * 8;
+            s.vy = -speed;
+          } else {
+            // 足元の帯から立ちのぼる。横には広がらない
+            s.x = cx + (this.rng() - 0.5) * 84 * big;
+            s.y = cy + 26 + this.rng() * 16;
+            s.vx = (this.rng() - 0.5) * 14;
+            s.vy = -speed;
+          }
           break;
         }
         case "converge": {
@@ -693,19 +709,22 @@ export class CastFx {
       ctx.stroke();
     }
 
-    // ── 締めの輪（癒しだけ）────────────────────
-    // 粒が昇りきったあとに、白い細い輪がひとつ**内側へ**閉じる。
-    // 傷が塞がる、という一手をここで置いている
-    if (ELEMENT[this.element].closingRing) {
-      const rp = seg(p, 0.45, 0.95);
-      if (rp > 0 && rp < 1) {
-        ctx.globalAlpha = pulse(rp) * 0.5;
-        ctx.strokeStyle = "#fff6de";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 46 * (1 - easeOutCubic(rp)) + 8, 0, Math.PI * 2);
-        ctx.stroke();
+    // ── 自分に起きたこと（癒し）────────────────────
+    // **敵の位置では何も起こさない。** 画面の両端が息をして、
+    // 最後に画面の縁が内へ閉じる。傷が塞がるのは、こちら側である
+    if (ELEMENT[this.element].origin === "self") {
+      const k = pulse(seg(p, 0.02, 0.92));
+      const bw = 12 + 16 * this.scale;
+      for (let i = 0; i < 5; i++) {
+        ctx.globalAlpha = 0.09 * k * (1 - i / 5);
+        ctx.fillStyle = col;
+        const w = bw * (1 - i / 6);
+        ctx.fillRect(0, 0, w, 132);
+        ctx.fillRect(SCREEN_W - w, 0, w, 132);
       }
+      // ここに「画面の縁が内側へ寄る」締めを置いていたが、**何が起きたか読めなかった。**
+      // 傷が塞がる、という比喩が抽象的すぎて、ただ枠が動いたようにしか見えない。
+      // 端の光と粒だけで「自分に起きたこと」は足りている
     }
 
     // ── 名：刻み目の輪が回りながら縮み、印が押されて沈む ──
@@ -862,6 +881,13 @@ export class CastFx {
         : 0;
       const v = Math.max(warn, hit);
       if (v > flash) { flash = v; flashCol = hit >= warn ? "#ffffff" : col; }
+    }
+
+    // 自分に起きたことは、**画面全体を薄く染める。**
+    // 敵を殴る演出と違って、画面のどこか一点で起きた出来事に見せない
+    if (ELEMENT[this.element].origin === "self") {
+      const w = pulse(seg(p, 0, 0.85)) * 0.10;
+      if (w > flash) { flash = w; flashCol = col; }
     }
 
     // 名：押した一瞬

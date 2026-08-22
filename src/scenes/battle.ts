@@ -7,7 +7,7 @@ import { BloomLayer, type Light } from "../fx/bloom.ts";
 import { CastFx, type FxElement } from "../fx/castFx.ts";
 import { ITEM_MP, ITEM_NAME, type Player } from "../game/player.ts";
 import { Battle, spawn, type EnemyDef } from "../battle/model.ts";
-import { TextField } from "../ui/textField.ts";
+import { SUGGEST_PER_PAGE, TextField } from "../ui/textField.ts";
 import { bar, statusTags, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { elementIcon, ICON_SIZE } from "../ui/icons.ts";
@@ -360,11 +360,17 @@ export class BattleScene implements Scene {
         if (b.memorySealed) {
           d.text("覚えていたはずの綴りが、思い出せない。", 30, 164, PAL.danger);
         } else if (this.field.suggestions.length > 0) {
-          // 候補は最大4つ。縦に並べると枠からはみ出すので2列2段にする
-          this.field.suggestions.forEach((s, i) => {
-            const sx = 32 + (i % 2) * 150;
-            const y = 162 + Math.floor(i / 2) * 15;
-            const on = i === this.field.cursor;
+          // **3列2段で6件。** 以前は2列2段の4件だったが、呪文帳が育つと
+          // 頭文字1字で5つ6つ並ぶので、覚えている語が候補に出てこなかった。
+          // 6件を超えるぶんは頁で送る。TAB で選び進めると頁も付いてくる
+          const per = SUGGEST_PER_PAGE;
+          const page = this.field.cursor >= 0 ? Math.floor(this.field.cursor / per) : 0;
+          const shown = this.field.suggestions.slice(page * per, page * per + per);
+          const rest = this.field.suggestions.length - shown.length;
+          shown.forEach((s, i) => {
+            const sx = 32 + (i % 3) * 140;
+            const y = 162 + Math.floor(i / 3) * 15;
+            const on = page * per + i === this.field.cursor;
             // 打ち切った語は明るく出す。**綴りが合っていることの手応え**になる
             const done = s === this.field.value;
             if (on) d.rect(sx - 4, y - 1, 140, 13, "#2c241f");
@@ -377,6 +383,8 @@ export class BattleScene implements Scene {
             const sp = spellFor(s);
             if (sp) elementIcon(d, sx + d.measure(s) + 4, y + 2, sp.element);
           });
+          // まだ後ろに控えている件数。**出ていない候補があることは見せる**
+          if (rest > 0) d.textRight(`ほか ${rest}`, 452, 148, PAL.hint);
           // 右下の「ESC もどる」は 392 から始まる。ここを 340 に置くと重なる
           d.text(this.field.exact ? "ENTER 唱える" : "TAB 候補", 292, 190, PAL.hint);
         } else if (this.field.riddleHints.length > 0) {

@@ -9,6 +9,15 @@ import { sfx } from "../core/sfx.ts";
  * 既知呪文を打ち間違えないようにするための仕組みであり、
  * これがあるから「未知の文字列を敢えて打つ」ことがリスクになる。
  */
+/**
+ * 候補として持つ上限。**画面に出る数ではない。**
+ * 出せるのは一度に6件で、それを超えるぶんは TAB で頁が送られる（`src/scenes/battle.ts`）。
+ */
+export const SUGGEST_LIMIT = 12;
+
+/** 一度に画面へ出す候補の数（3列 × 2段） */
+export const SUGGEST_PER_PAGE = 6;
+
 export class TextField {
   value = "";
   /** サジェスト候補（前方一致した既知呪文の文字列） */
@@ -125,8 +134,12 @@ export class TextField {
     // すると ROZH まではミラの ROZHA が出るのに、最後の A を打った瞬間に
     // 候補が消える。**打ち上がった瞬間に手応えが無くなる**ので、
     // 綴りを間違えたのかと思わせてしまう。
+    // **4件で切ると、呪文帳が育つほど当てが外れる。**
+    // 頭文字1字では同じ字で始まる語が5つ6つあって、
+    // 覚えている語が候補に出てこない、ということが起きていた。
+    // ここは多めに持ち、**見せ方（頁送り）は描画側で面倒を見る**
     this.suggestions = this.dictionary
       .filter((w) => w.startsWith(this.value))
-      .slice(0, 4);
+      .slice(0, SUGGEST_LIMIT);
   }
 }
