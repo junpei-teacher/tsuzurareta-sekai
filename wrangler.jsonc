@@ -1,6 +1,10 @@
 {
-  // Cloudflare Pages の設定
+  // Cloudflare Workers Static Assets の設定。
+  // npm run build が生成する dist を公開する。Pages 用の
+  // pages_build_output_dir では wrangler deploy に配信先が伝わらない。
   "name": "funsho-no-yoru-game",
   "compatibility_date": "2024-01-01",
-  "pages_build_output_dir": "dist"
+  "assets": {
+    "directory": "./dist"
+  }
 }
