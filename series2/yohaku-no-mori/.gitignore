@@ -1,0 +1,20 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+tools/candidates.md
+
+# PixelLab の APIトークン。絶対にコミットしない
+.pixellab.token
+
+# 目視確認用の一覧シート。npm run palettize と作図スクリプトで再生成できる
+public/assets/**/_*.png
+tools/_*.png
+
+# Suno から落とした元ファイルの置き場。
+# public/assets/bgm/ に同じものがコミット済みなので、ここは20MBの二重持ちになる。
+# 音源そのものはリポジトリに入っている（docs/assets-license.md）
+music/
+
+# Codex のローカル接続設定。認証情報を含み得るためコミットしない
+.codex/

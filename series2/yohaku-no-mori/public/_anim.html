@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ミラ 歩行アニメ比較</title>
+<style>
+  body{margin:0;background:#14100f;color:#e8dcc0;font-family:'MS Gothic',monospace;padding:24px}
+  h1{font-size:15px;color:#c8912f;margin:0 0 4px}
+  p.note{font-size:12px;color:#6b5f4d;margin:0 0 20px}
+  .row{display:flex;align-items:center;gap:18px;margin-bottom:18px;flex-wrap:wrap;
+       border-top:1px solid #3b322a;padding-top:14px}
+  .label{width:260px;flex:none;font-size:12px;line-height:1.7}
+  .label b{color:#f0b83c;font-size:13px}
+  .label .ok{color:#8fae95}
+  .label .ng{color:#b0463a}
+  canvas{image-rendering:pixelated;background:#1b1714;border:1px solid #3b322a}
+  .strip{display:flex;gap:2px}
+  .strip img{image-rendering:pixelated;width:64px;height:64px;background:#191512}
+  .ctl{font-size:12px;color:#9a9080;margin-bottom:14px}
+  input[type=range]{vertical-align:middle}
+</style>
+</head>
+<body>
+<h1>ミラ 歩行アニメ 3方式の比較</h1>
+<p class="note">左が再生（6倍）。右は全フレームの一覧。すべて16色パレット適用済み。</p>
+
+<div class="ctl">
+  速度 <input id="fps" type="range" min="2" max="16" value="8">
+  <span id="fpsv">8</span> fps
+</div>
+
+<div id="rows"></div>
+
+<script>
+const SETS = [
+  { key:'idle', title:'待機（基準）',
+    desc:'<span class="ok">本を胸に抱えている</span>',
+    frames:['/assets/sprites/mira/south_pal.png'] },
+  { key:'tpl', title:'template walking-4-frames',
+    desc:'4発／4方向<br><span class="ok">歩幅ははっきり出る</span><br><span class="ng">本が消える・顔が変わる</span>',
+    frames:[0,1,2,3].map(i=>`/assets/sprites/mira/walk/south_${i}_pal.png`) },
+  { key:'v3', title:'v3 custom（4フレーム）',
+    desc:'1発／方向<br><span class="ok">本も顔も待機のまま</span><br><span class="ng">脚がほぼ動かない</span>',
+    frames:[0,1,2,3,4].map(i=>`/assets/sprites/mira/walk_v3/south_${i}_pal.png`) },
+  { key:'v3s', title:'v3 custom（歩幅を明示・8フレーム）',
+    desc:'1発／方向<br><span class="ok">本も顔も待機のまま</span><br><span class="ng">両足が同時に動いて跳ねて見える</span><br><span class="ng">「体を上下に揺らせ」と指示したのが原因</span>',
+    frames:[0,1,2,3,4,5,6,7,8].map(i=>`/assets/sprites/mira/walk_v3s/south_${i}_pal.png`) },
+  { key:'v3a', title:'v3 custom（対角の入れ替えを明示・8フレーム）',
+    desc:'1発／方向<br>跳ねは消えた<br><span class="ng">今度は脚が左右に開く（前後ではなく横）</span><br><span class="ng">正面視点の奥行きを解釈できていない</span>',
+    frames:[0,1,2,3,4,5,6,7].map(i=>`/assets/sprites/mira/walk_v3a/south_${i}_pal.png`) },
+];
+
+const SCALE = 6, SIZE = 48;
+let fps = 8;
+const players = [];
+
+for (const set of SETS) {
+  const row = document.createElement('div');
+  row.className = 'row';
+
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.innerHTML = `<b>${set.title}</b><br>${set.desc}`;
+  row.appendChild(label);
+
+  const cv = document.createElement('canvas');
+  cv.width = SIZE * SCALE; cv.height = SIZE * SCALE;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  row.appendChild(cv);
+
+  const strip = document.createElement('div');
+  strip.className = 'strip';
+  const imgs = set.frames.map(src => {
+    const im = new Image(); im.src = src;
+    const thumb = new Image(); thumb.src = src; strip.appendChild(thumb);
+    return im;
+  });
+  row.appendChild(strip);
+
+  document.getElementById('rows').appendChild(row);
+  players.push({ ctx, imgs, i: 0 });
+}
+
+let acc = 0, last = performance.now();
+function tick(now) {
+  const dt = (now - last) / 1000; last = now;
+  acc += dt;
+  const step = 1 / fps;
+  while (acc >= step) {
+    acc -= step;
+    for (const p of players) p.i = (p.i + 1) % p.imgs.length;
+  }
+  for (const p of players) {
+    p.ctx.clearRect(0, 0, SIZE*SCALE, SIZE*SCALE);
+    const im = p.imgs[p.i];
+    if (im && im.complete) p.ctx.drawImage(im, 0, 0, SIZE*SCALE, SIZE*SCALE);
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+const slider = document.getElementById('fps');
+slider.addEventListener('input', () => {
+  fps = Number(slider.value);
+  document.getElementById('fpsv').textContent = fps;
+});
+</script>
+</body>
+</html>

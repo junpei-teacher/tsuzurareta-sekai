@@ -1,0 +1,28 @@
+!id ch1_reading
+!name 閲覧室
+!spawn 14 6
+!npc a mira
+!npc b librarian
+!sign p duty_board
+!sign r burnt_scroll
+!sign x wax_scrap
+!sign y burnt_page
+!npc t soldier_hall
+!enemy 1 - sootbat
+!door e ch1_desks 1 6
+!door s ch1_stacks 13 1
+!map
+############################
+#....p.....................#
+#..BBBB.......C......BBBB..#
+#..BBBB.....x........BBBB..#
+#.........r.......1........#
+#.......TTTTy............a.#
+#.......TTTT...............e
+#.......t..................#
+#..BBBB..............BBBB..#
+#..BBBB.......C......BBBB..#
+#..........................#
+#..................b.......#
+#..........................#
+#############s##############
