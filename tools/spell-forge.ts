@@ -2,6 +2,7 @@
  * 手順書 2-2 — 呪文名の逆引き。
  *
  *   npm run forge
+ *   npm run forge -- --ids 16,35,37,46,51
  *
  * ハッシュ関数は凍結されているので、「FALGRIM に炎の効果を割り当てる」ことはできない。
  * そこで順序を逆にする：
@@ -42,7 +43,24 @@ type Spell = {
 const book = JSON.parse(readFileSync(join(ROOT, "data/spells.json"), "utf8")) as {
   spells: Spell[];
 };
-const needName = book.spells.filter((s) => s.origin !== "discovery");
+const idsArgIndex = process.argv.indexOf("--ids");
+const requestedIds = idsArgIndex >= 0
+  ? new Set(
+    (process.argv[idsArgIndex + 1] ?? "")
+      .split(",")
+      .map((value) => Number(value.trim()))
+      .filter(Number.isInteger),
+  )
+  : null;
+const needName = requestedIds
+  ? book.spells.filter((s) => requestedIds.has(s.id))
+  : book.spells.filter((s) => s.origin !== "discovery");
+
+if (requestedIds && needName.length !== requestedIds.size) {
+  const found = new Set(needName.map((spell) => spell.id));
+  const missing = [...requestedIds].filter((id) => !found.has(id));
+  throw new Error(`存在しないspellIdです: ${missing.join(", ")}`);
+}
 
 // ── 確定済み canonical の検証 ───────────────────
 // 選んだ文字列が本当に狙った呪文に当たるかを毎回確かめる。

@@ -20,7 +20,7 @@ export const SCREEN_H = 270;
  */
 export const PIXEL_SCALE = 2;
 
-/** 日本語ドットフォント。Phase 0-5 で PixelMplus12 を入れるまでは等幅で代用する */
+/** 正式な日本語ドットフォント。失敗時だけOSの等幅フォントへフォールバックする。 */
 const FONT_STACK = "'PixelMplus12', 'MS Gothic', monospace";
 
 /** 描画できるもの。加工した裏キャンバスも画像と同じように扱いたい */
@@ -31,6 +31,9 @@ export class Display {
   private readonly canvas: HTMLCanvasElement;
   /** 単色シルエットの作り置き。画像×色ごとに一度だけ作る */
   private readonly silhouettes = new Map<string, HTMLCanvasElement>();
+
+  /** DEV比較板などで、描画済み画面を縮小合成するときだけ使う。 */
+  get surface(): HTMLCanvasElement { return this.canvas; }
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;

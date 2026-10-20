@@ -15,3 +15,6 @@ tools/_*.png
 # public/assets/bgm/ に同じものがコミット済みなので、ここは20MBの二重持ちになる。
 # 音源そのものはリポジトリに入っている（docs/assets-license.md）
 music/
+
+# Codex のローカル接続設定。認証情報を含み得るためコミットしない
+.codex/

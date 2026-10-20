@@ -1,16 +1,12 @@
 import { Display, SCREEN_H, SCREEN_W } from "../core/display.ts";
 import { PAL } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
+import { THEMES } from "../core/theme.ts";
+import { renderVillageRoad } from "../fx/storyArt.ts";
 
 /**
- * オープニング（設計書 2.1）。
- *
- * この作品の前提——**国が言葉を管理していること**、**主人公は読むことを
- * 許されていないこと**、**地下にもっと厳重な本があること**——は、
- * どれも第1章の中では説明されない。日常として当たり前に扱われるからである。
- *
- * それを先に一度だけ置く。エンディングと同じ「暗い画面に文字が浮かぶ」形にして、
- * 終わりと始まりが同じ表情になるようにしてある。
+ * シリーズ2の入口。世界法則を説明せず、時間と距離だけを置く。
+ * 王立書庫の火は遠すぎて見えないため、ここで事件の映像は挟まない。
  */
 
 /** 1ページの見せ方。浮かぶ → 保つ → 消える */
@@ -29,25 +25,8 @@ const HOLD_MIN = 1.4;
 const HOLD_EXTRA = 2.0;
 
 const PAGES: string[][] = [
-  [
-    "ここは、国が魔法と名前を管理する世界。",
-    "力のある言葉は、すべて王立書庫に集められた。",
-  ],
-  [
-    "あなたはその書庫の、写字見習い。",
-    "英知が記された本の、いちばん端で働いている。",
-  ],
-  [
-    "読むことは許されない。",
-    "題名を書き写し、記録を取る。それだけが仕事だ。",
-  ],
-  [
-    "地下には、さらに厳重に管理された本があるという。",
-    "見た者はいない。見た、と言う者もいない。",
-  ],
-  [
-    "今日も、いつもと同じ夜になるはずだった。",
-  ],
+  ["十年前"],
+  ["王都から遠く離れた、小さな村。"],
 ];
 
 function holdOf(page: string[]): number {
@@ -59,7 +38,10 @@ export class OpeningScene implements Scene {
   private page = 0;
   private t = 0;
 
-  constructor(private readonly onDone: () => void) {}
+  constructor(
+    private readonly onDone: () => void,
+    private readonly villageRoadBackground?: HTMLImageElement,
+  ) {}
 
   private get span(): number {
     return FADE_IN + holdOf(PAGES[this.page] ?? []) + FADE_OUT;
@@ -86,7 +68,22 @@ export class OpeningScene implements Scene {
   }
 
   render(d: Display): void {
-    d.clear("#0b0908");
+    const ctx = d.ctx;
+    // 抽象的な森ではなく、これから失われる「同じ村」を最初から置く。
+    // 十年後の村道と同じ骨格を暗く見せ、時間だけが飛んだことを後で拾えるようにする。
+    renderVillageRoad(d, this.t * 0.22, { background: this.villageRoadBackground });
+    ctx.save();
+    const veil = ctx.createLinearGradient(0, 0, 0, SCREEN_H);
+    veil.addColorStop(0, this.page === 0 ? "rgba(8,22,25,0.76)" : "rgba(8,25,27,0.62)");
+    veil.addColorStop(0.7, "rgba(11,27,24,0.68)");
+    veil.addColorStop(1, "rgba(5,14,13,0.90)");
+    ctx.fillStyle = veil;
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    // 遠い村の灯り。王都の事件そのものは映さない。
+    ctx.globalAlpha = 0.22 + Math.sin(this.t * 1.4) * 0.035;
+    d.rect(43, 125, 13, 2, THEMES.village.glow);
+    d.rect(386, 118, 10, 2, PAL.accentCool);
+    ctx.restore();
 
     const lines = PAGES[this.page];
     if (!lines) return;
@@ -98,12 +95,16 @@ export class OpeningScene implements Scene {
       : this.t < FADE_IN + hold ? 1
       : Math.max(0, 1 - (this.t - FADE_IN - hold) / FADE_OUT);
 
-    const y0 = Math.round(SCREEN_H / 2 - (lines.length * 20) / 2);
+    const size = this.page === 0 ? 22 : 12;
+    const y0 = Math.round(SCREEN_H / 2 - (lines.length * (size + 8)) / 2 - 8);
     d.ctx.globalAlpha = a;
+    d.ctx.shadowColor = PAL.shadow;
+    d.ctx.shadowBlur = 8;
     lines.forEach((line, i) => {
-      const w = d.measure(line, 12);
-      d.text(line, Math.round((SCREEN_W - w) / 2), y0 + i * 20, PAL.ink);
+      const w = d.measure(line, size);
+      d.text(line, Math.round((SCREEN_W - w) / 2), y0 + i * (size + 8), PAL.ink, size);
     });
+    d.ctx.shadowBlur = 0;
     d.ctx.globalAlpha = 1;
 
     // 進み具合。読み飛ばしていいことが分かるように、操作も出しておく

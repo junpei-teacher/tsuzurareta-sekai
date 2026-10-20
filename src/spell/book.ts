@@ -1,4 +1,4 @@
-import rawBook from "../../data/spells.json";
+import rawBook from "../../data/spells.json" with { type: "json" };
 import { normalizeWord } from "./hash.ts";
 import { resolveSpell, type Tier } from "./resolver.ts";
 

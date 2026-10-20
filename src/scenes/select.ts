@@ -2,7 +2,8 @@ import { Display, SCREEN_W } from "../core/display.ts";
 import { PAL } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
 import type { Player } from "../game/player.ts";
-import { ENEMIES, type EnemyDef } from "../battle/model.ts";
+import type { EnemyDef } from "../battle/model.ts";
+import { LEGACY_ENEMIES } from "../legacy/enemies.ts";
 import { bar, windowBox } from "../ui/hud.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { ITEM_NAME } from "../game/player.ts";
@@ -60,7 +61,7 @@ export class SelectScene implements Scene {
   }
 
   private get rows(): number {
-    return ENEMIES.length + this.extras.length;
+    return LEGACY_ENEMIES.length + this.extras.length;
   }
 
   update(dt: number, keys: string[]): void {
@@ -80,11 +81,11 @@ export class SelectScene implements Scene {
   }
 
   private choose(): void {
-    if (this.index < ENEMIES.length) {
-      this.onFight(ENEMIES[this.index]!);
+    if (this.index < LEGACY_ENEMIES.length) {
+      this.onFight(LEGACY_ENEMIES[this.index]!);
       return;
     }
-    switch (this.extras[this.index - ENEMIES.length]?.act) {
+    switch (this.extras[this.index - LEGACY_ENEMIES.length]?.act) {
       case "ch1": this.onField(1); break;
       case "ch2": this.onField(2); break;
       case "ch3": this.onField(3); break;
@@ -128,7 +129,7 @@ export class SelectScene implements Scene {
     // 敵10種＋その他7〜8項目。13px間隔だと窓を40pxはみ出していた。
     // 行間を11に詰め、窓を上下いっぱい（22〜236）に伸ばして収める
     windowBox(d, 16, 22, 250, 214);
-    ENEMIES.forEach((e, i) => {
+    LEGACY_ENEMIES.forEach((e, i) => {
       const y = ROW_Y0 + i * ROW_H;
       const on = i === this.index;
       if (on) d.text("▸", 26, y, PAL.accent);
@@ -137,8 +138,8 @@ export class SelectScene implements Scene {
     });
 
     this.extras.forEach((extra, k) => {
-      const i = ENEMIES.length + k;
-      const y = ROW_Y0 + ENEMIES.length * ROW_H + 10 + k * ROW_H;
+      const i = LEGACY_ENEMIES.length + k;
+      const y = ROW_Y0 + LEGACY_ENEMIES.length * ROW_H + 10 + k * ROW_H;
       const on = i === this.index;
       if (on) d.text("▸", 26, y, PAL.accent);
       d.text(extra.label, 40, y, on ? PAL.ink : PAL.dim);
@@ -146,7 +147,7 @@ export class SelectScene implements Scene {
 
     // 選択中の敵の説明
     windowBox(d, 274, 22, 190, 214);
-    const sel = ENEMIES[this.index];
+    const sel = LEGACY_ENEMIES[this.index];
     if (sel) {
       d.text(sel.name, 284, 30, PAL.ink);
       d.text(`HP ${sel.hp}　攻 ${sel.atk}　防 ${sel.def}`, 284, 48, PAL.dim);
@@ -161,10 +162,10 @@ export class SelectScene implements Scene {
     const p = this.player;
     windowBox(d, 16, 238, 448, 30);
     d.text("HP", 28, 242, PAL.dim);
-    bar(d, 50, 243, 90, 8, p.hp / p.maxHp, "#a8563f");
+    bar(d, 50, 243, 90, 8, p.hp / p.maxHp, PAL.hp);
     d.text(`${p.hp}/${p.maxHp}`, 146, 242, PAL.dim);
     d.text("MP", 262, 242, PAL.dim);
-    bar(d, 284, 243, 90, 8, p.mp / p.maxMp, "#3f6fa8");
+    bar(d, 284, 243, 90, 8, p.mp / p.maxMp, PAL.mp);
     d.text(`${p.mp}/${p.maxMp}`, 380, 242, PAL.dim);
     d.text(
       `呪文帳 ${p.grimoire.size} 種　未詠唱 ${p.unspoken.size}　` +

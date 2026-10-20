@@ -1,14 +1,8 @@
 /**
- * BGM（設計書 10）。
+ * BGMプレイヤー。
  *
- * **曲は3本しかない。** 場面は7つあるが、鳴らし分けるのは3回だけにしてある。
- *
- * - 第1章と、その前後（オープニング・エンディング）が1本目
- * - 第2章と第3章が2本目。**火が点いた瞬間に曲が変わる**
- * - ラスボスが3本目
- *
- * 雑魚戦では曲を変えない。**曲が変わること自体を合図にしたい**ので、
- * 変える回数を絞ってある。戦闘の緊張は効果音（src/core/sfx.ts）で作る。
+ * 曲目は作品固有のTrack Manifestから注入する。シリーズ2の通常起動時に
+ * 第一作のBGMパスを静的参照しないため、プレイヤー本体と曲表を分離している。
  *
  * 【ブラウザの自動再生制限】
  * 音は**利用者が何か操作するまで鳴らせない**。読み込み時に play() を呼んでも
@@ -19,60 +13,33 @@
  * 曲を入れる前でもゲームは動く必要がある（アセットは後から差し替える）。
  * 読み込みに失敗した曲は黙って無音として扱う。
  */
-
-export type TrackId =
-  | "opening"
-  | "ch1"
-  | "ch2"
-  | "ch3"
-  | "battle"
-  | "boss"
-  | "ending";
-
-/**
- * 曲の置き場所。**3本の曲で7つの場面をまかなう**（出典は docs/assets-license.md）。
- *
- * 同じファイルを指しているところは、**その境目で曲が切り替わらない**という意味である。
- * 切り替えの判定はIDではなくファイル名で行うので（`play`）、
- * 第2章から第3章へ降りても曲は鳴り続け、階段の前後が地続きに聞こえる。
- *
- * `null` は「**曲を変えない**」。今かかっているものがそのまま続く。
- * 雑魚戦がこれで、ラスボスで初めて曲が変わる。
- * **曲が変わること自体を、ただごとではない合図として使う。**
- */
-const TRACKS: Record<TrackId, string | null> = {
-  opening: "/assets/bgm/scene1_BGM.mp3",
-  ch1: "/assets/bgm/scene1_BGM.mp3",
-  ch2: "/assets/bgm/scene2and3_BGM.mp3",
-  ch3: "/assets/bgm/scene2and3_BGM.mp3",
-  battle: null,
-  boss: "/assets/bgm/LastBattle.mp3",
-  // 第1章の曲が戻ってくる。**同じ夜が終わったことを、説明せずに伝える**
-  ending: "/assets/bgm/scene1_BGM.mp3",
-};
+import { GAME_IDENTITY } from "./gameIdentity.ts";
+import type { TrackManifest } from "./tracks.ts";
 
 /** 切り替えにかける秒数。章の扉の暗転（約3秒）に収まる長さ */
 const FADE = 1.5;
 /** 音量の刻み。0〜1 を10段階で持つ */
 const STEPS = 10;
 
-const KEY = "funsho-no-yoru/audio";
+const KEY = `${GAME_IDENTITY.storagePrefix}/audio`;
 
 /** `src` は切り替えの判定に使う。同じファイルなら鳴らし直さない */
 type Voice = { el: HTMLAudioElement; src: string };
 
 export class Audio {
+  private readonly tracks = new Map<string, string | null | false>();
   private current: Voice | null = null;
   private fading: Voice[] = [];
   /** unlock 前に指示された曲。解除された瞬間に鳴らす */
-  private pending: TrackId | null = null;
+  private pending: string | null = null;
   private unlocked = false;
 
   /** 0〜1。0 で消音 */
   volume = 0.6;
   muted = false;
 
-  constructor() {
+  constructor(manifest: TrackManifest) {
+    this.registerTracks(manifest);
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
@@ -83,6 +50,11 @@ export class Audio {
     } catch {
       // 壊れていたら既定値のままでよい
     }
+  }
+
+  /** DEV用の旧曲表などを、必要になった時だけ追加する。 */
+  registerTracks(manifest: TrackManifest): void {
+    for (const [id, src] of Object.entries(manifest)) this.tracks.set(id, src);
   }
 
   private save(): void {
@@ -113,10 +85,16 @@ export class Audio {
   }
 
   /** 曲を切り替える。同じ曲なら何もしない */
-  play(id: TrackId): void {
-    const src = TRACKS[id];
+  play(id: string): void {
+    const src = this.tracks.get(id);
+    if (src === undefined) {
+      console.warn(`未登録のBGM IDです: ${id}`);
+      return;
+    }
     // 曲を持たない場面（雑魚戦）。今かかっているものを続ける
     if (src === null) return;
+    // 明示的な無音。現在曲があれば通常のフェード時間で止める
+    if (src === false) { this.stop(); return; }
     if (!this.unlocked) { this.pending = id; return; }
     if (this.current?.src === src) return;
 

@@ -1,4 +1,5 @@
 import type { StatusKind } from "../spell/book.ts";
+import { validWeaponId, weaponById, type WeaponDef } from "./weapons.ts";
 
 export type StatusInst = { kind: StatusKind; turns: number; magnitude?: number };
 
@@ -31,18 +32,42 @@ export function riddleMatches(mask: string, typed: string): boolean {
   return true;
 }
 
-/**
- * **レベルは廃止した。**
- *
- * かつては章の進行に合わせてレベルが上がり、威力が `1 + Lv × 0.09` 倍された。
- * だが通しプレイでの結論は「レベルが上がって嬉しい瞬間が無い」だった。
- * 当然で、**このゲームで強くなる手段は言葉を知ることだけ**（設計書 1）であり、
- * レベルはそこに何も足していない。数字が増える演出があるだけ、
- * かえって「打って強い呪文を掘り当てる」ことの重みを薄めていた。
- *
- * いま威力を決めるのは**どの呪文を当てたか**だけである。
- * 体力だけは章ごとに一段ずつ上がる（`src/field/state.ts` の CHAPTERS）。
- */
+export type LevelDef = {
+  level: number;
+  requiredXp: number;
+  maxHp: number;
+  maxMp: number;
+  attack: number;
+};
+
+/** シリーズ2の短い固定戦ルート用。稼ぎを要求せず、Lv5で止まる。 */
+export const LEVELS: readonly LevelDef[] = [
+  { level: 1, requiredXp: 0, maxHp: 30, maxMp: 90, attack: 0 },
+  { level: 2, requiredXp: 30, maxHp: 36, maxMp: 96, attack: 3 },
+  { level: 3, requiredXp: 75, maxHp: 43, maxMp: 104, attack: 6 },
+  { level: 4, requiredXp: 130, maxHp: 51, maxMp: 114, attack: 9 },
+  { level: 5, requiredXp: 210, maxHp: 60, maxMp: 126, attack: 12 },
+] as const;
+
+export type LevelUpNotice = {
+  level: number;
+  hpGain: number;
+  mpGain: number;
+  attackGain: number;
+};
+
+function levelDef(level: number): LevelDef {
+  return LEVELS[Math.max(0, Math.min(LEVELS.length - 1, Math.floor(level) - 1))]!;
+}
+
+function levelForXp(xp: number): LevelDef {
+  let result = LEVELS[0]!;
+  for (const candidate of LEVELS) {
+    if (candidate.requiredXp > xp) break;
+    result = candidate;
+  }
+  return result;
+}
 
 /** 道具1つで戻るMP。MPの総量を3倍にしたので、こちらも同じ倍率で上げる */
 export const ITEM_MP = { ink: 30, drop: 90 } as const;
@@ -56,9 +81,13 @@ export class Player {
   name = "APPRENTICE";
   hp = 30;
   mp = 90;
-  /** 章ごとの上限。`setBody` でしか動かない */
+  /** シリーズ1では章、シリーズ2ではレベルアップでも動く上限。 */
   maxHp = 30;
   maxMp = 90;
+  level = 1;
+  xp = 0;
+  ownedWeapons = new Set<string>();
+  equippedWeaponId: string | null = null;
   statuses: StatusInst[] = [];
 
   /**
@@ -93,10 +122,83 @@ export class Player {
 
   items: Record<ItemKind, number> = { ink: 3, drop: 1 };
 
-  /**
-   * 章の体力を設定する。上げ幅は章の切れ目でしか起きない。
-   * **戦闘に勝っても何も増えない。** 増えるのは呪文帳だけである。
-   */
+  get equippedWeapon(): WeaponDef | null {
+    return weaponById(this.equippedWeaponId);
+  }
+
+  get levelAttack(): number {
+    return levelDef(this.level).attack;
+  }
+
+  get weaponAttack(): number {
+    return this.equippedWeapon?.attack ?? 0;
+  }
+
+  get attack(): number {
+    return this.levelAttack + this.weaponAttack;
+  }
+
+  /** 攻撃呪文だけへ掛ける。回復・補助・物語上の正解語には掛けない。 */
+  get attackMultiplier(): number {
+    return 1 + this.attack / 100;
+  }
+
+  get nextLevel(): LevelDef | null {
+    return LEVELS[this.level] ?? null;
+  }
+
+  get xpToNext(): number | null {
+    const next = this.nextLevel;
+    return next ? Math.max(0, next.requiredXp - this.xp) : null;
+  }
+
+  /** セーブ復元・デバッグ開始用。XPを正としてレベルを再計算する。 */
+  setProgression(xp: number, weapons: Iterable<string> = [], equipped: string | null = null): void {
+    const cap = LEVELS[LEVELS.length - 1]!.requiredXp;
+    this.xp = Math.max(0, Math.min(cap, Math.floor(xp)));
+    this.level = levelForXp(this.xp).level;
+    this.ownedWeapons = new Set([...weapons].filter(validWeaponId));
+    this.equippedWeaponId = equipped && this.ownedWeapons.has(equipped) && validWeaponId(equipped)
+      ? equipped
+      : null;
+  }
+
+  /** 固定戦の初回勝利でだけ呼ぶ。レベルアップ時は増えた最大値ぶん現在値も伸ばす。 */
+  gainXp(amount: number): LevelUpNotice[] {
+    const gained = Math.max(0, Math.floor(amount));
+    const cap = LEVELS[LEVELS.length - 1]!.requiredXp;
+    this.xp = Math.min(cap, this.xp + gained);
+    const notices: LevelUpNotice[] = [];
+    while (this.level < LEVELS.length && this.xp >= levelDef(this.level + 1).requiredXp) {
+      const before = levelDef(this.level);
+      const after = levelDef(this.level + 1);
+      this.level = after.level;
+      const hpGain = after.maxHp - before.maxHp;
+      const mpGain = after.maxMp - before.maxMp;
+      this.maxHp += hpGain;
+      this.maxMp += mpGain;
+      this.hp = Math.min(this.maxHp, this.hp + hpGain);
+      this.mp = Math.min(this.maxMp, this.mp + mpGain);
+      notices.push({
+        level: after.level,
+        hpGain,
+        mpGain,
+        attackGain: after.attack - before.attack,
+      });
+    }
+    return notices;
+  }
+
+  /** 入手時に自動装備する。シリーズ2は選択UIを増やさない一枠構成。 */
+  acquireWeapon(id: string): WeaponDef | null {
+    const weapon = weaponById(id);
+    if (!weapon) return null;
+    this.ownedWeapons.add(id);
+    this.equippedWeaponId = id;
+    return weapon;
+  }
+
+  /** シリーズ1互換の章体力設定。シリーズ2の成長は`gainXp`を使う。 */
   setBody(hp: number, mp: number): void {
     this.maxHp = hp;
     this.maxMp = mp;

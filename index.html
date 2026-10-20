@@ -3,14 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>焚書の夜</title>
+    <title>綴られた世界 ―余白の森―</title>
     <style>
       html, body {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
-        background: #0a0807;
+        background:
+          radial-gradient(circle at 50% 115%, #183c32 0, transparent 44%),
+          linear-gradient(180deg, #050d0c 0%, #081612 55%, #0d211b 100%);
         overflow: hidden;
       }
       body {
@@ -23,6 +25,10 @@
         image-rendering: pixelated;
         image-rendering: crisp-edges;
         display: block;
+        box-shadow:
+          0 0 0 1px #29483d,
+          0 18px 56px rgba(0, 0, 0, 0.58),
+          0 0 72px rgba(77, 154, 127, 0.08);
       }
     </style>
   </head>

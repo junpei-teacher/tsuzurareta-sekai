@@ -1,6 +1,7 @@
 import type { Player, Riddle } from "./player.ts";
 import { MIN_WORD_LENGTH } from "../spell/resolver.ts";
 import { activeRiddleIds } from "../ui/dialogue.ts";
+import { GAME_IDENTITY } from "../core/gameIdentity.ts";
 
 /**
  * セーブ（設計書 5.4 / 手順書 5-4）。
@@ -16,7 +17,7 @@ import { activeRiddleIds } from "../ui/dialogue.ts";
  * 知識だけが積み上がる。プレイヤー自身が強くなる、という成長軸そのもの。
  */
 
-const KEY = "funsho-no-yoru/v1";
+const KEY = `${GAME_IDENTITY.storagePrefix}/v1`;
 
 type SaveData = {
   version: 1;

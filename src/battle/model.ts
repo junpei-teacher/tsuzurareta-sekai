@@ -1,4 +1,3 @@
-import rawEnemies from "../../data/enemies.json";
 import { spellFor, type Element, type Spell, type StatusKind } from "../spell/book.ts";
 import { resolveSpell, type Resolution } from "../spell/resolver.ts";
 import type { ItemKind, Player, StatusInst } from "../game/player.ts";
@@ -10,6 +9,8 @@ export type EnemyDef = {
   name: string;
   chapter: number;
   boss?: boolean;
+  /** 固定配置の初回勝利で得る経験値。稽古台は0。 */
+  xp?: number;
   hp: number;
   atk: number;
   def: number;
@@ -24,7 +25,6 @@ export type EnemyDef = {
   /**
    * 稽古台。**MPを消費せず、倒れず、攻撃してこない。**
    *
-   * この作品で強くなる手段は言葉を知ることだけだが（設計書 1）、
    * 知らない言葉を試すにはMPが要る。周回はせいぜい2回なので、
    * **57種のうち大半に一度も出会わないまま終わる。**
    * 出会う場所を1つ、第1章に置いた。ここで撃ったものも呪文帳に載る。
@@ -41,7 +41,31 @@ export type EnemyDef = {
   skill?: { name: string; kind: StatusKind; chance: number; turns?: number };
 };
 
-export const ENEMIES = (rawEnemies as unknown as { enemies: EnemyDef[] }).enemies;
+/**
+ * 物語戦だけが持つ例外。呪文Resolverと通常の敵データへ作品固有条件を混ぜない。
+ * 省略時はシリーズ1から継承した通常戦闘として動く。
+ */
+export type EncounterRule = {
+  id: string;
+  canEscape?: boolean;
+  /** 通常の「現れた」を使わず、物語上の対峙として戦闘を始める。 */
+  introLines?: string[];
+  /** 撃破でなく、相手が道を譲る決着。戦闘画面もHPではなく警戒として扱う。 */
+  nonlethalVictory?: boolean;
+  /** 通常攻撃の代わりに使う行。`{damage}` は確定値へ置換する。 */
+  enemyActionLines?: string[];
+  requiredNormalizedWord?: string;
+  requiredSpellId?: number;
+  cannotKillBeforeRequiredSpell?: boolean;
+  victoryLines?: string[];
+  victoryLabel?: string;
+  /** 最終戦専用。致死ダメージをHP1で止め、呪文でなく名前を呼ぶ段階へ移る。 */
+  finalCallWord?: string;
+  preCallResponseLines?: string[];
+  callTransitionLines?: string[];
+  wrongCallLines?: string[];
+  callVictoryLines?: string[];
+};
 
 export type EnemyInst = {
   def: EnemyDef;
@@ -130,7 +154,7 @@ export type CastReport = {
    * DUD=不発 / CAST=発動 / LOCKED=MP不足で唱えられなかった /
    * REFUSED=既知だがMP不足 / SHORT=短すぎて言葉になっていない
    */
-  kind: "DUD" | "CAST" | "LOCKED" | "REFUSED" | "SHORT";
+  kind: "DUD" | "CAST" | "LOCKED" | "REFUSED" | "SHORT" | "CALL";
   word: string;
   resolution: Resolution;
   spell?: Spell;
@@ -141,6 +165,7 @@ export type CastReport = {
 export class Battle {
   readonly player: Player;
   readonly enemy: EnemyInst;
+  readonly rule: EncounterRule | null;
 
   phase: Phase = "COMMAND";
   /** 表示待ちのメッセージ。Enterで1件ずつ消費する */
@@ -152,11 +177,15 @@ export class Battle {
   lastCast: CastReport | null = null;
   /** やまびこ（id 37）が継承する属性 */
   private lastElement: Element = "NONE";
+  private pendingCallPhase = false;
+  private callPhase = false;
+  private callComplete = false;
 
-  constructor(player: Player, enemy: EnemyInst) {
+  constructor(player: Player, enemy: EnemyInst, rule: EncounterRule | null = null) {
     this.player = player;
     this.enemy = enemy;
-    this.say(`${enemy.def.name} が あらわれた。`);
+    this.rule = rule;
+    this.say(...(rule?.introLines ?? [`${enemy.def.name} が あらわれた。`]));
     this.after = "COMMAND";
   }
 
@@ -171,12 +200,19 @@ export class Battle {
    * 手元の記憶だけで打つしかなくなる。
    */
   get memorySealed(): boolean {
-    return has(this.player, "SILENCE");
+    return this.callPhase || has(this.player, "SILENCE");
   }
+
+  get finalCallActive(): boolean { return this.callPhase; }
+  get finalCallComplete(): boolean { return this.callComplete; }
 
   /** 敵の弱点が見えているか（開眼） */
   get revealed(): boolean {
     return has(this.player, "REVEAL");
+  }
+
+  get resultLabel(): string | null {
+    return this.rule?.victoryLabel ?? null;
   }
 
   // ── プレイヤーの行動 ────────────────────────
@@ -184,6 +220,30 @@ export class Battle {
   cast(input: string): CastReport {
     const res = resolveSpell(input);
     const spell = spellFor(input);
+
+    // CALLではResolverの結果、MP、呪文登録、敵手番を使わない。
+    // これは攻撃呪文ではなく、目の前の相手を現在の名で呼ぶ行為である。
+    if (this.rule?.finalCallWord && this.callPhase) {
+      this.lastCast = { kind: "CALL", word: res.word, resolution: res, firstTime: false };
+      if (res.word === this.rule.finalCallWord) {
+        this.callComplete = true;
+        this.enemy.hp = 0;
+        this.say(...(this.rule.callVictoryLines ?? ["名前が、届いた。"]))
+        this.after = "END";
+      } else {
+        this.say(...(this.rule.wrongCallLines ?? ["声は届かない。けれど、相手は待っている。"]))
+        this.after = "COMMAND";
+      }
+      return this.lastCast;
+    }
+
+    // まだ守人として刃を受けている段階では、正しい名も消費せずに保留する。
+    if (this.rule?.finalCallWord && res.word === this.rule.finalCallWord) {
+      this.lastCast = { kind: "CALL", word: res.word, resolution: res, firstTime: false };
+      this.say(...(this.rule.preCallResponseLines ?? ["その名は聞こえた。けれど、まだ届かない。"]))
+      this.after = "COMMAND";
+      return this.lastCast;
+    }
 
     // ── 短すぎる。言葉になっていない ──
     //
@@ -197,12 +257,36 @@ export class Battle {
       return this.lastCast;
     }
 
-    // ── 不発 ──
-    if (!spell) {
-      const cost = Math.min(3, this.player.mp);
+    // 導入戦では、同じspellIdへ偶然着地した別綴りを正解として扱わない。
+    // 呪文名も呪文帳登録も伏せたまま、通常の不発と同じ代価だけを取る。
+    if (
+      spell
+      && this.rule?.requiredSpellId === res.spellId
+      && this.rule.requiredNormalizedWord
+      && res.word !== this.rule.requiredNormalizedWord
+    ) {
+      const cost = this.enemy.def.dummy ? 0 : Math.min(3, this.player.mp);
       this.player.mp -= cost;
       this.lastCast = { kind: "DUD", word: res.word, resolution: res, firstTime: false };
-      this.say("その呪文は、存在しなかった。", `（MP ${cost} を失った）`);
+      this.say(
+        "言葉は魔力を帯びた。",
+        "けれど、何にも届かなかった。",
+        cost > 0 ? `（MP ${cost} を失った）` : "（反響標ではMPは減らない）",
+      );
+      this.after = "ENEMY";
+      return this.lastCast;
+    }
+
+    // ── 不発 ──
+    if (!spell) {
+      // 稽古台では、不発の綴りも含めて試行そのものを無料にする。
+      const cost = this.enemy.def.dummy ? 0 : Math.min(3, this.player.mp);
+      this.player.mp -= cost;
+      this.lastCast = { kind: "DUD", word: res.word, resolution: res, firstTime: false };
+      this.say(
+        "その呪文は、存在しなかった。",
+        cost > 0 ? `（MP ${cost} を失った）` : "（反響標ではMPは減らない）",
+      );
       this.after = "ENEMY";
       return this.lastCast;
     }
@@ -243,6 +327,22 @@ export class Battle {
     this.player.unspoken.delete(spell.id);
 
     this.lastCast = { kind: "CAST", word: res.word, resolution: res, spell, firstTime };
+
+    const requiredSuccess =
+      this.rule?.requiredSpellId === spell.id
+      && this.rule.requiredNormalizedWord === res.word;
+    if (requiredSuccess) {
+      this.say(`${res.word} ——`, `${spell.name}。`);
+      if (firstTime) this.say(`（呪文帳に「${spell.name}」を書き加えた）`);
+      this.enemy.hp = 0;
+      this.say(...(
+        this.rule?.victoryLines ?? [`${this.enemy.def.name} は、静かに道を譲った。`]
+      ));
+      this.after = "END";
+      this.phase = "MESSAGE";
+      return this.lastCast;
+    }
+
     if (!known) this.say(`${res.word} ——`, `${spell.name}。`);
     else this.say(`${spell.name}。`);
 
@@ -261,8 +361,13 @@ export class Battle {
       );
     }
 
+    if (this.pendingCallPhase) {
+      this.enterCallPhase();
+      return this.lastCast;
+    }
+
     if (this.enemy.hp <= 0) {
-      this.say(`${this.enemy.def.name} は 消えた。`);
+      this.say(...(this.rule?.victoryLines ?? [`${this.enemy.def.name} は 消えた。`]));
       this.after = "END";
       this.phase = "MESSAGE";
     } else {
@@ -342,12 +447,14 @@ export class Battle {
     const defDown = findStatus(this.enemy, "DEF_DOWN");
     const effDef = Math.floor(this.enemy.def.def * (1 - (defDown?.magnitude ?? 0) / 100));
 
-    const base = power * useMul * special * boostMul;
+    const base = power * this.player.attackMultiplier * useMul * special * boostMul;
     const dmg = Math.max(1, Math.floor(base) - effDef);
 
     // 稽古台は倒れない。数字だけ出す
-    const floor = this.enemy.def.dummy ? 1 : 0;
+    const entersCall = Boolean(this.rule?.finalCallWord) && this.enemy.hp - dmg <= 0;
+    const floor = this.enemy.def.dummy || this.rule?.cannotKillBeforeRequiredSpell || entersCall ? 1 : 0;
     this.enemy.hp = Math.max(floor, this.enemy.hp - dmg);
+    if (entersCall) this.pendingCallPhase = true;
 
     if (useMul >= 2) this.say(`弱点を突いた！　${dmg} のダメージ。`);
     else if (useMul <= 0.5) this.say(`効果はいまひとつだ。　${dmg} のダメージ。`);
@@ -399,6 +506,11 @@ export class Battle {
       this.after = "END";
       this.phase = "MESSAGE";
       this.fled = true;
+      return;
+    }
+    if (this.rule?.canEscape === false) {
+      this.say("森を背にして、ここから逃げることはできない。");
+      this.after = "ENEMY";
       return;
     }
     // ボスからは逃げられない。
@@ -477,7 +589,10 @@ export class Battle {
     if (has(this.player, "GUARD")) dmg = Math.max(1, Math.floor(dmg * 0.5));
 
     this.player.hp = Math.max(0, this.player.hp - dmg);
-    this.say(`${e.def.name} の こうげき。`, `${dmg} のダメージ。`);
+    const actionLines = this.rule?.enemyActionLines?.map((line) =>
+      line.replaceAll("{enemy}", e.def.name).replaceAll("{damage}", String(dmg))
+    );
+    this.say(...(actionLines ?? [`${e.def.name} の こうげき。`, `${dmg} のダメージ。`]));
     this.endRound();
   }
 
@@ -486,7 +601,10 @@ export class Battle {
     const burnEnemy = findStatus(this.enemy, "BURN");
     if (burnEnemy && this.enemy.hp > 0) {
       const d = BURN_ENEMY;
-      this.enemy.hp = Math.max(0, this.enemy.hp - d);
+      const entersCall = Boolean(this.rule?.finalCallWord) && this.enemy.hp - d <= 0;
+      const floor = this.rule?.cannotKillBeforeRequiredSpell || entersCall ? 1 : 0;
+      this.enemy.hp = Math.max(floor, this.enemy.hp - d);
+      if (entersCall) this.pendingCallPhase = true;
       this.say(`${this.enemy.def.name} は 燃えている。　${d} のダメージ。`);
     }
     const burnSelf = findStatus(this.player, "BURN");
@@ -502,8 +620,10 @@ export class Battle {
     if (this.player.hp <= 0) {
       this.say("目の前が、白くなった。");
       this.after = "END";
+    } else if (this.pendingCallPhase) {
+      this.enterCallPhase();
     } else if (this.enemy.hp <= 0) {
-      this.say(`${this.enemy.def.name} は 消えた。`);
+      this.say(...(this.rule?.victoryLines ?? [`${this.enemy.def.name} は 消えた。`]));
       this.after = "END";
     } else {
       this.after = "COMMAND";
@@ -531,7 +651,7 @@ export class Battle {
         this.resolveEnd();
         break;
       case "COMMAND":
-        this.phase = "COMMAND";
+        this.phase = this.callPhase ? "CASTING" : "COMMAND";
         break;
     }
   }
@@ -547,5 +667,17 @@ export class Battle {
     // 記憶を封じるのは、その一戦を素手で戦わせるための技であって、
     // 罰ではない。
     this.player.statuses = [];
+  }
+
+  private enterCallPhase(): void {
+    this.pendingCallPhase = false;
+    this.callPhase = true;
+    addStatus(this.player, "SILENCE", 999);
+    this.say(...(this.rule?.callTransitionLines ?? [
+      "守人の仮面が割れ、攻撃の言葉がすべて遠のいた。",
+      "残っているのは、名前を呼ぶための声だけだ。",
+    ]));
+    this.after = "COMMAND";
+    this.phase = "MESSAGE";
   }
 }

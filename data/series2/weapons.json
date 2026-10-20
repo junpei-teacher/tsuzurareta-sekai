@@ -1,0 +1,10 @@
+{
+  "weapons": [
+    {
+      "id": "white_root_staff",
+      "name": "白根の杖",
+      "attack": 20,
+      "description": "守護樹の白い根から生まれた杖。言葉へ力を通しやすくする。"
+    }
+  ]
+}

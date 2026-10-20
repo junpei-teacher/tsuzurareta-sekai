@@ -1,16 +1,11 @@
 import rawCh1 from "../../data/dialogue/ch1.json";
 import rawCh2 from "../../data/dialogue/ch2.json";
 import rawCh3 from "../../data/dialogue/ch3.json";
-import type { ImageMap } from "../core/assets.ts";
-import { Display, SCREEN_W } from "../core/display.ts";
-import { PAL } from "../core/palette.ts";
-import { sfx } from "../core/sfx.ts";
-import { windowBox } from "./hud.ts";
+import type { Speaker } from "./dialogueBox.ts";
+export { DialogueBox, fillName, setDialogueName, type Speaker } from "./dialogueBox.ts";
 
-export type Speaker = {
-  name: string;
-  color: string;
-  talks: string[][];
+/* シリーズ1専用の会話データ。共通の会話窓は dialogueBox.ts に分離済み。 */
+type LegacySpeakerShape = Speaker & {
   /**
    * 部屋ごとの「見つけたときの様子」。会話の頭に1行入る。
    * **部屋あたり複数書ける。** 話しかけるたびに順に変わる。
@@ -87,7 +82,7 @@ export type Speaker = {
  */
 export type Reward = { id: number; word: string; lines: string[] };
 
-type Table = Record<string, Speaker>;
+type Table = Record<string, LegacySpeakerShape>;
 const strip = (o: unknown): Table =>
   Object.fromEntries(Object.entries(o as Table).filter(([k]) => !k.startsWith("_")));
 
@@ -123,7 +118,7 @@ export function activeRiddleIds(): Set<number> {
   return out;
 }
 
-export function speaker(id: string, chapter = 1): Speaker | undefined {
+export function speaker(id: string, chapter = 1): LegacySpeakerShape | undefined {
   const s = BY_CHAPTER[chapter]?.[id] ?? BASE[id];
   return s && Array.isArray(s.talks) ? s : undefined;
 }
@@ -136,121 +131,3 @@ export function speaker(id: string, chapter = 1): Speaker | undefined {
  * 全部その名が実際に紙に載っていることを前提にした文である。
  * 会話データ側には `{NAME}` と書いておき、開くときに差し替える。
  */
-let playerName = "";
-
-export function setDialogueName(name: string): void {
-  playerName = name;
-}
-
-export function fillName(line: string): string {
-  return playerName ? line.split("{NAME}").join(playerName) : line;
-}
-
-const LINES_PER_PAGE = 3;
-/** 立ち絵の一辺（デザイン単位）。素材は倍の128pxで作る */
-const PORTRAIT = 64;
-/** 1秒あたりの表示文字数 */
-const TYPE_SPEED = 42;
-
-/**
- * 会話ウィンドウ。3行ずつ、1文字ずつ出す。
- * Enterで送り、表示途中なら全文を即座に出す。
- */
-export class DialogueBox {
-  active = false;
-  private pages: string[][] = [];
-  private page = 0;
-  private revealed = 0;
-  private name = "";
-  private color: string = PAL.ink;
-  private caret = 0;
-  private portrait: string | undefined;
-
-  open(sp: Speaker, talk: string[]): void {
-    const lines = talk.map(fillName);
-    this.pages = [];
-    for (let i = 0; i < lines.length; i += LINES_PER_PAGE) {
-      this.pages.push(lines.slice(i, i + LINES_PER_PAGE));
-    }
-    this.page = 0;
-    this.revealed = 0;
-    this.name = sp.name;
-    this.color = sp.color;
-    this.portrait = sp.portrait;
-    this.active = this.pages.length > 0;
-  }
-
-  private get pageLength(): number {
-    return (this.pages[this.page] ?? []).reduce((n, l) => n + l.length, 0);
-  }
-
-  update(dt: number): void {
-    if (!this.active) return;
-    this.caret += dt;
-    this.revealed = Math.min(this.pageLength, this.revealed + dt * TYPE_SPEED);
-  }
-
-  /** Enterで呼ぶ。@returns 会話が終わったら true */
-  advance(): boolean {
-    if (!this.active) return true;
-    if (this.revealed < this.pageLength) {
-      this.revealed = this.pageLength; // 途中なら全文表示
-      // 送るのではなく「急かした」ので、頁の音ではなく小さい音にする
-      sfx.play("move");
-      return false;
-    }
-    sfx.play("page");
-    this.page++;
-    this.revealed = 0;
-    if (this.page >= this.pages.length) {
-      this.active = false;
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * @param images 立ち絵を引くため。地の文しか出さない場面では省略してよい
-   */
-  render(d: Display, images?: ImageMap): void {
-    if (!this.active) return;
-    // 枠の位置は話者の有無で動かさない。喋る／地の文で窓が跳ねると読みにくい
-    const x = 16, y = 182, w = SCREEN_W - 32, h = 76;
-    windowBox(d, x, y, w, h);
-
-    const face = this.portrait ? images?.[`portrait.${this.portrait}`] : undefined;
-    // 立ち絵があるぶんだけ本文を右へ寄せる
-    const textX = face ? x + PORTRAIT + 18 : x + 14;
-
-    if (face) {
-      const fx = x + 7, fy = y + 6;
-      d.rect(fx, fy, PORTRAIT, PORTRAIT, PAL.bg);
-      d.spriteFoot(face, fx + PORTRAIT / 2, fy + PORTRAIT);
-      d.frame(fx, fy, PORTRAIT, PORTRAIT, PAL.line);
-    }
-
-    if (this.name) {
-      const nw = Math.ceil(d.measure(this.name)) + 12;
-      d.rect(x + 10, y - 7, nw, 15, PAL.panel);
-      d.frame(x + 10, y - 7, nw, 15, PAL.line);
-      d.text(this.name, x + 16, y - 5, this.color);
-    }
-
-    // 文字数を行にまたいで割り当てる
-    let budget = Math.floor(this.revealed);
-    const lines = this.pages[this.page] ?? [];
-    lines.forEach((line, i) => {
-      const shown = line.slice(0, Math.max(0, budget));
-      budget -= line.length;
-      // 人が喋っている窓では、鉤括弧の無い行は地の文として一段落とす。
-      // 「階段に腰かけていた」のような描写と、本人の声を、同じ色で流さない
-      const narration = this.portrait !== undefined && !line.startsWith("「");
-      d.textRich(shown, textX, y + 12 + i * 16, narration ? PAL.dim : PAL.ink, PAL.accent, 12, line);
-    });
-
-    if (this.revealed >= this.pageLength) {
-      const blink = Math.floor(this.caret * 3) % 2 === 0;
-      if (blink) d.text("▼", x + w - 18, y + h - 18, PAL.accent);
-    }
-  }
-}

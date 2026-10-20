@@ -20,7 +20,7 @@ import { ChapterTitle } from "../ui/chapterTitle.ts";
 import { DialogueBox, speaker, type Speaker } from "../ui/dialogue.ts";
 import { GrimoireView } from "../ui/grimoire.ts";
 import { bar, windowBox } from "../ui/hud.ts";
-import { ENEMIES } from "../battle/model.ts";
+import { LEGACY_ENEMIES } from "../legacy/enemies.ts";
 
 const TILE = 16;
 const ORIGIN_X = 16;
@@ -925,7 +925,7 @@ export class FieldScene implements Scene {
           d.spriteFoot(mob, px + TILE / 2, py + TILE + SPRITE_FOOT + bob);
           continue;
         }
-        const def = ENEMIES.find((x) => x.id === ref);
+        const def = LEGACY_ENEMIES.find((x) => x.id === ref);
         d.rect(px + 2, py + 4 + bob, 12, 10, def?.sprite.color ?? "#7a3a34");
         d.frame(px + 2, py + 4 + bob, 12, 10, "#120f0d");
         continue;
@@ -1066,10 +1066,10 @@ export class FieldScene implements Scene {
     d.rect(0, FOOTER_Y, SCREEN_W, 1, PAL.line);
     // 数字が無いと、あと何発撃てるのかが棒の長さでしか分からない
     d.text("HP", 18, 253, PAL.dim);
-    bar(d, 36, 254, 70, 7, p.hp / p.maxHp, "#a8563f");
+    bar(d, 36, 254, 70, 7, p.hp / p.maxHp, PAL.hp);
     d.text(`${p.hp}/${p.maxHp}`, 110, 253, PAL.ink);
     d.text("MP", 170, 253, PAL.dim);
-    bar(d, 188, 254, 70, 7, p.mp / p.maxMp, "#3f6fa8");
+    bar(d, 188, 254, 70, 7, p.mp / p.maxMp, PAL.mp);
     d.text(`${p.mp}/${p.maxMp}`, 262, 253, PAL.ink);
     d.textRight(`呪文帳 ${p.grimoire.size}　壺 ${p.items.ink}`, SCREEN_W - 16, 253, PAL.dim);
   }

@@ -1,0 +1,559 @@
+[
+  {
+    "id": "village_storehouse",
+    "chapter": 1,
+    "theme": "village",
+    "music": "village",
+    "groundY": 176,
+    "background": { "renderer": "storehouse", "far": "wall", "middle": "shelves", "foreground": "floor" },
+    "walk": { "min": 52, "max": 438 },
+    "spawn": 230,
+    "blocks": [{ "min": 334, "max": 366, "noneFlags": ["storehouse_reported"] }],
+    "rightExit": { "to": "village_road", "spawn": 42, "allFlags": ["storehouse_reported"] },
+    "actors": [
+      { "id": "keeper_first", "kind": "keeper", "x": 350, "facing": -1, "label": "管理人に話す", "dialogue": "keeper_first", "noneFlags": ["heard_errand"], "setFlags": ["heard_errand"], "objective": "余った配給袋を棚へ戻す" },
+      { "id": "keeper_wait", "kind": "keeper", "x": 350, "facing": -1, "label": "管理人に話す", "dialogue": "keeper_wait", "allFlags": ["heard_errand"], "noneFlags": ["sack_returned"] },
+      { "id": "keeper_done", "kind": "keeper", "x": 350, "facing": -1, "label": "管理人に報告する", "dialogue": "keeper_done", "allFlags": ["sack_returned"], "noneFlags": ["storehouse_reported"], "setFlags": ["storehouse_reported"], "objective": "村門の狩人に配給の件を伝える" },
+      { "id": "keeper_repeat", "kind": "keeper", "x": 350, "facing": -1, "label": "管理人に話す", "dialogue": "keeper_done", "allFlags": ["storehouse_reported"], "noneFlags": ["forest_boundary_rewritten"] },
+      { "id": "ending_storehouse", "kind": "sena", "x": 326, "facing": -1, "label": "共同倉へ入る", "dialogue": "ending_storehouse", "allFlags": ["road_epilogue_seen"], "noneFlags": ["ending_seen"], "setFlags": ["ending_seen"], "ending": true, "objective": "" }
+    ],
+    "interactables": [
+      { "id": "shelf_before", "x": 92, "label": "空いた棚を調べる", "dialogue": "empty_shelf", "noneFlags": ["heard_errand"] },
+      { "id": "return_sack", "x": 92, "label": "袋を戻す", "dialogue": "return_sack", "allFlags": ["heard_errand"], "noneFlags": ["sack_returned"], "setFlags": ["sack_returned"], "objective": "共同倉の管理人に報告する" },
+      { "id": "shelf_after", "x": 92, "label": "棚を調べる", "dialogue": "empty_shelf", "allFlags": ["sack_returned"] },
+      { "id": "old_mark", "x": 244, "label": "壁の跡を調べる", "dialogue": "old_mark" }
+    ],
+    "encounters": [],
+    "objective": "共同倉の管理人に話す"
+  },
+  {
+    "id": "village_road",
+    "chapter": 1,
+    "theme": "village",
+    "music": "village",
+    "groundY": 176,
+    "background": { "renderer": "road", "far": "hills", "middle": "houses", "foreground": "road" },
+    "walk": { "min": 24, "max": 456 },
+    "spawn": 42,
+    "blocks": [{ "min": 266, "max": 294, "noneFlags": ["storehouse_reported"] }],
+    "leftExit": { "to": "village_storehouse", "spawn": 426 },
+    "rightExit": { "to": "village_gate", "spawn": 42 },
+    "actors": [
+      { "id": "road_neighbor", "kind": "villager", "x": 280, "facing": -1, "label": "青年に話す", "dialogue": "road_neighbor" },
+      { "id": "road_merchant", "kind": "merchant", "x": 386, "facing": -1, "label": "行商人に話す", "dialogue": "merchant_arrival", "allFlags": ["heard_forest_warning"], "noneFlags": ["merchant_date_known"], "setFlags": ["merchant_date_known", "knowledge:fire_same_night"], "objective": "村門の狩人に、十年前の話を伝える" },
+      { "id": "road_merchant_repeat", "kind": "merchant", "x": 386, "facing": -1, "label": "行商人に話す", "dialogue": "merchant_repeat", "allFlags": ["merchant_date_known"], "noneFlags": ["forest_boundary_rewritten"] },
+      { "id": "road_epilogue", "kind": "merchant", "x": 386, "facing": -1, "label": "行商人とセナに話す", "dialogue": "epilogue_road", "allFlags": ["forest_boundary_rewritten"], "noneFlags": ["road_epilogue_seen"], "setFlags": ["road_epilogue_seen"], "objective": "セナと共同倉へ戻る" }
+    ],
+    "interactables": [
+      { "id": "dry_well", "x": 164, "label": "井戸を調べる", "dialogue": "dry_well" }
+    ],
+    "encounters": [],
+    "objective": "村門の狩人に配給の件を伝える"
+  },
+  {
+    "id": "village_gate",
+    "chapter": 1,
+    "theme": "village",
+    "music": "village",
+    "groundY": 176,
+    "background": { "renderer": "gate", "far": "forest", "middle": "white_trees", "foreground": "path" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 314, "max": 348, "noneFlags": ["border_open"] }],
+    "leftExit": { "to": "village_road", "spawn": 438 },
+    "rightExit": { "to": "forest_boundary", "spawn": 42, "allFlags": ["border_open"] },
+    "actors": [
+      { "id": "gate_hunter", "kind": "hunter", "x": 330, "facing": -1, "label": "狩人頭に伝える", "dialogue": "gate_hunter", "noneFlags": ["heard_forest_warning"], "setFlags": ["heard_forest_warning"], "objective": "森の異変について村へ戻って聞く" },
+      { "id": "gate_hunter_wait", "kind": "hunter", "x": 330, "facing": -1, "label": "狩人頭に話す", "dialogue": "gate_hunter_repeat", "allFlags": ["heard_forest_warning"], "noneFlags": ["merchant_date_known"] },
+      { "id": "gate_hunter_report", "kind": "hunter", "x": 330, "facing": -1, "label": "狩人頭に話す", "dialogue": "gate_hunter_after_date", "allFlags": ["merchant_date_known"], "noneFlags": ["border_open"], "setFlags": ["border_open"], "objective": "白い木の境へ向かう" },
+      { "id": "gate_hunter_ready", "kind": "hunter", "x": 330, "facing": -1, "label": "狩人頭に話す", "dialogue": "gate_hunter_ready", "allFlags": ["border_open"], "noneFlags": ["intro_battle_won"] },
+      { "id": "gate_chapter2_start", "kind": "hunter", "x": 330, "facing": -1, "label": "狩人頭に話す", "dialogue": "c2_departure", "allFlags": ["intro_battle_won"], "noneFlags": ["chapter2_started"], "setFlags": ["chapter2_started", "hunters_missing", "ziror_taught"], "learnWords": ["ZIROR"], "objective": "森へ入り、戻らない狩人を捜す" },
+      { "id": "gate_chapter3_start", "kind": "hunter", "x": 330, "facing": -1, "label": "若い狩人に話す", "dialogue": "ch3_departure", "allFlags": ["chapter2_complete"], "noneFlags": ["chapter3_started"], "setFlags": ["chapter3_started", "hunter_chief_entered_ruin"], "restore": true, "objective": "守護樹の先へ進み、狩人頭を追う" }
+    ],
+    "interactables": [
+      { "id": "white_trees", "x": 412, "label": "白い木を見る", "dialogue": "white_trees" }
+    ],
+    "encounters": [],
+    "objective": "村門の狩人に配給の件を伝える"
+  },
+  {
+    "id": "forest_boundary",
+    "chapter": 1,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "forestBoundary", "far": "hills", "middle": "white_trees", "foreground": "forest_path" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 356, "max": 390, "noneFlags": ["intro_battle_won"] }],
+    "leftExit": { "to": "village_gate", "spawn": 420 },
+    "rightExit": { "to": "forest_edge", "spawn": 42, "allFlags": ["chapter2_started"] },
+    "actors": [
+      { "id": "boundary_rewrite", "kind": "sena", "x": 370, "facing": -1, "label": "セナと境界を決める", "dialogue": "boundary_rewrite", "allFlags": ["ring_left_with_sena"], "noneFlags": ["forest_boundary_rewritten"], "setFlags": ["forest_boundary_rewritten"], "objective": "セナと村へ戻る" },
+      { "id": "boundary_sena_repeat", "kind": "sena", "x": 370, "facing": -1, "label": "セナに話す", "dialogue": "sena_after_repeat", "allFlags": ["forest_boundary_rewritten"] }
+    ],
+    "interactables": [
+      { "id": "boundary_tracks", "x": 170, "label": "足跡を調べる", "dialogue": "boundary_tracks" },
+      { "id": "boundary_after", "x": 374, "label": "森の奥を見る", "dialogue": "boundary_after", "allFlags": ["intro_battle_won"] }
+    ],
+    "encounters": [
+      { "id": "intro_boundary_beast", "enemy": "boundary_beast", "x": 334, "label": "白樹の獣に近づく", "dialogue": "intro_beast_approach", "noneFlags": ["intro_battle_won"], "winFlags": ["intro_battle_won", "knowledge:guardian_yields"], "winObjective": "村へ戻り、森へ入る支度を整える" }
+    ],
+    "objective": "白い木の境を確かめる"
+  },
+  {
+    "id": "forest_edge",
+    "chapter": 2,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "shallowForest", "far": "canopy", "middle": "edge", "foreground": "forest_path" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 326, "max": 354, "noneFlags": ["forest_entry_seen"] }],
+    "leftExit": { "to": "forest_boundary", "spawn": 420 },
+    "rightExit": { "to": "dry_creek", "spawn": 42, "allFlags": ["forest_entry_seen"] },
+    "actors": [],
+    "interactables": [
+      { "id": "edge_tracks", "x": 132, "label": "足跡を調べる", "dialogue": "forest_edge_tracks" }
+    ],
+    "encounters": [
+      { "id": "moss_wolf_edge", "enemy": "moss_wolf", "x": 302, "label": "苔背の狼に近づく", "dialogue": "moss_wolf_approach", "noneFlags": ["forest_entry_seen"], "winFlags": ["forest_entry_seen"], "winObjective": "涸れ沢で狩人を捜す" }
+    ],
+    "objective": "森へ入り、戻らない狩人を捜す"
+  },
+  {
+    "id": "dry_creek",
+    "chapter": 2,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "shallowForest", "far": "canopy", "middle": "creek", "foreground": "dry_bed" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 198, "max": 226, "noneFlags": ["creek_wolf_cleared"] }],
+    "leftExit": { "to": "forest_edge", "spawn": 420 },
+    "rightExit": { "to": "snare_path", "spawn": 42, "allFlags": ["young_hunter_found"] },
+    "actors": [
+      { "id": "young_hunter_rescue", "kind": "hunter", "x": 330, "facing": -1, "label": "若い狩人を助ける", "dialogue": "young_hunter_rescue", "allFlags": ["creek_wolf_cleared"], "noneFlags": ["young_hunter_found"], "setFlags": ["young_hunter_found", "knowledge:beasts_drive_back", "torme_found"], "learnWords": ["TORME"], "objective": "狩人頭の足跡を追う" },
+      { "id": "young_hunter_repeat", "kind": "hunter", "x": 330, "facing": -1, "label": "若い狩人に話す", "dialogue": "young_hunter_repeat", "allFlags": ["young_hunter_found"] }
+    ],
+    "interactables": [],
+    "encounters": [
+      { "id": "moss_wolf_creek", "enemy": "moss_wolf", "x": 174, "label": "苔背の狼に近づく", "dialogue": "moss_wolf_approach", "noneFlags": ["creek_wolf_cleared"], "winFlags": ["creek_wolf_cleared"], "winObjective": "倒れている狩人を確かめる" }
+    ],
+    "objective": "涸れ沢で狩人を捜す"
+  },
+  {
+    "id": "snare_path",
+    "chapter": 2,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "shallowForest", "far": "canopy", "middle": "snare", "foreground": "root_path" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 196, "max": 224, "noneFlags": ["snare_path_clear"] }],
+    "leftExit": { "to": "dry_creek", "spawn": 420 },
+    "rightExit": { "to": "fallen_bridge", "spawn": 42, "allFlags": ["masked_guardian_left_hand"] },
+    "actors": [
+      { "id": "masked_guardian", "kind": "guardian", "x": 350, "facing": -1, "label": "仮面の人物に話す", "dialogue": "masked_guardian_cut_trap", "allFlags": ["snare_path_clear"], "noneFlags": ["masked_guardian_left_hand"], "setFlags": ["masked_guardian_left_hand", "knowledge:guardian_protects_forest"], "objective": "仮面の人物を追い、橋へ向かう" }
+    ],
+    "interactables": [],
+    "encounters": [
+      { "id": "snare_vine_path", "enemy": "snare_vine", "x": 170, "label": "罠喰い蔓をほどく", "dialogue": "snare_vine_approach", "noneFlags": ["snare_path_clear"], "winFlags": ["snare_path_clear"], "winObjective": "道の奥の人影を追う" }
+    ],
+    "objective": "狩人頭の足跡を追う"
+  },
+  {
+    "id": "fallen_bridge",
+    "chapter": 2,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "shallowForest", "far": "ravine", "middle": "bridge", "foreground": "broken_planks" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 196, "max": 224, "noneFlags": ["short_forgetting_seen"] }],
+    "leftExit": { "to": "snare_path", "spawn": 420 },
+    "rightExit": { "to": "hunter_camp", "spawn": 42, "allFlags": ["double_knot_clue"] },
+    "actors": [],
+    "interactables": [
+      { "id": "bridge_knot", "x": 344, "label": "切れた橋綱を調べる", "dialogue": "bridge_double_knot", "allFlags": ["short_forgetting_seen"], "noneFlags": ["double_knot_clue"], "setFlags": ["double_knot_clue", "knowledge:sena_crossed_forest"], "objective": "狩人の野営地へ向かう" }
+    ],
+    "encounters": [
+      { "id": "hush_moth_bridge", "enemy": "hush_moth", "x": 170, "label": "ささやき蛾に近づく", "dialogue": "hush_moth_approach", "noneFlags": ["short_forgetting_seen"], "winFlags": ["short_forgetting_seen", "knowledge:short_forgetting"], "winObjective": "切れた橋を調べる" }
+    ],
+    "objective": "仮面の人物を追い、橋へ向かう"
+  },
+  {
+    "id": "hunter_camp",
+    "chapter": 2,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "shallowForest", "far": "canopy", "middle": "camp", "foreground": "trampled_ground" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 232, "max": 260, "noneFlags": ["hunter_camp_clear"] }],
+    "leftExit": { "to": "fallen_bridge", "spawn": 420 },
+    "rightExit": { "to": "guardian_hollow", "spawn": 42, "allFlags": ["hunter_chief_trail"] },
+    "actors": [],
+    "interactables": [
+      { "id": "camp_record", "x": 350, "label": "手帳を読み、火にあたる", "dialogue": "hunter_camp_record", "allFlags": ["hunter_camp_clear"], "noneFlags": ["hunter_chief_trail"], "setFlags": ["hunter_chief_trail", "camp_rest_taken", "knowledge:ring_sale_plan"], "restore": true, "objective": "守護樹の窪地へ向かう" }
+    ],
+    "encounters": [
+      { "id": "hollow_boar_camp", "enemy": "hollow_boar", "x": 205, "label": "洞角猪に近づく", "dialogue": "hollow_boar_approach", "noneFlags": ["hunter_camp_clear"], "winFlags": ["hunter_camp_clear"], "winObjective": "野営地に残された手帳を調べる" }
+    ],
+    "objective": "狩人の野営地へ向かう"
+  },
+  {
+    "id": "guardian_hollow",
+    "chapter": 2,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "shallowForest", "far": "old_growth", "middle": "hollow", "foreground": "root_floor" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [],
+    "leftExit": { "to": "hunter_camp", "spawn": 420 },
+    "rightExit": { "to": "root_hollow_entry", "spawn": 42, "allFlags": ["root_hollow_opened"] },
+    "actors": [],
+    "interactables": [
+      { "id": "root_hollow_entrance", "x": 390, "label": "根の裂け目を調べる", "dialogue": "root_hollow_entrance", "noneFlags": ["root_hollow_opened"], "setFlags": ["root_hollow_opened"], "objective": "根洞窟へ入り、狩人頭を捜す" }
+    ],
+    "encounters": [],
+    "objective": "守護樹の窪地へ向かう"
+  },
+  {
+    "id": "root_hollow_entry",
+    "chapter": 2,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "deepForest", "far": "root_cavern", "middle": "entry", "foreground": "wet_roots" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 250, "max": 278, "noneFlags": ["root_entry_clear"] }],
+    "leftExit": { "to": "guardian_hollow", "spawn": 420 },
+    "rightExit": { "to": "echo_gallery", "spawn": 42, "allFlags": ["root_entry_clear"] },
+    "actors": [],
+    "interactables": [],
+    "encounters": [
+      { "id": "echo_target_practice", "enemy": "echo_target", "x": 98, "label": "反響標で試し打ちする", "dialogue": "echo_target_approach" },
+      { "id": "snare_vine_root", "enemy": "snare_vine", "x": 224, "label": "根を塞ぐ蔓に近づく", "dialogue": "snare_vine_root_approach", "noneFlags": ["root_entry_clear"], "winFlags": ["root_entry_clear"], "winObjective": "根洞窟の反響回廊へ進む" }
+    ],
+    "objective": "根洞窟へ入り、狩人頭を捜す"
+  },
+  {
+    "id": "echo_gallery",
+    "chapter": 2,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "deepForest", "far": "root_cavern", "middle": "echo_gallery", "foreground": "white_fibers" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 286, "max": 316, "noneFlags": ["echo_gallery_clear"] }],
+    "leftExit": { "to": "root_hollow_entry", "spawn": 420 },
+    "rightExit": { "to": "root_heart", "spawn": 42, "allFlags": ["echo_gallery_clear"] },
+    "actors": [],
+    "interactables": [],
+    "encounters": [
+      { "id": "white_antler_echo", "enemy": "white_antler", "x": 252, "label": "白枝鹿に近づく", "dialogue": "white_antler_echo_approach", "noneFlags": ["echo_gallery_clear"], "winFlags": ["echo_gallery_clear"], "winObjective": "根洞窟の最深部へ進む" }
+    ],
+    "objective": "根洞窟の反響回廊を抜ける"
+  },
+  {
+    "id": "root_heart",
+    "chapter": 2,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "deepForest", "far": "root_cavern", "middle": "root_heart", "foreground": "heart_roots" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 330, "max": 358, "noneFlags": ["root_warden_yielded"] }],
+    "leftExit": { "to": "echo_gallery", "spawn": 420 },
+    "rightExit": { "to": "deep_forest", "spawn": 42, "allFlags": ["chapter3_started"] },
+    "actors": [
+      { "id": "hunter_chief_rescue", "kind": "hunter", "x": 388, "facing": -1, "label": "狩人頭を助ける", "dialogue": "hunter_chief_rescue", "allFlags": ["root_warden_yielded"], "noneFlags": ["hunter_chief_found"], "setFlags": ["hunter_chief_found", "chapter2_complete", "knowledge:ruin_guarded"], "objective": "狩人頭と村へ戻る" },
+      { "id": "hunter_chief_repeat", "kind": "hunter", "x": 388, "facing": -1, "label": "狩人頭に話す", "dialogue": "hunter_chief_repeat", "allFlags": ["hunter_chief_found"] }
+    ],
+    "interactables": [],
+    "encounters": [
+      { "id": "root_warden", "enemy": "root_warden", "x": 302, "label": "根の番人に向き合う", "dialogue": "root_warden_approach", "noneFlags": ["root_warden_yielded"], "rewardWeapon": "white_root_staff", "winFlags": ["root_warden_yielded", "knowledge:guardian_can_yield"], "winObjective": "倒れている狩人頭を確かめる" }
+    ],
+    "objective": "根洞窟の最深部で、狩人頭を捜す"
+  },
+  {
+    "id": "deep_forest",
+    "chapter": 3,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "deepForest", "far": "closed_canopy", "middle": "deep", "foreground": "white_roots" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [
+      { "min": 186, "max": 214, "noneFlags": ["deep_wolf_clear"] },
+      { "min": 356, "max": 384, "noneFlags": ["deep_forest_clear"] }
+    ],
+    "leftExit": { "to": "root_heart", "spawn": 420 },
+    "rightExit": { "to": "knot_tree", "spawn": 42, "allFlags": ["masked_guardian_warning"] },
+    "actors": [
+      { "id": "deep_guardian_warning", "kind": "guardian", "x": 405, "facing": -1, "label": "仮面の守人に話す", "dialogue": "deep_forest_guardian_warning", "allFlags": ["deep_forest_clear"], "noneFlags": ["masked_guardian_warning"], "setFlags": ["masked_guardian_warning"], "objective": "結び目の残る古木へ進む" }
+    ],
+    "interactables": [],
+    "encounters": [
+      { "id": "moss_wolf_deep", "enemy": "moss_wolf", "x": 160, "label": "苔背の狼に近づく", "dialogue": "moss_wolf_deep", "noneFlags": ["deep_wolf_clear"], "winFlags": ["deep_wolf_clear"], "winObjective": "白い枝角の魔物を退かせる" },
+      { "id": "white_antler_deep", "enemy": "white_antler", "x": 330, "label": "白枝鹿に近づく", "dialogue": "white_antler_approach", "allFlags": ["deep_wolf_clear"], "noneFlags": ["deep_forest_clear"], "winFlags": ["deep_forest_clear"], "winObjective": "道の奥にいる守人を追う" }
+    ],
+    "objective": "守護樹の先へ進み、狩人頭を追う"
+  },
+  {
+    "id": "knot_tree",
+    "chapter": 3,
+    "theme": "forest",
+    "music": "forest",
+    "groundY": 176,
+    "background": { "renderer": "deepForest", "far": "closed_canopy", "middle": "knot", "foreground": "marked_roots" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 206, "max": 234, "noneFlags": ["knot_antler_clear"] }],
+    "leftExit": { "to": "deep_forest", "spawn": 420 },
+    "rightExit": { "to": "ruin_approach", "spawn": 42, "allFlags": ["guardian_handwriting_seen"] },
+    "actors": [],
+    "interactables": [
+      { "id": "knot_marks", "x": 350, "label": "古木の刻みを調べる", "dialogue": "knot_tree_marks", "allFlags": ["knot_antler_clear"], "noneFlags": ["guardian_handwriting_seen"], "setFlags": ["guardian_handwriting_seen", "knowledge:left_falling_marks"], "objective": "王国印のある遺跡へ向かう" }
+    ],
+    "encounters": [
+      { "id": "white_antler_knot", "enemy": "white_antler", "x": 180, "label": "白枝鹿に近づく", "dialogue": "white_antler_approach", "noneFlags": ["knot_antler_clear"], "winFlags": ["knot_antler_clear"], "winObjective": "印のある古木を調べる" }
+    ],
+    "objective": "結び目の残る古木へ進む"
+  },
+  {
+    "id": "ruin_approach",
+    "chapter": 3,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinExterior", "far": "forest_ruin", "middle": "approach", "foreground": "broken_steps" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 206, "max": 234, "noneFlags": ["approach_leech_clear"] }],
+    "leftExit": { "to": "knot_tree", "spawn": 420 },
+    "rightExit": { "to": "ruin_courtyard", "spawn": 42, "allFlags": ["royal_revision_mark_found"] },
+    "actors": [],
+    "interactables": [
+      { "id": "royal_mark", "x": 360, "label": "王国の校訂印を調べる", "dialogue": "ruin_revision_mark", "allFlags": ["approach_leech_clear"], "noneFlags": ["royal_revision_mark_found"], "setFlags": ["royal_revision_mark_found", "knowledge:royal_revision_ten_years"], "objective": "遺跡の外庭へ入る" }
+    ],
+    "encounters": [
+      { "id": "name_leech_approach", "enemy": "name_leech", "x": 180, "label": "名喰い蛭に向き合う", "dialogue": "name_leech_approach", "noneFlags": ["approach_leech_clear"], "winFlags": ["approach_leech_clear"], "winObjective": "遺跡入口の印を調べる" }
+    ],
+    "objective": "王国印のある遺跡へ向かう"
+  },
+  {
+    "id": "ruin_courtyard",
+    "chapter": 3,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinExterior", "far": "ruin_wall", "middle": "courtyard", "foreground": "echo_stones" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 226, "max": 254, "noneFlags": ["courtyard_sentinel_clear"] }],
+    "leftExit": { "to": "ruin_approach", "spawn": 420 },
+    "rightExit": { "to": "outer_archive", "spawn": 42, "allFlags": ["zhelen_found"] },
+    "actors": [],
+    "interactables": [
+      { "id": "courtyard_echo", "x": 360, "label": "反響記号を読む", "dialogue": "courtyard_echo", "allFlags": ["courtyard_sentinel_clear"], "noneFlags": ["zhelen_found"], "setFlags": ["zhelen_found"], "learnWords": ["ZHELEN"], "objective": "外縁記録庫で命令書を捜す" }
+    ],
+    "encounters": [
+      { "id": "seal_sentinel_courtyard", "enemy": "seal_sentinel", "x": 200, "label": "封印衛に向き合う", "dialogue": "seal_sentinel_approach", "noneFlags": ["courtyard_sentinel_clear"], "winFlags": ["courtyard_sentinel_clear"], "winObjective": "外庭の反響記号を調べる" }
+    ],
+    "objective": "遺跡の外庭へ入る"
+  },
+  {
+    "id": "outer_archive",
+    "chapter": 3,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinInterior", "far": "stone_archive", "middle": "archive", "foreground": "record_dust" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [
+      { "min": 176, "max": 204, "noneFlags": ["archive_moth_clear"] },
+      { "min": 326, "max": 354, "noneFlags": ["archive_leech_clear"] }
+    ],
+    "leftExit": { "to": "ruin_courtyard", "spawn": 420 },
+    "rightExit": { "to": "seal_gallery", "spawn": 42, "allFlags": ["knowledge:erasure_separate_from_fire"] },
+    "actors": [],
+    "interactables": [
+      { "id": "archive_rest", "x": 360, "label": "小さな火で傷を手当てする", "dialogue": "archive_rest", "allFlags": ["archive_leech_clear"], "noneFlags": ["archive_rest_taken"], "setFlags": ["archive_rest_taken"], "restore": true, "objective": "欠損した命令書を読む" },
+      { "id": "archive_order", "x": 405, "label": "欠損した命令書を読む", "dialogue": "archive_order", "allFlags": ["archive_rest_taken"], "noneFlags": ["knowledge:erasure_separate_from_fire"], "setFlags": ["knowledge:erasure_separate_from_fire"], "objective": "封印回廊で欠けた綴りを捜す" }
+    ],
+    "encounters": [
+      { "id": "hush_moth_archive", "enemy": "hush_moth", "x": 150, "label": "ささやき蛾に近づく", "dialogue": "hush_moth_archive", "noneFlags": ["archive_moth_clear"], "winFlags": ["archive_moth_clear"], "winObjective": "記録棚の奥へ進む" },
+      { "id": "name_leech_archive", "enemy": "name_leech", "x": 300, "label": "名喰い蛭に向き合う", "dialogue": "archive_name_leech", "allFlags": ["archive_moth_clear"], "noneFlags": ["archive_leech_clear"], "winFlags": ["archive_leech_clear"], "winObjective": "欠損した命令書を読む" }
+    ],
+    "objective": "外縁記録庫で命令書を捜す"
+  },
+  {
+    "id": "seal_gallery",
+    "chapter": 3,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinInterior", "far": "seal_columns", "middle": "gallery", "foreground": "script_floor" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [
+      { "min": 186, "max": 214, "noneFlags": ["gallery_scribe_clear"] },
+      { "min": 406, "max": 434, "noneFlags": ["duska_learned"] }
+    ],
+    "leftExit": { "to": "outer_archive", "spawn": 420 },
+    "rightExit": { "to": "guardian_core", "spawn": 42, "allFlags": ["duska_learned"] },
+    "actors": [],
+    "interactables": [
+      { "id": "duska_fragment", "x": 280, "label": "欠けた封印板を読む", "dialogue": "riddle_fragment", "allFlags": ["gallery_scribe_clear"], "noneFlags": ["duska_riddle_found"], "setFlags": ["duska_riddle_found"], "riddles": [{ "spellId": 46, "mask": "D _ S _ A", "place": "封印回廊" }], "objective": "欠けた綴りを完成させ、封印を止める" }
+    ],
+    "encounters": [
+      { "id": "blank_scribe_gallery", "enemy": "blank_scribe", "x": 160, "label": "空筆の像に向き合う", "dialogue": "blank_scribe_approach", "noneFlags": ["gallery_scribe_clear"], "winFlags": ["gallery_scribe_clear"], "winObjective": "欠けた封印板を調べる" },
+      { "id": "duska_seal_trial", "enemy": "seal_sentinel", "x": 380, "label": "繰り返す封印を止める", "dialogue": "duska_seal_trial", "allFlags": ["duska_riddle_found"], "noneFlags": ["duska_learned"], "winFlags": ["duska_learned"], "winObjective": "守護核へ進む" }
+    ],
+    "objective": "封印回廊で欠けた綴りを捜す"
+  },
+  {
+    "id": "guardian_core",
+    "chapter": 3,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinInterior", "far": "core_wall", "middle": "core", "foreground": "seal_circle" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 356, "max": 384, "noneFlags": ["nameless_choir_stilled"] }],
+    "leftExit": { "to": "seal_gallery", "spawn": 420 },
+    "rightExit": { "to": "inner_passage", "spawn": 42, "allFlags": ["chapter3_complete"] },
+    "actors": [
+      { "id": "core_hunter_trigger", "kind": "hunter", "x": 210, "facing": -1, "label": "狩人頭に話す", "dialogue": "guardian_core_trigger", "noneFlags": ["hunter_chief_triggered_core"], "setFlags": ["hunter_chief_triggered_core"], "restore": true, "objective": "守護核の唱和を止める" },
+      { "id": "core_guardian_truth", "kind": "guardian", "x": 405, "facing": -1, "label": "仮面の守人に話す", "dialogue": "choir_stilled", "allFlags": ["nameless_choir_stilled"], "noneFlags": ["chapter3_complete"], "setFlags": ["knowledge:guardian_protects_person", "chapter3_complete"], "objective": "仮面の守人を追い、内環へ入る" }
+    ],
+    "interactables": [
+      { "id": "core_after", "x": 350, "label": "静まった守護核を見る", "dialogue": "choir_stilled_repeat", "allFlags": ["chapter3_complete"] }
+    ],
+    "encounters": [
+      { "id": "nameless_choir", "enemy": "nameless_choir", "x": 330, "label": "名のない唱和に向き合う", "dialogue": "choir_approach", "allFlags": ["hunter_chief_triggered_core"], "noneFlags": ["nameless_choir_stilled"], "winFlags": ["nameless_choir_stilled"], "winObjective": "仮面の守人に話す" }
+    ],
+    "objective": "守護核へ進む"
+  },
+  {
+    "id": "inner_passage",
+    "chapter": 4,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinInterior", "far": "inner_wall", "middle": "inner", "foreground": "sealed_path" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 236, "max": 264, "noneFlags": ["inner_sentinel_clear"] }],
+    "leftExit": { "to": "guardian_core", "spawn": 420 },
+    "rightExit": { "to": "ring_workshop", "spawn": 42, "allFlags": ["inner_sentinel_clear"] },
+    "actors": [],
+    "interactables": [],
+    "encounters": [
+      { "id": "seal_sentinel_inner", "enemy": "seal_sentinel", "x": 210, "label": "内環の封印衛に向き合う", "dialogue": "inner_seal_approach", "noneFlags": ["inner_sentinel_clear"], "winFlags": ["inner_sentinel_clear", "chapter4_started"], "winObjective": "指輪工房へ進む" }
+    ],
+    "objective": "仮面の守人を追い、内環へ入る"
+  },
+  {
+    "id": "ring_workshop",
+    "chapter": 4,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinInterior", "far": "trial_wall", "middle": "workshop", "foreground": "metal_dust" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 206, "max": 234, "noneFlags": ["workshop_scribe_clear"] }],
+    "leftExit": { "to": "inner_passage", "spawn": 420 },
+    "rightExit": { "to": "blank_garden", "spawn": 42, "allFlags": ["knowledge:ring_removal_fatal"] },
+    "actors": [],
+    "interactables": [
+      { "id": "ring_trial_record", "x": 330, "label": "指輪の試験図を読む", "dialogue": "ring_workshop_read", "allFlags": ["workshop_scribe_clear"], "noneFlags": ["ring_workshop_read"], "setFlags": ["ring_workshop_read", "knowledge:ring_one_person"], "objective": "試験図の追記を読む" },
+      { "id": "ring_removal_record", "x": 390, "label": "指輪を外す試験を読む", "dialogue": "ring_removal_record", "allFlags": ["ring_workshop_read"], "noneFlags": ["knowledge:ring_removal_fatal"], "setFlags": ["knowledge:ring_removal_fatal"], "objective": "余白庭園へ進む" }
+    ],
+    "encounters": [
+      { "id": "blank_scribe_workshop", "enemy": "blank_scribe", "x": 180, "label": "空筆の像に向き合う", "dialogue": "workshop_scribe_approach", "noneFlags": ["workshop_scribe_clear"], "winFlags": ["workshop_scribe_clear"], "winObjective": "指輪の試験図を調べる" }
+    ],
+    "objective": "指輪工房へ進む"
+  },
+  {
+    "id": "blank_garden",
+    "chapter": 4,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinInterior", "far": "garden_wall", "middle": "garden", "foreground": "white_flowers" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 226, "max": 254, "noneFlags": ["garden_scribe_clear"] }],
+    "leftExit": { "to": "ring_workshop", "spawn": 420 },
+    "rightExit": { "to": "ruin_overlook", "spawn": 42, "allFlags": ["visle_found"] },
+    "actors": [],
+    "interactables": [
+      { "id": "visle_record", "x": 360, "label": "花壇の保全記録を読む", "dialogue": "visle_record", "allFlags": ["garden_scribe_clear"], "noneFlags": ["visle_found"], "setFlags": ["visle_found"], "learnWords": ["VISLE"], "objective": "遺跡展望部へ進む" }
+    ],
+    "encounters": [
+      { "id": "blank_scribe_garden", "enemy": "blank_scribe", "x": 200, "label": "空筆の像に向き合う", "dialogue": "garden_scribe_approach", "noneFlags": ["garden_scribe_clear"], "winFlags": ["garden_scribe_clear"], "winObjective": "白い花壇の記録を調べる" }
+    ],
+    "objective": "余白庭園へ進む"
+  },
+  {
+    "id": "ruin_overlook",
+    "chapter": 4,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinInterior", "far": "forest_view", "middle": "overlook", "foreground": "broken_balcony" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 246, "max": 274, "noneFlags": ["overlook_antler_clear"] }],
+    "leftExit": { "to": "blank_garden", "spawn": 420 },
+    "rightExit": { "to": "final_sanctum", "spawn": 42, "allFlags": ["hunter_chief_stands_down"] },
+    "actors": [
+      { "id": "overlook_hunter", "kind": "hunter", "x": 370, "facing": -1, "label": "狩人頭に話す", "dialogue": "hunter_stands_down", "allFlags": ["overlook_antler_clear"], "noneFlags": ["hunter_chief_stands_down"], "setFlags": ["hunter_chief_stands_down"], "objective": "最奥聖域で仮面の守人に会う" }
+    ],
+    "interactables": [],
+    "encounters": [
+      { "id": "white_antler_overlook", "enemy": "white_antler", "x": 220, "label": "白枝鹿に向き合う", "dialogue": "overlook_antler", "noneFlags": ["overlook_antler_clear"], "winFlags": ["overlook_antler_clear"], "winObjective": "村を見下ろす狩人頭に話す" }
+    ],
+    "objective": "遺跡展望部へ進む"
+  },
+  {
+    "id": "final_sanctum",
+    "chapter": 4,
+    "theme": "ruin",
+    "music": "ruin",
+    "groundY": 176,
+    "background": { "renderer": "ruinInterior", "far": "blank_wall", "middle": "sanctum", "foreground": "ring_lines" },
+    "walk": { "min": 24, "max": 444 },
+    "spawn": 42,
+    "blocks": [{ "min": 386, "max": 414, "noneFlags": ["sena_called"] }],
+    "leftExit": { "to": "ruin_overlook", "spawn": 420 },
+    "actors": [
+      { "id": "sena_after_call", "kind": "sena", "x": 405, "facing": -1, "label": "セナに話す", "dialogue": "sena_after_call", "allFlags": ["sena_called"], "noneFlags": ["ring_left_with_sena"], "setFlags": ["ring_left_with_sena"], "objective": "セナと村へ戻る" },
+      { "id": "sena_after_repeat", "kind": "sena", "x": 405, "facing": -1, "label": "セナに話す", "dialogue": "sena_after_repeat", "allFlags": ["ring_left_with_sena"] }
+    ],
+    "interactables": [
+      { "id": "final_rest", "x": 130, "label": "最奥の扉前で休む", "dialogue": "final_rest", "noneFlags": ["final_rest_taken"], "setFlags": ["final_rest_taken"], "restore": true, "objective": "仮面の守人に向き合う" }
+    ],
+    "encounters": [
+      { "id": "sena_guardian", "enemy": "sena_guardian", "x": 350, "label": "仮面の守人に声をかける", "dialogue": "final_guardian_approach", "allFlags": ["final_rest_taken"], "noneFlags": ["sena_called"], "setFlags": ["final_guardian_started"], "winFlags": ["final_call_started", "sena_called"], "winObjective": "セナに話す" }
+    ],
+    "objective": "最奥聖域で仮面の守人に会う"
+  }
+]

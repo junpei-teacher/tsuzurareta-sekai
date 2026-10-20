@@ -1,37 +1,29 @@
 import { Display, SCREEN_H, SCREEN_W } from "../core/display.ts";
+import { GAME_IDENTITY } from "../core/gameIdentity.ts";
 import { PAL } from "../core/palette.ts";
 import type { Scene } from "../core/scene.ts";
 import { sfx } from "../core/sfx.ts";
+import { THEMES } from "../core/theme.ts";
 
 /**
- * 名前入力（設計書 2.2）。
+ * 十年前の越冬配給札へ、自分の名前を彫る。
  *
- * **これは設定画面ではない。第1章の最初の仕事である。**
- *
- * 主人公の仕事は名を書き写すことなので、名乗る場面も「書く」形にしてある。
- * 当番表のいちばん上には MIRA があり、その下に自分の名を書く。
- *
- * この配置がそのまま、第1章の最後のミラの台詞に効く。
- *
- * > 「当番表、明日のぶんも書いといてね」
- * > 「MIRA って書いて、その下にあなたの名前」
- * > 「いつもの順番」
- *
- * 60分前に一度やらされた「いつもの順番」を、彼女が最後に口にする。
- * ついでに、**アルファベットで名を書く**という行為をここで一度通しておく。
- * 終章の白紙の前で `MIRA` と打てるかは、この作品の成否そのものである（2.3）。
+ * 設定画面ではなく、セナの札の隣へ自分の札を吊るす物語内の行為として見せる。
+ * `SENA` は幼なじみの固定名なので、主人公名には使用できない。
  */
 
 /** 署名欄に入る長さ。設計書 2.2 は 4〜8 文字 */
 const MIN_LEN = 4;
 const MAX_LEN = 8;
+const RESERVED_NAME = "SENA";
 
 /** 前回の名前を覚えておく。周回で毎回打ち直させない */
-const KEY = "funsho-no-yoru/name";
+const KEY = `${GAME_IDENTITY.storagePrefix}/name`;
 
 export function loadName(): string {
   try {
-    return (localStorage.getItem(KEY) ?? "").slice(0, MAX_LEN);
+    const name = (localStorage.getItem(KEY) ?? "").slice(0, MAX_LEN);
+    return name === RESERVED_NAME ? "" : name;
   } catch {
     return "";
   }
@@ -52,8 +44,12 @@ export class NameInputScene implements Scene {
   private fade = 1;
   /** 短すぎる名で確定しようとしたときだけ光る */
   private warn = 0;
+  private warnText = "";
 
-  constructor(private readonly onDone: (name: string) => void) {}
+  constructor(
+    private readonly onDone: (name: string) => void,
+    private readonly onCancel: () => void,
+  ) {}
 
   update(dt: number, keys: string[]): void {
     this.t += dt;
@@ -68,6 +64,13 @@ export class NameInputScene implements Scene {
         if (this.value.length < MIN_LEN) {
           sfx.play("denied");
           this.warn = 1.6;
+          this.warnText = `名前は ${MIN_LEN} 文字から。`;
+          continue;
+        }
+        if (this.value === RESERVED_NAME) {
+          sfx.play("denied");
+          this.warn = 2.2;
+          this.warnText = "その名は、隣の札に刻まれている。";
           continue;
         }
         sfx.play("learn");
@@ -75,9 +78,15 @@ export class NameInputScene implements Scene {
         this.onDone(this.value);
         return;
       }
+      if (key === "Escape") {
+        sfx.play("cancel");
+        this.onCancel();
+        return;
+      }
       if (key === "Backspace") {
         if (this.value.length === 0) continue;
         this.value = this.value.slice(0, -1);
+        this.warn = 0;
         sfx.play("erase");
         continue;
       }
@@ -86,62 +95,104 @@ export class NameInputScene implements Scene {
       if (key.length === 1 && /[A-Z]/.test(key)) {
         if (this.value.length >= MAX_LEN) { sfx.play("denied"); continue; }
         this.value += key;
+        this.warn = 0;
         sfx.play("type");
       }
     }
   }
 
   render(d: Display): void {
-    d.clear("#0b0908");
+    const ctx = d.ctx;
+    d.clear(THEMES.village.shadow);
+    const wall = ctx.createLinearGradient(0, 0, 0, SCREEN_H);
+    wall.addColorStop(0, "#24483f");
+    wall.addColorStop(0.62, "#6f674a");
+    wall.addColorStop(1, "#27362b");
+    ctx.fillStyle = wall;
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    d.rect(0, 34, SCREEN_W, 8, "#23382f");
+    d.rect(0, 214, SCREEN_W, 56, "#213128");
+    for (let x = 34; x < SCREEN_W; x += 62) d.rect(x, 214, 1, 56, "#40513c");
+    // 梁の隙間から入る薄い朝光と、札を彫る作業台。
+    ctx.save();
+    const shaft = ctx.createLinearGradient(380, 36, 286, 206);
+    shaft.addColorStop(0, "rgba(222,205,139,0.14)");
+    shaft.addColorStop(1, "rgba(222,205,139,0)");
+    ctx.fillStyle = shaft;
+    ctx.beginPath();
+    ctx.moveTo(363, 40);
+    ctx.lineTo(434, 40);
+    ctx.lineTo(355, 214);
+    ctx.lineTo(245, 214);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    d.rect(40, 172, 400, 9, "#4c402d");
+    d.rect(40, 181, 400, 34, "#332d24");
+    d.rect(44, 174, 392, 2, "#756142");
 
     const cx = SCREEN_W / 2;
-    // 「彼女の名だ」と書くと、まだ会っていない人物を説明したことになる。
-    // **ここではただ「いつも同じ名前が上にある」だけでいい。**
-    // 誰なのかは第1章で分かるし、分かったときにこの一行が効く
-    const lines = ["当番表に、明日の署名を書く。", "いちばん上は、いつも同じ名前だ。"];
-    lines.forEach((line, i) => {
-      const w = d.measure(line);
-      d.text(line, Math.round(cx - w / 2), 72 + i * 18, PAL.dim);
-    });
+    d.text("十年前　共同倉", 22, 16, PAL.accentCool, 11);
+    const instruction = "セナの札の隣へ、自分の名を刻む。";
+    d.text(instruction, Math.round(cx - d.measure(instruction) / 2), 57, PAL.ink);
 
-    // 署名欄。MIRA が上にあり、**その下**に自分の名を書く。
-    // 二段の罫線だけで当番表に見せる。枠を描くと入力フォームになってしまう
-    const boxW = 200;
-    const bx = Math.round(cx - boxW / 2);
-    const sx = bx + 20;
-    d.rect(bx, 132, boxW, 1, PAL.line);
-    d.rect(bx, 168, boxW, 1, PAL.line);
+    // 二枚の札を横に並べる。入力欄ではなく、同じ村にいる二人の記録。
+    const leftX = 82, rightX = 254, tagY = 91, tagW = 144, tagH = 72;
+    for (const x of [leftX, rightX]) {
+      ctx.strokeStyle = "#66563d";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 72, 41);
+      ctx.lineTo(x + 72, tagY + 3);
+      ctx.stroke();
+      d.rect(x + 3, tagY + 4, tagW, tagH, PAL.shadow);
+      d.rect(x, tagY, tagW, tagH, "#b3955c");
+      d.rect(x + 3, tagY + 3, tagW - 6, 1, "#d8bf7c");
+      d.frame(x, tagY, tagW, tagH, "#665337");
+      d.rect(x + 71, tagY + 3, 2, 2, "#57472f");
+      d.text("越冬配給札", x + 37, tagY + 10, "#443823", 9);
+    }
+    d.text("SENA", leftX + 47, tagY + 33, "#20332b", 14);
+    d.text("麦 1　塩 1　油 1", leftX + 24, tagY + 54, "#56472f", 9);
 
-    d.text("MIRA", sx, 118, PAL.accent);
-
-    // 空欄は下線で見せる。**欄そのものが長さを語る**ので、
-    // 「4〜8文字」と注記するより早い。ASCII は等幅なので桁が揃う
+    const sx = rightX + 25;
     const pitch = d.measure("A");
     const cursorOn = Math.floor(this.t * 2) % 2 === 0;
     for (let i = this.value.length; i < MAX_LEN; i++) {
-      // まだ足りていない桁は少し明るく。ここまで書けば署名として通る、が見える
       const need = i < MIN_LEN;
-      d.text("_", sx + i * pitch, 154, need ? PAL.dim : PAL.line);
+      d.text("_", sx + i * pitch, tagY + 35, need ? "#6f6040" : "#8c7650");
     }
-    d.text(this.value, sx, 154, PAL.ink);
+    d.text(this.value, sx, tagY + 35, "#20332b");
     if (cursorOn && this.value.length < MAX_LEN) {
-      d.text("_", sx + this.value.length * pitch, 154, PAL.accent);
+      d.text("_", sx + this.value.length * pitch, tagY + 35, "#315f5a");
+    }
+    d.text("麦 1　塩 1　油 1", rightX + 24, tagY + 54, "#56472f", 9);
+
+    // 入力欄の外に道具と削り屑を置き、「入力」ではなく「彫刻」に見せる。
+    d.rect(368, 178, 43, 3, "#665541");
+    d.rect(405, 175, 10, 5, "#a9aaa0");
+    d.rect(414, 176, 9, 2, "#d1d0bf");
+    for (const [x, y] of [[280, 178], [290, 182], [305, 177], [319, 184]] as const) {
+      d.rect(x, y, 5, 1, "#b7985d");
+      d.rect(x + 1, y + 1, 2, 1, "#806746");
     }
 
     const note = this.warn > 0
-      ? `署名は ${MIN_LEN} 文字から。`
-      : "アルファベットで、自分の名を。";
+      ? this.warnText
+      : "A-Zで、4～8文字。";
     const nw = d.measure(note);
-    d.text(note, Math.round(cx - nw / 2), 192, this.warn > 0 ? PAL.danger : PAL.dim);
+    d.text(note, Math.round(cx - nw / 2), 187, this.warn > 0 ? PAL.danger : PAL.dim);
 
     d.textRight(
-      this.value.length >= MIN_LEN ? "ENTER 書く" : "A-Z 入力　BACKSPACE 消す",
+      this.value.length >= MIN_LEN
+        ? "ENTER 刻む　ESC もどる"
+        : "A-Z 入力　BACKSPACE 消す　ESC もどる",
       SCREEN_W - 24, SCREEN_H - 26, PAL.hint,
     );
 
     if (this.fade > 0) {
       d.ctx.globalAlpha = this.fade;
-      d.rect(0, 0, SCREEN_W, SCREEN_H, "#0b0908");
+      d.rect(0, 0, SCREEN_W, SCREEN_H, PAL.shadow);
       d.ctx.globalAlpha = 1;
     }
   }
