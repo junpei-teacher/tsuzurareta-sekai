@@ -9,6 +9,7 @@ import { FieldState } from "./field/state.ts";
 import { ENEMIES } from "./battle/model.ts";
 import { loadProgress, saveProgress } from "./game/save.ts";
 import { clearRun, hasRun, loadRun, saveRun } from "./game/checkpoint.ts";
+import { printRuleHelp } from "./game/rules.ts";
 import { getMap } from "./field/mapFormat.ts";
 import { missingWangIndices } from "./field/tileset.ts";
 import { verifyCanonicals } from "./spell/book.ts";
@@ -27,6 +28,7 @@ import { setDialogueName } from "./ui/dialogue.ts";
 
 const canvas = document.getElementById("screen") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("#screen が見つかりません");
+printRuleHelp();
 
 // 起動時の自己点検。canonical がハッシュとズレていたら即座に気づけるようにする
 const errors = verifyCanonicals();

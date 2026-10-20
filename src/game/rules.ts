@@ -20,3 +20,22 @@ export function getGameRules(): GameRules {
     infiniteMp: rules?.infiniteMp === true,
   };
 }
+
+/** 各メッセージを丸ごとコピーしても実行できるよう、見出しもJSのコメントにする。 */
+export function printRuleHelp(): void {
+  console.log(
+    "// 焚書の夜：世界のルールを書き換える\n"
+    + "// 下の使いたいプログラムをコピーして、Consoleの入力欄に貼り付けてEnter。\n"
+    + "// 保存・再読み込みは不要です。次の詠唱から反映されます。\n"
+    + "// 再読み込みすると、index.htmlに書かれた設定へ戻ります。",
+  );
+  const programs = [
+    ["攻撃力最大化のプログラム（呪文ダメージ100万倍）", "window.GAME_RULES.damageMultiplier = 1000000"],
+    ["攻撃力100倍のプログラム", "window.GAME_RULES.damageMultiplier = 100"],
+    ["MPを無限にするプログラム", "window.GAME_RULES.infiniteMp = true"],
+    ["攻撃力を元に戻すプログラム", "window.GAME_RULES.damageMultiplier = 1"],
+    ["MPの消費を元に戻すプログラム", "window.GAME_RULES.infiniteMp = false"],
+    ["両方まとめて元に戻すプログラム", "window.GAME_RULES = { damageMultiplier: 1, infiniteMp: false }"],
+  ];
+  for (const [label, code] of programs) console.log(`// ${label}\n${code}`);
+}
