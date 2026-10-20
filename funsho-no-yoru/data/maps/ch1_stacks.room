@@ -1,0 +1,28 @@
+!id ch1_stacks
+!name 大書架
+!spawn 13 2
+!npc a mira
+!enemy 1 bookworm emberfiend
+!enemy 2 - sootbat
+!enemy 3 bookworm -
+!sign q stone_carving carve
+!sign g shelf_tag
+!sign s shelf_37
+!sign j stack_gap hole
+!door n ch1_reading 13 12
+!door e ch1_stairs 1 6
+!map
+#############n##############
+#........................q.#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#..g.......................#
+#...................2......e
+#....................s.....#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.BB.BB.BB.BB.BB.BB.BB.BB..#
+#.......1.........a...3....#
+#j.........................#
+############################
