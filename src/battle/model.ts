@@ -2,6 +2,7 @@ import rawEnemies from "../../data/enemies.json";
 import { spellFor, type Element, type Spell, type StatusKind } from "../spell/book.ts";
 import { resolveSpell, type Resolution } from "../spell/resolver.ts";
 import type { ItemKind, Player, StatusInst } from "../game/player.ts";
+import { getGameRules } from "../game/rules.ts";
 
 // ── 敵 ────────────────────────────────────────
 
@@ -184,6 +185,7 @@ export class Battle {
   cast(input: string): CastReport {
     const res = resolveSpell(input);
     const spell = spellFor(input);
+    const freeCast = this.enemy.def.dummy || getGameRules().infiniteMp;
 
     // ── 短すぎる。言葉になっていない ──
     //
@@ -199,7 +201,7 @@ export class Battle {
 
     // ── 不発 ──
     if (!spell) {
-      const cost = Math.min(3, this.player.mp);
+      const cost = freeCast ? 0 : Math.min(3, this.player.mp);
       this.player.mp -= cost;
       this.lastCast = { kind: "DUD", word: res.word, resolution: res, firstTime: false };
       this.say("その呪文は、存在しなかった。", `（MP ${cost} を失った）`);
@@ -210,7 +212,7 @@ export class Battle {
     const known = this.player.grimoire.has(spell.id);
     const halved = has(this.player, "MP_HALF");
     // 稽古台には墨を使わない。**試すことに値段を付けない**
-    const cost = this.enemy.def.dummy ? 0 : halved ? Math.ceil(spell.mp / 2) : spell.mp;
+    const cost = freeCast ? 0 : halved ? Math.ceil(spell.mp / 2) : spell.mp;
 
     // ── MPが足りない ──
     if (cost > this.player.mp) {
@@ -343,7 +345,8 @@ export class Battle {
     const effDef = Math.floor(this.enemy.def.def * (1 - (defDown?.magnitude ?? 0) / 100));
 
     const base = power * useMul * special * boostMul;
-    const dmg = Math.max(1, Math.floor(base) - effDef);
+    const normalDamage = Math.max(1, Math.floor(base) - effDef);
+    const dmg = Math.floor(normalDamage * getGameRules().damageMultiplier);
 
     // 稽古台は倒れない。数字だけ出す
     const floor = this.enemy.def.dummy ? 1 : 0;

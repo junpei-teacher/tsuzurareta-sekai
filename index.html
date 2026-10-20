@@ -27,6 +27,20 @@
     </style>
   </head>
   <body>
+    <!--
+      世界のルールを書き換えてみよう！
+      1. damageMultiplier の 1 を 100 に変える。
+      2. このファイルを保存し、ブラウザを再読み込みする。
+      3. 同じ敵に ROZHA を唱えて、ダメージを比べる。
+      infiniteMp は false を true にすると、MPを消費しなくなる。
+      元に戻すときは 1 と false に戻して、保存・再読み込み。
+    -->
+    <script>
+      window.GAME_RULES = {
+        damageMultiplier: 1, // 呪文のダメージ倍率（1〜1000000）
+        infiniteMp: false,  // MP無限：true で有効、false で無効
+      };
+    </script>
     <canvas id="screen"></canvas>
     <script type="module" src="/src/main.ts"></script>
   </body>
