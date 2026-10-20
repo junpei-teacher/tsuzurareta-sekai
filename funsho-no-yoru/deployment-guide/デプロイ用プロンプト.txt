@@ -1,0 +1,56 @@
+Worker 名：ここを自分のリポジトリ名に置き換える（例：my-quiz-app。.git は付けない）
+
+Kiro で開いているこのアプリを、Cloudflare Workers の Git 連携（Workers Builds）で公開する準備をしてください。Cloudflare Pages は使いません。公開作業と Git の操作は私が行います。
+
+【0. 以前 Pages 向けに準備したアプリも Workers 向けに直す】
+このフォルダーには以前のデプロイ設定が残っている可能性があります。新しい GitHub リポジトリを作るだけでは、アプリ内の Pages 用設定は変わりません。既存設定・package.json の scripts・フレームワークのアダプター・Pages Functions（functions/ や _worker.js 等）を調べ、Workers 用への移行対象を明示してください。
+静的アプリの Pages 用設定は次の手順で Workers Static Assets 用に修正してください。サーバー処理がある場合は機能を保つ Workers 対応が必要なので、分類 C として扱ってください。古い設定を残したまま新規ファイルを追加して完了にしないでください。
+Cloudflare 上の既存 Pages プロジェクトを Worker に変換したとは言わないでください。新しい Worker の作成と Git 接続は私が画面で行います。既存の Pages プロジェクトは削除しないでください。
+.git フォルダーや Git 履歴は削除しないでください。新しいリポジトリへの送り先変更が必要な可能性を最後に知らせてください。
+
+【1. まず実際の構成を調べる】
+package.json、ロックファイル、ビルド設定、既存の Wrangler 設定、サーバー処理、API、環境変数を確認してください。ファイルの中身を見ずに Vite や dist と決めつけないでください。
+次のどれに該当するか、根拠のファイル名と一緒に短く説明してください。
+A：HTML・CSS・JavaScript をそのまま配信できるアプリ
+B：Vite などでビルドして静的ファイルを配信するアプリ
+C：SSR・API・認証・データベースなどのサーバー処理を含むアプリ
+C は静的ファイルだけに変更して機能を失わせないでください。Workers 対応の公式アダプター等が必要なら説明し、機能変更・外部サービス追加・費用が伴う対応は私に確認してください。以下の静的配信の設定を機械的に適用しないでください。
+
+【2. A または B は Workers Static Assets を設定する】
+既存の wrangler.jsonc / wrangler.json / wrangler.toml を確認し、利用する設定ファイルを1つに整理してください。既存の bindings、環境別設定等を無断で消さないでください。
+・name は上の Worker 名と一致させる。.git、URL、日本語、大文字、アンダースコアを含めない。この授業では半角小文字・数字・ハイフンで、先頭末尾は英数字、63文字以内とする。不正な名前や未入力なら確認する。
+・compatibility_date は既存値があれば尊重し、新規なら作業日の YYYY-MM-DD を指定する。
+・assets.directory は実際に公開する静的フォルダーを指定する。B はビルド後の出力先（Vite の標準なら ./dist）。A は index.html と必要な画像等が揃う公開専用フォルダーを使う。プロジェクト全体 ./ を公開しない。
+・pages_build_output_dir は Pages 専用なので、Workers 向けの assets.directory に置き換える。wrangler pages deploy、Pages 用アダプターも使わない。
+・静的ファイルのみなら main や assets.binding は追加しない。ブラウザー用 src/main.ts を Worker の main にしない。
+・URL による画面切り替えがある SPA だけ、必要性を確認して assets.not_found_handling を single-page-application にする。すべてのアプリに付けない。
+・公開フォルダーに秘密情報やサーバーソースを入れない。
+
+Vite の標準的な静的アプリの例（出力先を確認してから使う）：
+{
+  "name": "my-quiz-app",
+  "compatibility_date": "作業日の YYYY-MM-DD に置き換える",
+  "assets": { "directory": "./dist" }
+}
+
+【3. 依存関係と Git の除外設定】
+既存のパッケージ管理方式とロックファイルを使ってください。npm のプロジェクトでは Wrangler を開発依存に追加し、package.json と package-lock.json に検証したバージョンを固定してください。既存依存の一括更新はしないでください。
+.gitignore は既存内容を残し、node_modules/、.wrangler/、.env、.env.*、.dev.vars、.dev.vars.* を除外する。.env.example 等の値のない見本は必要に応じ例外にする。
+ビルドで再生成する dist/ 等は除外する。ただし A の手書きの公開フォルダーは除外しない。画像・音声・必要なロックファイルも除外しない。
+除外設定を追加しても、既に Git 管理されているファイルは除外されない点を説明し、該当する場合は私に知らせる。秘密の値は画面に出さない。
+
+【4. 公開せず検証する】
+必要な依存関係をインストールし、B は実際にビルドする。出力先に index.html と必要なファイルがあることを確認する。
+選んだ設定で npx wrangler deploy --dry-run を実行する（npm の場合）。実際の deploy、ログイン、Cloudflare 設定変更は行わない。
+失敗したら原因を直し、再確認する。ネットワーク等で実行できなかった検証は「未確認」と明記する。ビルド成功だけでデプロイ成功とは言わない。
+
+【5. 最後に私へ渡す情報】
+・アプリの分類と理由、変更したファイル、検証結果と未確認事項
+・Cloudflare に入力する プロジェクト名（Worker 名・name と同じ）、ビルド コマンド、デプロイ コマンド、詳細設定のパス、接続するブランチ
+  A のビルドコマンドは空欄、B は実在するビルドスクリプト。npm ならデプロイは npx wrangler deploy。
+  画面の「詳細設定 → パス」はビルドを実行する場所。リポジトリ直下なら初期値 / のまま、サブフォルダーなら実際の場所を指定する。assets.directory の値とは別である。
+・プレビューコマンドが表示されている場合は画面の初期値を確認する。今回確認した画面は npx wrangler preview。wrangler pages deploy に変更しない。プレビュービルドや Cloudflare Access の設定は必要性を説明し、勝手に変更しない。
+・Cloudflare Workers の Git 接続画面で入力すること、Pages の「ビルド出力ディレクトリ」ではなく assets.directory で公開フォルダーを指定すること
+・次回の更新はローカル検証 → 自分でコミット・プッシュ → Cloudflare のデプロイ成功と公開画面の確認、という順であること
+
+Git のコマンドは実行しないでください。コミット・プッシュと本番デプロイは私が行います。

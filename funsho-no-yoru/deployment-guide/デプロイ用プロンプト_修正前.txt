@@ -1,0 +1,10 @@
+リポジトリ名：git-push-guide.git
+
+このアプリを Cloudflare Workers でデプロイする準備をしてください。次の順番で進めてください。
+
+1. このアプリが Cloudflare Workers で動く構成か確認してください。動かない部分があれば、書き換える前に教えてください
+2. wrangler.jsonc を作ってください。name は上のリポジトリ名と同じにしてください
+3. .gitignore を確認してください。無ければ作り、node_modules、dist、.env、.wrangler が入っていなければ足してください
+4. Cloudflare の画面で入力する「ビルドコマンド」と「デプロイコマンド」を教えてください
+
+GitHub へのプッシュは自分でコマンドを打ってやるので、git のコマンドは実行しないでください。

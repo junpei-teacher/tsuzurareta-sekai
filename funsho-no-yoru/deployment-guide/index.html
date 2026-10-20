@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>はじめての git push</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=BIZ+UDPGothic:wght@400;700&family=JetBrains+Mono:wght@400;600&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+:root{
+  --ground:#F3F5F7; --surface:#FFFFFF; --ink:#16212B; --muted:#56636F; --rule:#D9DFE4;
+  --accent:#0E6E78; --accent-ink:#FFFFFF; --accent-soft:#DDEEEF;
+  --term:#15202A; --term-line:#263443; --term-ink:#E4ECF2; --term-dim:#93A3B1; --term-ps:#72C3CC; --term-slot:#F0C75E; --term-btn:#3A4B5A;
+  --ok:#2F7D4F; --ok-soft:#E3F2E8; --warn:#8F5B00; --warn-soft:#FBEFD9; --bad:#B23A31; --bad-soft:#FAE7E4;
+  --font-display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","HG丸ｺﾞｼｯｸM-PRO",sans-serif;
+  --font-body:"BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif;
+  --font-code:"JetBrains Mono","BIZ UDGothic",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F151B; --surface:#161F27; --ink:#E2E8ED; --muted:#9AA8B4; --rule:#27333E;
+    --accent:#5DC0CA; --accent-ink:#0B1A1D; --accent-soft:#13343A;
+    --term:#0A1016; --term-line:#1F2B36; --term-btn:#33434F;
+    --ok:#6CC08E; --ok-soft:#15301F; --warn:#E3AE4F; --warn-soft:#33270F; --bad:#F08276; --bad-soft:#3A1B18;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F151B; --surface:#161F27; --ink:#E2E8ED; --muted:#9AA8B4; --rule:#27333E;
+  --accent:#5DC0CA; --accent-ink:#0B1A1D; --accent-soft:#13343A;
+  --term:#0A1016; --term-line:#1F2B36; --term-btn:#33434F;
+  --ok:#6CC08E; --ok-soft:#15301F; --warn:#E3AE4F; --warn-soft:#33270F; --bad:#F08276; --bad-soft:#3A1B18;
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--font-body);font-size:1rem;line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:50rem;margin:0 auto;padding:2.75rem 1.25rem 5rem;display:grid;gap:3.25rem}
+h1,h2,h3{font-family:var(--font-display);font-weight:700;line-height:1.35;text-wrap:balance;margin:0}
+p{margin:0}
+a{color:var(--accent)}
+code.inline{font-family:var(--font-code);font-size:.9em;background:var(--accent-soft);color:var(--ink);padding:.05em .4em;border-radius:4px;white-space:nowrap}
+kbd{font-family:var(--font-code);font-size:.85em;border:1px solid var(--rule);border-bottom-width:2px;background:var(--surface);color:var(--ink);border-radius:4px;padding:0 .4em}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* header */
+.head{display:grid;gap:1rem}
+.eyebrow{font-size:.8rem;letter-spacing:.12em;color:var(--muted);font-weight:700}
+h1{font-size:2.5rem;letter-spacing:.01em}
+h1 .mono{font-family:var(--font-code);font-weight:600;font-size:.88em;color:var(--accent)}
+.lead{color:var(--muted);max-width:36em}
+.flow{list-style:none;margin:.75rem 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.6rem}
+.flow li{border-top:4px solid var(--accent);padding-top:.5rem;display:grid;gap:.1rem;font-size:.9rem;line-height:1.5}
+.flow li.later{border-top-color:var(--rule);color:var(--muted)}
+.flow .ref{font-size:.75rem;letter-spacing:.06em;color:var(--accent);font-weight:700}
+.flow li.later .ref{color:var(--muted)}
+
+/* one-time box */
+.once{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:1.4rem 1.4rem 1.5rem;display:grid;gap:1rem}
+.once h2{font-size:1.25rem}
+.once .tag{display:inline-block;font-family:var(--font-body);font-size:.75rem;font-weight:700;letter-spacing:.06em;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:.1rem .65rem;margin-left:.5rem;vertical-align:.2em}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem 1rem}
+.field{display:grid;gap:.3rem;align-content:start}
+.field label{font-size:.85rem;font-weight:700}
+.field small{color:var(--muted);font-size:.8rem;line-height:1.6}
+input[type="text"],input[type="url"],input[type="email"]{font-family:var(--font-code);font-size:.95rem;width:100%;padding:.6rem .75rem;border:1.5px solid var(--rule);border-radius:8px;background:var(--ground);color:var(--ink)}
+input::placeholder{color:var(--muted);opacity:.8}
+input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* steps */
+.steps{display:grid;gap:2.75rem}
+.step{display:grid;grid-template-columns:3rem minmax(0,1fr);column-gap:1rem;position:relative}
+.num{font-family:var(--font-display);font-weight:700;font-size:2.1rem;line-height:1;color:var(--accent);text-align:center;position:relative;padding-top:.15rem}
+.step:not(:last-child) .num::after{content:"";position:absolute;left:50%;top:3.1rem;bottom:-2.75rem;width:2px;margin-left:-1px;background:var(--rule)}
+.step.is-done .num{color:var(--ok)}
+.step-body{display:grid;gap:1rem;min-width:0}
+.step-head{display:flex;align-items:baseline;justify-content:space-between;gap:.5rem 1rem;flex-wrap:wrap}
+.step-head h2{font-size:1.4rem}
+.done{display:inline-flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:700;color:var(--muted);cursor:pointer;user-select:none;border:1.5px solid var(--rule);border-radius:999px;padding:.15rem .75rem .15rem .55rem;background:var(--surface)}
+.done input{accent-color:var(--ok);width:1rem;height:1rem;margin:0}
+.step.is-done .done{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+ol.sub{margin:0;padding-left:1.4rem;display:grid;gap:.45rem}
+ol.sub ::marker{color:var(--accent);font-weight:700}
+.callout{border-radius:10px;padding:.75rem 1rem;background:var(--warn-soft);color:var(--ink);line-height:1.7}
+.callout b{color:var(--warn)}
+.callout.info{background:var(--accent-soft)}
+.callout.info b{color:var(--accent)}
+
+/* url box */
+.urlbox{background:var(--surface);border:1.5px solid var(--accent);border-radius:14px;padding:1.1rem 1.2rem 1.2rem;display:grid;gap:.55rem}
+.urlbox label{font-weight:700}
+.status{font-size:.88rem;line-height:1.65;border-radius:8px;padding:.5rem .75rem;background:var(--ground);color:var(--muted)}
+.status[data-kind="ok"]{background:var(--ok-soft);color:var(--ok)}
+.status[data-kind="warn"]{background:var(--warn-soft);color:var(--warn)}
+.status[data-kind="bad"]{background:var(--bad-soft);color:var(--bad)}
+.slot-text{font-family:var(--font-code);font-weight:600;color:var(--accent)}
+.slot-text.empty{color:var(--muted);font-weight:400}
+
+/* terminal */
+.cmds{display:grid;gap:1.6rem}
+.cmd-item{display:grid;gap:.5rem}
+.cmd-title{display:flex;gap:.65rem;align-items:baseline}
+.cmd-title .idx{font-family:var(--font-code);font-size:.8rem;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:5px;padding:.05rem .45rem;flex:none}
+.cmd-title p{line-height:1.65}
+/* 長いコマンドや出力例の最小幅で、親のグリッドを押し広げない。 */
+.wrap,.steps,.step-body,.cmds,.cmd-item{grid-template-columns:minmax(0,1fr)}
+.wrap > *,.steps > *,.step-body > *,.cmds > *,.cmd-item > *{min-width:0}
+.cmd-title p{min-width:0;overflow-wrap:anywhere}
+.term{min-width:0;max-width:100%}
+.callout,.after,.hint{overflow-wrap:anywhere}
+.term{background:var(--term);color:var(--term-ink);border:1px solid var(--term-line);border-radius:10px;overflow:hidden}
+.line{display:flex;align-items:center;gap:.75rem;padding:.65rem .7rem .65rem 1rem}
+.line ~ .line{border-top:1px solid var(--term-line)}
+[data-cmd^="Worker 名"]{flex-direction:column;align-items:stretch}
+[data-cmd^="Worker 名"] .copy{order:-1;align-self:flex-end}
+[data-cmd^="Worker 名"] .code-wrap{white-space:pre-wrap;max-height:32rem;overflow:auto}
+.code-wrap{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-family:var(--font-code);font-size:.95rem;line-height:1.6;padding:.15rem 0}
+.ps{color:var(--term-dim);user-select:none;-webkit-user-select:none;margin-right:.55em}
+.code{color:var(--term-ink)}
+.slot.empty{color:var(--term-slot);border-bottom:1px dashed var(--term-slot)}
+.slot.filled{color:var(--term-ps)}
+.copy{flex:none;font-family:var(--font-body);font-size:.8rem;font-weight:700;background:transparent;color:var(--term-ink);border:1px solid var(--term-btn);border-radius:6px;padding:.3rem .75rem;cursor:pointer;min-width:5.6rem;transition:background .15s,color .15s,border-color .15s}
+.copy:hover{border-color:var(--term-ps);color:var(--term-ps)}
+.copy[data-state="done"]{background:var(--term-ps);border-color:var(--term-ps);color:var(--term)}
+.copy[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+.copy[aria-disabled="true"]:hover{border-color:var(--term-btn);color:var(--term-ink)}
+.hint{margin:0;padding:.1rem 1rem .6rem;font-size:.82rem;line-height:1.6;color:var(--term-slot)}
+.out{border-top:1px solid var(--term-line);padding:.6rem 1rem .8rem}
+.out.first{border-top:0}
+.out-cap{font-size:.75rem;font-weight:700;letter-spacing:.08em;color:var(--term-ps);margin-bottom:.25rem}
+.out pre{margin:0;font-family:var(--font-code);font-size:.82rem;line-height:1.65;color:var(--term-dim);white-space:pre;overflow-x:auto}
+.out .blank{font-family:var(--font-body);font-size:.85rem;line-height:1.7;color:var(--term-dim)}
+.after{font-size:.9rem;color:var(--muted);line-height:1.7}
+
+/* tables */
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:30rem}
+th,td{text-align:left;padding:.55rem .75rem;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-size:.8rem;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--rule)}
+td code{font-family:var(--font-code);font-size:.9em}
+td small{color:var(--muted)}
+td .empty-val{color:var(--muted)}
+
+/* plain sections */
+.section{display:grid;gap:1rem}
+.section > h2{font-size:1.5rem}
+.section > p{max-width:38em}
+
+/* trouble */
+.trouble{list-style:none;margin:0;padding:0;display:grid;border-top:1px solid var(--rule)}
+.trouble li{display:grid;gap:.55rem;padding:1.1rem 0;border-bottom:1px solid var(--rule)}
+.tr-top{display:flex;gap:.6rem;align-items:flex-start;flex-wrap:wrap}
+.msg{font-family:var(--font-code);font-size:.85rem;line-height:1.55;background:var(--bad-soft);color:var(--bad);border-radius:6px;padding:.3rem .6rem;overflow-x:auto;max-width:100%}
+.msg.calm{background:var(--ok-soft);color:var(--ok)}
+.msg.plain{font-family:var(--font-body);font-weight:700}
+.where{font-size:.75rem;font-weight:700;color:var(--muted);border:1px solid var(--rule);border-radius:999px;padding:.1rem .6rem;white-space:nowrap;align-self:center}
+.where.calm{color:var(--ok);border-color:var(--ok)}
+dl.fix{display:grid;grid-template-columns:4.2rem minmax(0,1fr);gap:.2rem .75rem;margin:0}
+dl.fix dt{font-size:.8rem;font-weight:700;color:var(--muted);padding-top:.2rem}
+dl.fix dd{margin:0;line-height:1.75;min-width:0}
+dl.fix dd .term{margin-top:.45rem}
+
+.foot{font-size:.8rem;color:var(--muted);border-top:1px solid var(--rule);padding-top:1rem}
+
+@media (max-width:40rem){
+  h1{font-size:2rem}
+  .flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fields{grid-template-columns:1fr}
+  .step{grid-template-columns:2.2rem minmax(0,1fr);column-gap:.7rem}
+  .num{font-size:1.7rem}
+  .line{flex-wrap:wrap}
+  .code-wrap{flex-basis:100%}
+  .copy{margin-left:auto}
+  dl.fix{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+
+<main class="wrap">
+
+  <header class="head">
+    <p class="eyebrow">プログラミング技術 ・ デプロイ編</p>
+    <h1>はじめての <span class="mono">git push</span></h1>
+    <p class="lead">Kiro で作ったアプリを GitHub に送り、Cloudflare Workers で公開する手順です。上から順番に進めてください。コマンドは「コピー」を押して、ターミナルに貼り付けて Enter で実行します。</p>
+    <ol class="flow" aria-label="全体の流れ">
+      <li><span class="ref">手順 1</span>GitHub でリポジトリを作る</li>
+      <li><span class="ref">手順 2</span>Kiro で準備する</li>
+      <li><span class="ref">手順 3〜5</span>コマンドで GitHub に送る</li>
+      <li><span class="ref">手順 6</span>Workers で公開する</li>
+    </ol>
+  </header>
+
+  <section class="once" aria-labelledby="once-h">
+    <h2 id="once-h">はじめる前に<span class="tag">この PC で1回だけ</span></h2>
+    <p>git に「だれが記録したか」を教えておく設定です。まず次のコマンドで、設定済みか確かめます。</p>
+    <div class="term">
+      <div class="line" data-cmd="git config --global user.name"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+      <div class="out"><div class="out-cap">名前が表示されたら</div><p class="blank">名前に加えて下のメール確認コマンドでも値が出れば設定済みです。両方とも自分の設定なら手順1へ。未設定の項目を設定してください。</p></div>
+    </div>
+    <div class="term"><div class="line" data-cmd="git config --global user.email"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div></div>
+    <div class="fields">
+      <div class="field">
+        <label for="git-name">コミットに記録する名前（GitHub のユーザー名など）</label>
+        <input id="git-name" type="text" autocomplete="off" spellcheck="false" placeholder="例：taro-miyazaki">
+      </div>
+      <div class="field">
+        <label for="git-email">GitHub の noreply メールアドレス</label>
+        <input id="git-email" type="email" autocomplete="off" spellcheck="false" placeholder="例：12345678+taro-miyazaki@users.noreply.github.com">
+        <small>GitHub の右上のアイコン → Settings → Emails の「Keep my email addresses private」の説明の中にあります。自分のメールアドレスを公開しないために、こちらを使います。</small>
+      </div>
+    </div>
+    <div class="term">
+      <div class="line" data-cmd="git config --global user.name &quot;{NAME}&quot;"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+      <div class="line" data-cmd="git config --global user.email &quot;{EMAIL}&quot;"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+      <div class="out"><div class="out-cap">こうなれば成功</div><p class="blank">どちらも何も表示されなければ設定できています。</p></div>
+    </div>
+  </section>
+
+  <section class="once" aria-labelledby="retry-h">
+    <h2 id="retry-h">一度試した人が、新しいリポジトリでやり直すとき</h2>
+    <p>作ったアプリのフォルダーをそのまま使えます。<strong>リポジトリを作り直すだけでは、Pages 用設定は変わりません。</strong>手順2のプロンプトで Kiro に既存設定も Workers 用に直してもらいます。</p>
+    <ol class="sub"><li>手順1で空のリポジトリを新しく作り、その URL をこのページに貼る。以前の URL が残っていたら貼り替える。</li><li>手順2のページ内プロンプトをコピーして Kiro に送る。新しい Worker 名になっていることを確認する。</li><li>設定の修正と検証後、手順4を進める。既に Git 管理されていても .git を削除する必要はない。git init が Reinitialized と表示されても既存の管理情報を使って進められる。</li><li>4-6 では既に送り先がある人は「やり直す人」のコマンドを使い、新しい URL に変更する。</li><li>Cloudflare では新しい <strong>Worker</strong> を作り、新しいリポジトリを接続する。既存の Pages プロジェクトはそのままでは Worker に切り替わらない。</li></ol>
+    <p>新しい名前は以前と区別できるもの（例：my-quiz-app-v2）にすると確認しやすくなります。古いリポジトリや公開サイトは、この作業のために削除する必要はありません。チェック済み表示が残っていても、今回は各手順を確認し直してください。</p>
+  </section>
+
+  <div class="steps">
+
+    <section class="step" id="step-1" aria-labelledby="h-1">
+      <div class="num" aria-hidden="true">1</div>
+      <div class="step-body">
+        <div class="step-head"><h2 id="h-1">GitHub でリポジトリを作る</h2><label class="done"><input type="checkbox" data-done="1">できた</label></div>
+        <ol class="sub">
+          <li>ブラウザで GitHub を開き、右上の「+」→「New repository」</li>
+          <li>Repository name は<strong>半角の小文字・数字・ハイフン（-）だけ</strong>で付ける。例：<code class="inline">my-quiz-app</code></li>
+          <li>Public / Private は先生の指示どおりにする</li>
+          <li>README・.gitignore・ライセンスは<strong>追加しない</strong>（初めの状態のまま）で「Create repository」</li>
+          <li>次の画面で「HTTPS」を選び、表示された URL をコピーして下に貼る</li>
+        </ol>
+        <div class="callout"><b>注意</b>　README などを追加して作ると、手順4の最後で送れなくなります（「困ったとき」の rejected を参照）。</div>
+        <div class="urlbox">
+          <label for="repo-url">リポジトリの URL</label>
+          <input id="repo-url" type="url" autocomplete="off" spellcheck="false" placeholder="https://github.com/あなたのID/リポジトリ名.git">
+          <p class="status" id="url-status" data-kind="idle" role="status">まだ貼られていません。GitHub の画面で HTTPS の URL をコピーして貼ってください。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="step" id="step-2" aria-labelledby="h-2">
+      <div class="num" aria-hidden="true">2</div>
+      <div class="step-body">
+        <div class="step-head"><h2 id="h-2">Kiro で準備する</h2><label class="done"><input type="checkbox" data-done="2">できた</label></div>
+        <ol class="sub">
+          <li>Kiro でアプリのフォルダを開く</li>
+          <li><strong>新しいチャット</strong>を開き、下の「Kiro 用プロンプト」の「コピー」を押して貼る。別のテキストファイルを開く必要はありません</li>
+          <li>1行目の「Worker 名：」の後ろを <span class="slot-text" data-slot="REPO"></span> に書き換えてから送信する。末尾の <code class="inline">.git</code> は付けない</li>
+          <li>Kiro の構成確認を読む。サーバー処理がある場合は対応方針を先生と確認する。静的アプリは設定と検証が終わるまで待つ</li>
+          <li>Kiro の検証結果と、Worker 名・ビルドコマンド・デプロイコマンド・ルートディレクトリをメモする。未確認・エラーがあれば先生に見せる</li>
+        </ol>
+        <div class="callout info"><b>なぜ先に Kiro？</b>　公開するフォルダーを Workers に伝えるためです。設定なしでも自動設定される場合はありますが、授業では明示して確認します。静的アプリは <code class="inline">assets.directory</code> を使います。<code class="inline">pages_build_output_dir</code> は Pages 専用です。</div>
+<div class="cmd-item" id="kiro-prompt"><h3>Kiro 用プロンプト</h3><p><strong>この欄だけで読んでコピーできます。</strong>　手順1の URL を入れると Worker 名も入ります。長い文章は欄の中をスクロールして読めます。「コピー」で全文をコピーし、Kiro の新しいチャットに貼ってください。以前 Pages 用に準備したアプリにも使えます。送信前に1行目を確認してください。</p><div class="term"><div class="line" data-cmd="Worker 名：{REPO}
+
+Kiro で開いているこのアプリを、Cloudflare Workers の Git 連携（Workers Builds）で公開する準備をしてください。Cloudflare Pages は使いません。公開作業と Git の操作は私が行います。
+
+【0. 以前 Pages 向けに準備したアプリも Workers 向けに直す】
+このフォルダーには以前のデプロイ設定が残っている可能性があります。新しい GitHub リポジトリを作るだけでは、アプリ内の Pages 用設定は変わりません。既存設定・package.json の scripts・フレームワークのアダプター・Pages Functions（functions/ や _worker.js 等）を調べ、Workers 用への移行対象を明示してください。
+静的アプリの Pages 用設定は次の手順で Workers Static Assets 用に修正してください。サーバー処理がある場合は機能を保つ Workers 対応が必要なので、分類 C として扱ってください。古い設定を残したまま新規ファイルを追加して完了にしないでください。
+Cloudflare 上の既存 Pages プロジェクトを Worker に変換したとは言わないでください。新しい Worker の作成と Git 接続は私が画面で行います。既存の Pages プロジェクトは削除しないでください。
+.git フォルダーや Git 履歴は削除しないでください。新しいリポジトリへの送り先変更が必要な可能性を最後に知らせてください。
+
+【1. まず実際の構成を調べる】
+package.json、ロックファイル、ビルド設定、既存の Wrangler 設定、サーバー処理、API、環境変数を確認してください。ファイルの中身を見ずに Vite や dist と決めつけないでください。
+次のどれに該当するか、根拠のファイル名と一緒に短く説明してください。
+A：HTML・CSS・JavaScript をそのまま配信できるアプリ
+B：Vite などでビルドして静的ファイルを配信するアプリ
+C：SSR・API・認証・データベースなどのサーバー処理を含むアプリ
+C は静的ファイルだけに変更して機能を失わせないでください。Workers 対応の公式アダプター等が必要なら説明し、機能変更・外部サービス追加・費用が伴う対応は私に確認してください。以下の静的配信の設定を機械的に適用しないでください。
+
+【2. A または B は Workers Static Assets を設定する】
+既存の wrangler.jsonc / wrangler.json / wrangler.toml を確認し、利用する設定ファイルを1つに整理してください。既存の bindings、環境別設定等を無断で消さないでください。
+・name は上の Worker 名と一致させる。.git、URL、日本語、大文字、アンダースコアを含めない。この授業では半角小文字・数字・ハイフンで、先頭末尾は英数字、63文字以内とする。不正な名前や未入力なら確認する。
+・compatibility_date は既存値があれば尊重し、新規なら作業日の YYYY-MM-DD を指定する。
+・assets.directory は実際に公開する静的フォルダーを指定する。B はビルド後の出力先（Vite の標準なら ./dist）。A は index.html と必要な画像等が揃う公開専用フォルダーを使う。プロジェクト全体 ./ を公開しない。
+・pages_build_output_dir は Pages 専用なので、Workers 向けの assets.directory に置き換える。wrangler pages deploy、Pages 用アダプターも使わない。
+・静的ファイルのみなら main や assets.binding は追加しない。ブラウザー用 src/main.ts を Worker の main にしない。
+・URL による画面切り替えがある SPA だけ、必要性を確認して assets.not_found_handling を single-page-application にする。すべてのアプリに付けない。
+・公開フォルダーに秘密情報やサーバーソースを入れない。
+
+Vite の標準的な静的アプリの例（出力先を確認してから使う）：
+{
+  &quot;name&quot;: &quot;my-quiz-app&quot;,
+  &quot;compatibility_date&quot;: &quot;作業日の YYYY-MM-DD に置き換える&quot;,
+  &quot;assets&quot;: { &quot;directory&quot;: &quot;./dist&quot; }
+}
+
+【3. 依存関係と Git の除外設定】
+既存のパッケージ管理方式とロックファイルを使ってください。npm のプロジェクトでは Wrangler を開発依存に追加し、package.json と package-lock.json に検証したバージョンを固定してください。既存依存の一括更新はしないでください。
+.gitignore は既存内容を残し、node_modules/、.wrangler/、.env、.env.*、.dev.vars、.dev.vars.* を除外する。.env.example 等の値のない見本は必要に応じ例外にする。
+ビルドで再生成する dist/ 等は除外する。ただし A の手書きの公開フォルダーは除外しない。画像・音声・必要なロックファイルも除外しない。
+除外設定を追加しても、既に Git 管理されているファイルは除外されない点を説明し、該当する場合は私に知らせる。秘密の値は画面に出さない。
+
+【4. 公開せず検証する】
+必要な依存関係をインストールし、B は実際にビルドする。出力先に index.html と必要なファイルがあることを確認する。
+選んだ設定で npx wrangler deploy --dry-run を実行する（npm の場合）。実際の deploy、ログイン、Cloudflare 設定変更は行わない。
+失敗したら原因を直し、再確認する。ネットワーク等で実行できなかった検証は「未確認」と明記する。ビルド成功だけでデプロイ成功とは言わない。
+
+【5. 最後に私へ渡す情報】
+・アプリの分類と理由、変更したファイル、検証結果と未確認事項
+・Cloudflare に入力する プロジェクト名（Worker 名・name と同じ）、ビルド コマンド、デプロイ コマンド、詳細設定のパス、接続するブランチ
+  A のビルドコマンドは空欄、B は実在するビルドスクリプト。npm ならデプロイは npx wrangler deploy。
+  画面の「詳細設定 → パス」はビルドを実行する場所。リポジトリ直下なら初期値 / のまま、サブフォルダーなら実際の場所を指定する。assets.directory の値とは別である。
+・プレビューコマンドが表示されている場合は画面の初期値を確認する。今回確認した画面は npx wrangler preview。wrangler pages deploy に変更しない。プレビュービルドや Cloudflare Access の設定は必要性を説明し、勝手に変更しない。
+・Cloudflare Workers の Git 接続画面で入力すること、Pages の「ビルド出力ディレクトリ」ではなく assets.directory で公開フォルダーを指定すること
+・次回の更新はローカル検証 → 自分でコミット・プッシュ → Cloudflare のデプロイ成功と公開画面の確認、という順であること
+
+Git のコマンドは実行しないでください。コミット・プッシュと本番デプロイは私が行います。
+"><div class="code-wrap"><span class="code"></span></div><button class="copy" type="button">コピー</button></div></div><p><a href="デプロイ用プロンプト.txt" download>配布用テキストをダウンロード</a></p></div>
+      </div>
+    </section>
+
+    <section class="step" id="step-3" aria-labelledby="h-3">
+      <div class="num" aria-hidden="true">3</div>
+      <div class="step-body">
+        <div class="step-head"><h2 id="h-3">ターミナルを開く</h2><label class="done"><input type="checkbox" data-done="3">できた</label></div>
+        <ol class="sub">
+          <li>Kiro のメニューの「ターミナル」→「新しいターミナル」</li>
+          <li>画面の下に出た行の最後が、<strong>アプリのフォルダ名</strong>になっているか確かめる</li>
+        </ol>
+        <div class="term">
+          <div class="out first"><div class="out-cap">こうなっていれば OK（my-quiz-app の部分が自分のフォルダ名）</div><pre>PS C:\Users\…\my-quiz-app&gt; </pre></div>
+        </div>
+        <p class="after">違うフォルダ名が出ていたら、Kiro でアプリのフォルダを開き直してから、もう一度ターミナルを開きます。</p>
+      </div>
+    </section>
+
+    <section class="step" id="step-4" aria-labelledby="h-4">
+      <div class="num" aria-hidden="true">4</div>
+      <div class="step-body">
+        <div class="step-head"><h2 id="h-4">コマンドで GitHub に送る</h2><label class="done"><input type="checkbox" data-done="4">できた</label></div>
+        <p>7つのコマンドを、上から1つずつ実行します。1つ打つたびに、表示が「こうなれば成功」と同じか確かめてから次へ進みます。</p>
+        <div class="cmds">
+
+          <div class="cmd-item">
+            <div class="cmd-title"><span class="idx">4-1</span><p>このフォルダを git で管理し始める</p></div>
+            <div class="term">
+              <div class="line" data-cmd="git init"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+              <div class="out"><div class="out-cap">こうなれば成功</div><pre>Initialized empty Git repository in C:/Users/…/my-quiz-app/.git/</pre></div>
+            </div>
+          </div>
+
+          <div class="cmd-item">
+            <div class="cmd-title"><span class="idx">4-2</span><p>全部のファイルを「送る候補」に入れる。最後の <code class="inline">.</code>（ピリオド）を忘れない</p></div>
+            <div class="term">
+              <div class="line" data-cmd="git add ."><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+              <div class="out"><div class="out-cap">こう出ても大丈夫</div><pre>warning: in the working copy of 'wrangler.jsonc', LF will be replaced by CRLF the next time Git touches it</pre></div>
+            </div>
+            <p class="after">warning（注意）は何行出ても、まったく出なくても問題ありません。</p>
+          </div>
+
+          <div class="cmd-item">
+            <div class="cmd-title"><span class="idx">4-3</span><p>候補に入ったファイルを確かめる</p></div>
+            <div class="term">
+              <div class="line" data-cmd="git status"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+              <div class="out"><div class="out-cap">こうなれば成功（ファイル名は人によって違う）</div><pre>On branch master
+
+No commits yet
+
+Changes to be committed:
+  (use "git rm --cached &lt;file&gt;..." to unstage)
+        new file:   .gitignore
+        new file:   public/index.html
+        new file:   public/style.css
+        new file:   wrangler.jsonc</pre></div>
+            </div>
+            <div class="callout"><b>ストップ</b>　一覧に <code class="inline">node_modules</code> や <code class="inline">.env</code> が出てきたら、先へ進まずに下の「困ったとき」を見てください。</div>
+          </div>
+
+          <div class="cmd-item">
+            <div class="cmd-title"><span class="idx">4-4</span><p>今の状態を記録する（コミット）。<code class="inline">-m</code> と " " の中身を忘れない</p></div>
+            <div class="term">
+              <div class="line" data-cmd="git commit -m &quot;最初のコミット&quot;"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+              <div class="out"><div class="out-cap">こうなれば成功（英数字7文字や数字は人によって違う）</div><pre>[master (root-commit) 4998f79] 最初のコミット
+ 4 files changed, 58 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 public/index.html
+ create mode 100644 public/style.css
+ create mode 100644 wrangler.jsonc</pre></div>
+            </div>
+          </div>
+
+          <div class="cmd-item">
+            <div class="cmd-title"><span class="idx">4-5</span><p>ブランチの名前を <code class="inline">master</code> から <code class="inline">main</code> にそろえる</p></div>
+            <div class="term">
+              <div class="line" data-cmd="git branch -M main"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+              <div class="out"><div class="out-cap">こうなれば成功</div><p class="blank">何も表示されません。それで成功です。</p></div>
+            </div>
+          </div>
+
+          <div class="cmd-item">
+            <div class="cmd-title"><span class="idx">4-6</span><p>送り先の GitHub を登録する。手順1で貼った URL が自動で入ります</p></div>
+            <div class="term">
+              <div class="line" data-cmd="git remote add origin {URL}"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+              <div class="out"><div class="out-cap">こうなれば成功</div><p class="blank">何も表示されません。それで成功です。</p></div>
+            </div>
+          </div>
+
+          <div class="callout info"><b>やり直す人：送り先の切り替え</b>　以前 git remote add origin を実行した人は、4-6 の代わりに次を実行します。新しい URL が表示されていることを確認してください。
+            <div class="term"><div class="line" data-cmd="git remote set-url origin {URL}"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+            <div class="line" data-cmd="git remote -v"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div></div>
+            <p>表示された origin の URL が新しいリポジトリなら 4-7 へ進みます。「No such remote」が出たら、4-6 の remote add を使ってください。</p>
+          </div>
+
+          <div class="cmd-item">
+            <div class="cmd-title"><span class="idx">4-7</span><p>GitHub に送る（プッシュ）</p></div>
+            <div class="term">
+              <div class="line" data-cmd="git push -u origin main"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+              <div class="out"><div class="out-cap">こうなれば成功（数字は人によって違う。最後の行が大事）</div><pre>Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (7/7), 1.02 KiB | 1.02 MiB/s, done.
+Total 7 (delta 0), reused 0 (delta 0), pack-reused 0
+To <span data-slot="URL"></span>
+ * [new branch]      main -&gt; main
+branch 'main' set up to track 'origin/main'.</pre></div>
+            </div>
+            <div class="callout info"><b>初めての人は</b>　「Connect to GitHub」という画面が出ます。「Sign in with your browser」を押し、開いたブラウザで GitHub にログインして許可（Authorize）すると、プッシュが続きます。2回目からは出ません。</div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="step" id="step-5" aria-labelledby="h-5">
+      <div class="num" aria-hidden="true">5</div>
+      <div class="step-body">
+        <div class="step-head"><h2 id="h-5">GitHub で確かめる</h2><label class="done"><input type="checkbox" data-done="5">できた</label></div>
+        <ol class="sub">
+          <li>ブラウザの GitHub のページを再読み込みする</li>
+          <li>ファイルの一覧が表示されていれば完了</li>
+          <li><code class="inline">wrangler.jsonc</code> と <code class="inline">.gitignore</code> がある、<code class="inline">node_modules</code> が<strong>ない</strong>ことを確かめる</li>
+        </ol>
+      </div>
+    </section>
+
+  </div>
+
+  <section class="section" aria-labelledby="cf-h">
+    <h2 id="cf-h">6. Cloudflare Workers で公開する</h2>
+    <p>Cloudflare の「Workers &amp; Pages」から作成画面を開き、<strong>Worker の Git リポジトリ接続</strong>を選びます。「Continue with GitHub」などの表示から、自分のリポジトリを接続してください。画面名は変わる場合があります。</p>
+    <div class="callout"><b>画面を確認</b>　Pages 用の作成画面へ進まないでください。「ビルド出力ディレクトリ」を入力する Pages の手順ではありません。Workers は「デプロイコマンド」に <code class="inline">npx wrangler deploy</code> を使い、公開フォルダーは設定ファイルの <code class="inline">assets.directory</code> で指定します。</div>
+    <p>以下は、実際に開いた「アプリケーションをセットアップする」画面の項目名に合わせています。左右の列に同じ値がある行も、それぞれ同じ内容を使います。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>画面の項目</th><th>そのまま配信する HTML</th><th>Vite の静的アプリ（標準構成）</th></tr></thead>
+      <tbody>
+        <tr><td>プロジェクト名<br><small>Worker の名前</small></td><td><span data-slot="REPO"></span><br><small>設定の name と一致。.git は付けない</small></td><td><span data-slot="REPO"></span><br><small>設定の name と一致。.git は付けない</small></td></tr>
+        <tr><td>ビルド コマンド（オプション）</td><td>空欄</td><td><code>npm run build</code></td></tr>
+        <tr><td>デプロイ コマンド</td><td><code>npx wrangler deploy</code></td><td><code>npx wrangler deploy</code></td></tr>
+        <tr><td>プレビューコマンド</td><td><code>npx wrangler preview</code><br><small>今回の画面の初期値</small></td><td><code>npx wrangler preview</code><br><small>今回の画面の初期値</small></td></tr>
+        <tr><td>詳細設定 → パス</td><td>直下なら <code>/</code> のまま</td><td>直下なら <code>/</code> のまま</td></tr>
+      </tbody></table></div>
+    <p><strong>「パス」は公開フォルダーではありません。</strong>ビルドを実行する場所です。アプリがリポジトリ内のサブフォルダーにある場合だけ、Kiro が確認した場所を指定します。例えば app に設定があるなら、その app フォルダーを指定します。</p>
+    <p>「プレビュービルドを有効化」と「Cloudflare Accessで保護」も表示されています。今回の画面は前者がオン、後者がオフでした。この表を入力するために切り替える必要はありません。API トークンや変数は、必要性を確認できた場合に設定します。</p>
+    <h3>画面ではなく、ファイルで指定すること</h3>
+    <div class="table-wrap"><table><thead><tr><th>確認すること</th><th>そのまま配信する HTML</th><th>Vite の静的アプリ（標準構成）</th></tr></thead><tbody>
+      <tr><td>Wrangler 設定の assets.directory</td><td>index.html と素材のある公開専用フォルダー</td><td><code>./dist</code>（実際のビルド出力先を優先）</td></tr>
+    </tbody></table></div>
+    <p>本番ブランチは、この手順で送った main を接続していることを確認します。今回のセットアップ画面にはブランチの入力欄は表示されていません。この表は静的アプリ用です。SSR・API・認証などがある場合は、Kiro が調べた Workers 対応構成を先生と確認して使います。</p>
+    <ol class="sub"><li>設定を確認してデプロイする。</li><li>ログでビルドとデプロイの両方が成功したことを確認する。<code class="inline">Build command completed</code> だけでは公開完了ではありません。</li><li>Cloudflare に表示された公開 URL を開き、画像・音声・ボタンなどを確認する。画面を再読み込みしても動くか確認する。</li></ol>
+    <div class="callout info"><b>dist を GitHub に送らなくてよい理由</b>　Vite の場合、Cloudflare がソースからビルドし、その場で dist を作ります。手書きの HTML や素材が入る公開フォルダーは GitHub に送る必要があります。</div>
+  </section>
+
+  <section class="section" aria-labelledby="logs-h">
+    <h2 id="logs-h">デプロイで止まったら</h2>
+    <p>最後の「Failed」だけでは原因はわかりません。失敗したコマンドと、最初の ERROR、その前後を Kiro に渡します。トークン・パスワード・秘密の環境変数は貼らないでください。</p>
+    <div class="table-wrap"><table><thead><tr><th>ログの表示</th><th>意味・確認すること</th></tr></thead><tbody>
+      <tr><td><code>Build command completed</code></td><td>ビルド完了。この後にデプロイが続きます。</td></tr>
+      <tr><td><code>Pages project</code></td><td>Pages 用設定が残っていないか確認。静的 Workers では pages_build_output_dir を assets.directory に置き換えます。pages deploy に変更しません。</td></tr>
+      <tr><td><code>Missing entry-point to Worker script or to assets directory</code></td><td>Workers が公開対象を見つけていません。静的アプリは assets.directory、サーバー処理がある構成は main や公式アダプターの出力設定を確認します。ブラウザー用 main.ts を指定しません。</td></tr>
+      <tr><td>公開フォルダーが存在しない</td><td>ビルドコマンド、出力先、ルートディレクトリの組み合わせを確認します。</td></tr>
+      <tr><td>Worker 名が一致しない</td><td>Cloudflare で選んだ Worker と設定の name を一致させます。</td></tr>
+      <tr><td>公開後に白い画面・画像が出ない</td><td>ブラウザーのエラーと素材の URL、GitHub に素材があるか確認。公開成功とアプリの正常動作は別々に確認します。</td></tr>
+    </tbody></table></div>
+    <p><strong>前回のエラーの例：</strong>ビルド成功 → Pages 用設定の警告 → Workers 用の公開対象なし → 失敗。原因はビルドではなく、デプロイ設定です。</p>
+    <p>参考：<a href="https://developers.cloudflare.com/workers/static-assets/migration-guides/migrate-from-pages/">Pages と Workers の設定の違い</a> ／ <a href="https://developers.cloudflare.com/workers/ci-cd/builds/configuration/">Workers Builds の設定</a></p>
+  </section>
+
+  <section class="section" aria-labelledby="again-h">
+    <h2 id="again-h">2回目から（アプリを直したとき）</h2>
+    <p>同じリポジトリ・Worker を更新する場合は、手順1〜3と 4-1・4-5・4-6 はもう要りません。新しいリポジトリでやり直す場合は、上の「一度試した人」の手順を使います。直したら、Kiro でビルドと公開しない検証（dry-run）を確認してから、次のコマンドを実行します。コミットは貼り付けたあと、" " の中を「何を直したか」に書き換えてから Enter を押します。</p>
+    <div class="term">
+      <div class="line" data-cmd="git add ."><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+      <div class="line" data-cmd="git commit -m &quot;ボタンの色を直した&quot;"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+      <div class="line" data-cmd="git push"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+    </div>
+    <p class="after">Workers と GitHub の連携が済んでいれば、接続した本番ブランチへのプッシュで Cloudflare が再デプロイします。ログの成功と公開ページの動作を確認してください。</p>
+  </section>
+
+  <section class="section" aria-labelledby="tr-h">
+    <h2 id="tr-h">困ったとき</h2>
+    <p>ターミナルに出た英語の中から、下と同じ文を探してください。出てくる順に並んでいます。</p>
+    <ul class="trouble">
+
+      <li>
+        <div class="tr-top"><span class="msg calm">warning: … LF will be replaced by CRLF …</span><span class="where calm">4-2 ・ 心配なし</span></div>
+        <dl class="fix"><dt>原因</dt><dd>Windows と Mac で改行の書き方が違うのを、git が自動で調整しているお知らせです。</dd><dt>直し方</dt><dd>何もしなくて大丈夫です。そのまま次へ進みます。</dd></dl>
+      </li>
+
+      <li>
+        <div class="tr-top"><span class="msg plain">git status に node_modules や .env が出てきた</span><span class="where">4-3</span></div>
+        <dl class="fix"><dt>原因</dt><dd><code class="inline">.gitignore</code> がない、または中身が足りません。</dd><dt>直し方</dt><dd>Kiro に「.gitignore を直して」と頼みます。直ったら、次の2つを順に実行して候補を入れ直します。
+          <div class="term">
+            <div class="line" data-cmd="git rm -r --cached ."><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+            <div class="line" data-cmd="git add ."><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+          </div></dd></dl>
+      </li>
+
+      <li>
+        <div class="tr-top"><span class="msg">Author identity unknown<br>*** Please tell me who you are.</span><span class="where">4-4</span></div>
+        <dl class="fix"><dt>原因</dt><dd>「はじめる前に」の設定がまだです。</dd><dt>直し方</dt><dd>ページ上の「はじめる前に」を済ませてから、4-4 をもう一度実行します。</dd></dl>
+      </li>
+
+      <li>
+        <div class="tr-top"><span class="msg plain">黒い画面に切り替わって、戻れない</span><span class="where">4-4</span></div>
+        <dl class="fix"><dt>原因</dt><dd><code class="inline">-m "…"</code> を付けずにコミットしたので、メッセージを書く画面（vim）が開きました。</dd><dt>直し方</dt><dd>入力を<strong>半角</strong>にしてから <kbd>Esc</kbd> を押し、<code class="inline">:q!</code> と打って <kbd>Enter</kbd>。元の画面に戻ったら、4-4 をコピーしてやり直します。</dd></dl>
+      </li>
+
+      <li>
+        <div class="tr-top"><span class="msg">error: remote origin already exists.</span><span class="where">4-6</span></div>
+        <dl class="fix"><dt>原因</dt><dd>送り先はもう登録されています（4-6 を2回実行した、など）。</dd><dt>直し方</dt><dd>次のコマンドで、送り先を手順1の URL に上書きします。
+          <div class="term">
+            <div class="line" data-cmd="git remote set-url origin {URL}"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+          </div></dd></dl>
+      </li>
+
+      <li>
+        <div class="tr-top"><span class="msg">error: src refspec main does not match any</span><span class="where">4-7</span></div>
+        <dl class="fix"><dt>原因</dt><dd>コミットができていません。</dd><dt>直し方</dt><dd>4-2（git add .）と 4-4（git commit）をやり直してから、4-5 → 4-7 と進みます。</dd></dl>
+      </li>
+
+      <li>
+        <div class="tr-top"><span class="msg">! [rejected]        main -&gt; main (fetch first)</span><span class="where">4-7</span></div>
+        <dl class="fix"><dt>原因</dt><dd>手順1でリポジトリを作るときに、README などを追加しました。</dd><dt>直し方</dt><dd>作ったばかりのリポジトリのときだけ、次のコマンドで上書きして送れます。<strong>それ以外のときには使いません。</strong>
+          <div class="term">
+            <div class="line" data-cmd="git push -u origin main --force"><div class="code-wrap"><span class="ps" aria-hidden="true">PS C:\…&gt;</span><span class="code"></span></div><button class="copy" type="button">コピー</button></div>
+          </div></dd></dl>
+      </li>
+
+      <li>
+        <div class="tr-top"><span class="msg">remote: Repository not found.</span><span class="where">4-7</span></div>
+        <dl class="fix"><dt>原因</dt><dd>URL が間違っているか、ブラウザで別の GitHub アカウントにログインしています。</dd><dt>直し方</dt><dd>手順1の URL を GitHub の画面と見比べ、違っていたら貼り直して「remote origin already exists」の直し方で上書きします。それでも出るときは先生を呼んでください。</dd></dl>
+      </li>
+
+    </ul>
+  </section>
+
+  <p class="foot">Windows の Kiro ターミナル（PowerShell）向けの手順です。表示例は環境により異なります。Workers 向け改訂：2026年10月20日。</p>
+
+</main>
+
+<script>
+(function(){
+  var store = {
+    get: function(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+    set: function(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+  };
+  var state = { URL:"", NAME:"", EMAIL:"", REPO:"" };
+  var PH = {
+    URL:"https://github.com/あなたのID/リポジトリ名.git",
+    NAME:"GitHubのユーザー名",
+    EMAIL:"数字+ユーザー名@users.noreply.github.com",
+    REPO:"手順1で決めた名前"
+  };
+  var NEED = {
+    URL:"手順1の欄に URL を貼ると、コピーできるようになります",
+    REPO:"手順1に授業用の名前の URL を入れると、コピーできます",
+    NAME:"上の欄にユーザー名を入れると、コピーできるようになります",
+    EMAIL:"上の欄にメールアドレスを入れると、コピーできるようになります"
+  };
+  var lines = Array.prototype.slice.call(document.querySelectorAll('[data-cmd]'));
+
+  lines.forEach(function(line){
+    var hint = document.createElement('p');
+    hint.className = 'hint'; hint.hidden = true; hint.setAttribute('role','status');
+    line.insertAdjacentElement('afterend', hint);
+    line._hint = hint;
+  });
+
+  function fill(tpl){ return tpl.replace(/\{([A-Z]+)\}/g, function(_,k){ return state[k]; }); }
+  function missingOf(tpl){
+    var keys = (tpl.match(/\{[A-Z]+\}/g) || []).map(function(x){ return x.slice(1,-1); });
+    for (var i=0;i<keys.length;i++){ if(!state[keys[i]]) return keys[i]; }
+    return "";
+  }
+
+  function render(){
+    lines.forEach(function(line){
+      var tpl = line.getAttribute('data-cmd');
+      var code = line.querySelector('.code');
+      code.textContent = '';
+      tpl.split(/(\{[A-Z]+\})/).forEach(function(part){
+        var m = part.match(/^\{([A-Z]+)\}$/);
+        if (m){
+          var s = document.createElement('span');
+          var v = state[m[1]];
+          s.className = 'slot ' + (v ? 'filled' : 'empty');
+          s.textContent = v || PH[m[1]];
+          code.appendChild(s);
+        } else if (part){
+          code.appendChild(document.createTextNode(part));
+        }
+      });
+      var miss = missingOf(tpl);
+      line.querySelector('.copy').setAttribute('aria-disabled', miss ? 'true' : 'false');
+      if (!miss) line._hint.hidden = true;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-slot]'), function(el){
+      var k = el.getAttribute('data-slot');
+      el.textContent = state[k] || PH[k];
+      el.classList.toggle('empty', !state[k]);
+    });
+  }
+
+  function legacyCopy(t){
+    var ta = document.createElement('textarea');
+    ta.value = t; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.top='0'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    var ok = false; try { ok = document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta); return ok;
+  }
+  function copyText(t){
+    if (navigator.clipboard && window.isSecureContext){
+      return navigator.clipboard.writeText(t).then(function(){ return true; }, function(){ return legacyCopy(t); });
+    }
+    return Promise.resolve(legacyCopy(t));
+  }
+  function selectCode(line){
+    var r = document.createRange(); r.selectNodeContents(line.querySelector('.code'));
+    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest && e.target.closest('.copy');
+    if (!btn) return;
+    var line = btn.closest('[data-cmd]');
+    var tpl = line.getAttribute('data-cmd');
+    var miss = missingOf(tpl);
+    if (miss){
+      line._hint.textContent = NEED[miss]; line._hint.hidden = false; return;
+    }
+    copyText(fill(tpl)).then(function(ok){
+      if (ok){
+        btn.textContent = 'コピーしました'; btn.setAttribute('data-state','done');
+        line._hint.hidden = true;
+      } else {
+        selectCode(line);
+        line._hint.textContent = '自動でコピーできませんでした。選択された文字を Ctrl+C でコピーしてください';
+        line._hint.hidden = false;
+      }
+      clearTimeout(btn._t);
+      btn._t = setTimeout(function(){ btn.textContent = 'コピー'; btn.removeAttribute('data-state'); }, 1800);
+    });
+  });
+
+  var urlIn = document.getElementById('repo-url');
+  var urlSt = document.getElementById('url-status');
+  function setStatus(kind, text){ urlSt.setAttribute('data-kind', kind); urlSt.textContent = text; }
+  function onUrl(){
+    var raw = urlIn.value.trim();
+    state.URL = ''; state.REPO = '';
+    if (!raw){
+      setStatus('idle','まだ貼られていません。GitHub の画面で HTTPS の URL をコピーして貼ってください。');
+    } else if (/^git@/.test(raw)){
+      setStatus('bad','これは SSH の URL です。GitHub の画面で「HTTPS」を選んでから、もう一度コピーしてください。');
+    } else {
+      var m = raw.match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+?)(?:\.git)?\/?$/);
+      if (!m){
+        setStatus('bad','GitHub のリポジトリの URL ではないようです。https://github.com/ から始まる URL をそのまま貼ってください。');
+      } else {
+        state.URL = 'https://github.com/' + m[1] + '/' + m[2] + '.git';
+        state.REPO = m[2];
+        if (/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(m[2])){
+          setStatus('ok','OK です。リポジトリ名は「' + m[2] + '」。Cloudflare でもそのまま使える名前です。');
+        } else {
+          setStatus('warn','リポジトリ名「' + m[2] + '」に、大文字・_・. など Cloudflare で使えない文字が入っています。この授業では先頭末尾を英数字とした63文字以内の小文字・数字・ハイフンの名前に揃えます。GitHub の Settings で名前を変えて URL を貼り直してください。');
+        }
+      }
+    }
+    if (state.REPO && !/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(state.REPO)) state.REPO = "";
+    render();
+  }
+  urlIn.addEventListener('input', onUrl);
+
+  var nameIn = document.getElementById('git-name');
+  var mailIn = document.getElementById('git-email');
+  nameIn.addEventListener('input', function(){ state.NAME = nameIn.value.trim(); render(); });
+  mailIn.addEventListener('input', function(){ var v = mailIn.value.trim(); state.EMAIL = /.+@.+/.test(v) ? v : ''; render(); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-done]'), function(cb){
+    var key = 'gp.done.' + cb.getAttribute('data-done');
+    var step = cb.closest('.step');
+    cb.checked = store.get(key) === '1';
+    step.classList.toggle('is-done', cb.checked);
+    cb.addEventListener('change', function(){
+      store.set(key, cb.checked ? '1' : '0');
+      step.classList.toggle('is-done', cb.checked);
+    });
+  });
+
+  // 別の生徒・リポジトリの URL を引き継がず、毎回空欄から始める。
+  urlIn.value = '';
+  onUrl();
+})();
+</script>
+</body>
+</html>
