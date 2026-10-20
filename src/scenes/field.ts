@@ -65,6 +65,12 @@ const COMPASS: Record<Dir, string> = {
 };
 
 export class FieldScene implements Scene {
+  /** 会話の分岐や移動の途中を保存すると、再開時にイベントを飛ばしてしまう。 */
+  get canCheckpoint(): boolean {
+    return !this.dialogue.active && !this.title.active && this.stepT === 0
+      && !this.pendingBattle && !this.pendingWarp && !this.miraFarewell;
+  }
+
   private map: GameMap;
   private readonly dialogue = new DialogueBox();
   private readonly grimoire = new GrimoireView();

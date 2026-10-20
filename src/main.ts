@@ -8,6 +8,8 @@ import { Player } from "./game/player.ts";
 import { FieldState } from "./field/state.ts";
 import { ENEMIES } from "./battle/model.ts";
 import { loadProgress, saveProgress } from "./game/save.ts";
+import { clearRun, hasRun, loadRun, saveRun } from "./game/checkpoint.ts";
+import { getMap } from "./field/mapFormat.ts";
 import { missingWangIndices } from "./field/tileset.ts";
 import { verifyCanonicals } from "./spell/book.ts";
 import { BattleScene } from "./scenes/battle.ts";
@@ -56,6 +58,34 @@ player.grimoire.set(20, "ROZHA"); // 残り火。ミラが最初に教えてく�
 const field = new FieldState();
 
 let scene: Scene;
+let runActive = false;
+
+function validSavedField(saved: Pick<FieldState, "mapId" | "x" | "y">): boolean {
+  const map = getMap(saved.mapId);
+  return saved.x < map.w && saved.y < map.h;
+}
+
+function continueRun(): void {
+  const target = loadRun(player, field, validSavedField);
+  if (!target) { goTitle(); return; }
+  runActive = true;
+  setDialogueName(player.name);
+  if (target === "vault") goVault();
+  else goField();
+}
+
+function checkpointField(): void {
+  if (runActive && scene instanceof FieldScene && scene.canCheckpoint) {
+    saveProgress(player);
+    saveRun(player, field);
+  }
+}
+
+// 閉じるイベントだけには頼らず、プレイ中も安全な区切りで保存する。
+window.addEventListener("pagehide", checkpointField);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") checkpointField();
+});
 
 /**
  * タイトル。**起動して最初に出るのはここ**（設計書 7.5）。
@@ -64,8 +94,11 @@ let scene: Scene;
  * 開発中も要るので、タイトルの「ためす（開発）」から降りられるようにしてある。
  */
 function goTitle(): void {
+  checkpointField();
+  runActive = false;
   audio.play("opening");
-  scene = new TitleScene(player, () => startChapter(1), goVault, goCollection, goSelect);
+  scene = new TitleScene(player, () => startChapter(1), goVault, goCollection, goSelect,
+    hasRun(validSavedField) ? continueRun : undefined);
 }
 
 function goCollection(): void {
@@ -82,6 +115,7 @@ function goCollection(): void {
  * 第2章・第3章はデバッグ用の飛び込み口なので、どちらも挟まない。
  */
 function startChapter(chapter: number): void {
+  runActive = true;
   field.startChapter(chapter, player);
   audio.play(chapter === 1 ? "opening" : CHAPTER_BGM[chapter]!);
   if (chapter !== 1) { goField(); return; }
@@ -95,6 +129,7 @@ function startChapter(chapter: number): void {
 }
 
 function goSelect(): void {
+  runActive = false;
   scene = new SelectScene(
     player,
     (enemy) => {
@@ -108,6 +143,9 @@ function goSelect(): void {
 }
 
 function goField(): void {
+  // 章頭の文章と戦利品を消化する前に保存しておくと、閉じても読み直せる。
+  saveProgress(player);
+  saveRun(player, field);
   audio.play(CHAPTER_BGM[field.chapter] ?? "ch1");
   scene = new FieldScene(
     keyboard,
@@ -137,11 +175,14 @@ function goField(): void {
 }
 
 function goVault(): void {
+  if (runActive) saveRun(player, field, "vault");
   // 禁書の前は無音。**打鍵の音だけが残る**
   audio.stop();
   scene = new VaultScene((words) => {
     const result = resolveEnding(words, player.name);
     audio.play("ending");
+    if (runActive) clearRun();
+    runActive = false;
     // 結末を見終えたらタイトルへ戻る。**集めた数が増えているのが見える**
     scene = new EndingScene(result, player, goTitle);
   });
@@ -151,6 +192,7 @@ goTitle();
 
 let last = performance.now();
 let paused = false;
+let checkpointTime = 0;
 
 function frame(now: number): void {
   // dt は秒。タブ復帰時の巨大な跳躍を防ぐため上限を設ける
@@ -175,6 +217,11 @@ function frame(now: number): void {
   sfx.level = audio.level;
   if (!paused) {
     scene.update(dt, keys);
+    checkpointTime += dt;
+    if (checkpointTime >= 0.25) {
+      checkpointField();
+      checkpointTime = 0;
+    }
     scene.render(display);
   }
 

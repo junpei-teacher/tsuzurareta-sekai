@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "verify:dist": "tsx tools/verify-distribution.ts",
     "verify:rules": "tsx tools/verify-rules.ts",
+    "verify:save": "tsx tools/verify-save.ts",
     "forge": "tsx tools/spell-forge.ts",
     "palettize": "tsx tools/palettize.ts",
     "fetch": "tsx tools/fetch-frames.ts",

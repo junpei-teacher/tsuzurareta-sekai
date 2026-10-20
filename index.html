@@ -34,6 +34,18 @@
       3. 同じ敵に ROZHA を唱えて、ダメージを比べる。
       infiniteMp は false を true にすると、MPを消費しなくなる。
       元に戻すときは 1 と false に戻して、保存・再読み込み。
+
+      Chromeだけで試す場合：上の「Console」で次の命令を入力してEnter。
+      保存・再読み込みは不要。そのまま次の攻撃から反映されます。
+
+      ダメージ100倍： window.GAME_RULES.damageMultiplier = 100
+      MP無限を有効： window.GAME_RULES.infiniteMp = true
+      ダメージを戻す： window.GAME_RULES.damageMultiplier = 1
+      MP消費を戻す： window.GAME_RULES.infiniteMp = false
+      両方まとめて戻す： window.GAME_RULES = { damageMultiplier: 1, infiniteMp: false }
+
+      Consoleでの変更は再読み込みで元に戻ります。
+      Elementsでこのscriptの文字だけを編集しても、設定は反映されません。
     -->
     <script>
       window.GAME_RULES = {

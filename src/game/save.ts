@@ -1,6 +1,7 @@
 import type { Player, Riddle } from "./player.ts";
 import { MIN_WORD_LENGTH } from "../spell/resolver.ts";
 import { activeRiddleIds } from "../ui/dialogue.ts";
+import { clearRun } from "./checkpoint.ts";
 
 /**
  * セーブ（設計書 5.4 / 手順書 5-4）。
@@ -11,7 +12,7 @@ import { activeRiddleIds } from "../ui/dialogue.ts";
  *   - 見た断章・到達したエンディング（Phase 6 で追加）
  *
  * **周回でリセットするもの**
- *   - 進行状況・HP/MP・レベル・所持アイテム
+ *   - 進行状況・HP/MP・所持アイテム（中断時は checkpoint.ts で別途保存）
  *
  * 知識だけが積み上がる。プレイヤー自身が強くなる、という成長軸そのもの。
  */
@@ -41,7 +42,8 @@ export function saveProgress(player: Player): void {
     riddles: [...player.riddles.entries()],
   };
   try {
-    localStorage.setItem(KEY, JSON.stringify(data));
+    const raw = JSON.stringify(data);
+    if (localStorage.getItem(KEY) !== raw) localStorage.setItem(KEY, raw);
   } catch (e) {
     console.warn("セーブに失敗しました", e);
   }
@@ -87,6 +89,7 @@ export function loadProgress(player: Player): boolean {
 }
 
 export function clearProgress(): void {
+  clearRun();
   try {
     localStorage.removeItem(KEY);
   } catch (e) {

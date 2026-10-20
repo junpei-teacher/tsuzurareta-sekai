@@ -23,7 +23,7 @@ import { authoredEntries, fragmentCount } from "../ending/resolve.ts";
 
 const TITLE = "焚書の夜";
 
-type Item = { label: string; act: "start" | "vault" | "collection" | "debug" };
+type Item = { label: string; act: "start" | "continue" | "vault" | "collection" | "debug" };
 
 /**
  * 画面外の下から差す火。**画面の中に炎は描かない。**
@@ -48,10 +48,12 @@ export class TitleScene implements Scene {
     private readonly onVault: () => void,
     private readonly onCollection: () => void,
     private readonly onDebug: () => void,
+    private readonly onContinue?: () => void,
   ) {
-    this.items = [
-      { label: "はじめる", act: "start" },
-    ];
+    this.items = onContinue ? [
+      { label: "つづきから", act: "continue" },
+      { label: "はじめから", act: "start" },
+    ] : [{ label: "はじめる", act: "start" }];
     /**
      * **一度でも白紙に向き合った人にだけ出す。**
      *
@@ -97,6 +99,7 @@ export class TitleScene implements Scene {
       sfx.play("confirm");
       const act = this.items[this.index]!.act;
       if (act === "start") this.onStart();
+      else if (act === "continue") this.onContinue?.();
       else if (act === "vault") this.onVault();
       else if (act === "collection") this.onCollection();
       else this.onDebug();
@@ -137,7 +140,7 @@ export class TitleScene implements Scene {
       const on = i === this.index;
       const w = d.measure(item.label);
       const x = Math.round(cx - w / 2);
-      const y = 132 + i * 20;
+      const y = (this.items.length > 4 ? 112 : 132) + i * 20;
       if (on) d.text("▸", x - 16, y, PAL.accent);
       d.text(item.label, x, y, on ? PAL.ink : PAL.dim);
     });
